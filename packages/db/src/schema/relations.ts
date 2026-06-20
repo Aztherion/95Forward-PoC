@@ -118,6 +118,7 @@ export const giftsRelations = relations(gifts, ({ one }) => ({
   fund: one(funds, { fields: [gifts.fundId], references: [funds.id] }),
   campaign: one(campaigns, { fields: [gifts.campaignId], references: [campaigns.id] }),
   appeal: one(appeals, { fields: [gifts.appealId], references: [appeals.id] }),
+  event: one(events, { fields: [gifts.eventId], references: [events.id] }),
 }));
 
 export const opportunitiesRelations = relations(opportunities, ({ one }) => ({
@@ -140,6 +141,7 @@ export const proposalsRelations = relations(proposals, ({ one }) => ({
 export const eventsRelations = relations(events, ({ one, many }) => ({
   tenant: one(tenants, { fields: [events.tenantId], references: [tenants.id] }),
   registrations: many(eventRegistrations),
+  gifts: many(gifts),
 }));
 
 export const eventRegistrationsRelations = relations(eventRegistrations, ({ one }) => ({

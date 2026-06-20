@@ -43,6 +43,13 @@
       "when": 1781971058326,
       "tag": "0005_lethal_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781989674990,
+      "tag": "0006_bizarre_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

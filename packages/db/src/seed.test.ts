@@ -11,6 +11,7 @@ import { tenantSettings } from "./schema/config";
 import { constituents } from "./schema/constituents";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import { opportunities, proposals } from "./schema/pipeline";
+import { events, eventRegistrations, marketingMessages, segments } from "./schema/engagement";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -329,6 +330,93 @@ describe("seed: major-giving slice", () => {
         await db.query.appeals.findMany({ where: eq(appeals.tenantId, tenantId) })
       ).reduce((sum, a) => sum + (a.goalAmountCents ?? 0), 0),
     };
+    expect(after).toEqual(before);
+  });
+});
+
+describe("seed: engagement slice", () => {
+  it("seeds segments with constituent-filter definitions", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.segments.findMany({ where: eq(segments.tenantId, tenantId) });
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+    const majorDonors = rows.find((s) => s.name === "Major Donors");
+    expect(majorDonors).toBeDefined();
+    expect(majorDonors?.definition).toBeTruthy();
+  });
+
+  it("seeds marketing communications across both channels and all statuses", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.marketingMessages.findMany({
+      where: eq(marketingMessages.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+    const channels = new Set(rows.map((r) => r.channel));
+    expect(channels.has("email")).toBe(true);
+    expect(channels.has("appeal")).toBe(true);
+    const statuses = new Set(rows.map((r) => r.status));
+    expect(statuses.has("draft")).toBe(true);
+    expect(statuses.has("scheduled")).toBe(true);
+    expect(statuses.has("sent")).toBe(true);
+  });
+
+  it("seeds events with types, a goal, and a past gala", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.events.findMany({ where: eq(events.tenantId, tenantId) });
+    expect(rows.length).toBeGreaterThanOrEqual(5);
+    const gala = rows.find((e) => e.id === stableId("event:year-end-gala-2025"));
+    expect(gala?.eventType).toBe("gala");
+    expect(gala?.goalAmountCents ?? 0).toBeGreaterThan(0);
+  });
+
+  it("seeds registrations with attendance and fees, plus event-linked gift revenue", async () => {
+    if (!handle) {
+      return;
+    }
+    const galaId = stableId("event:year-end-gala-2025");
+    const regs = await db.query.eventRegistrations.findMany({
+      where: eq(eventRegistrations.eventId, galaId),
+    });
+    expect(regs.length).toBeGreaterThanOrEqual(10);
+    expect(regs.some((r) => r.attended)).toBe(true);
+    const feeRevenue = regs.reduce((sum, r) => sum + (r.feeAmountCents ?? 0), 0);
+    expect(feeRevenue).toBeGreaterThan(0);
+
+    const eventGifts = await db.query.gifts.findMany({
+      where: and(eq(gifts.tenantId, tenantId), eq(gifts.eventId, galaId)),
+    });
+    expect(eventGifts.length).toBeGreaterThanOrEqual(4);
+    const giftRevenue = eventGifts.reduce((sum, g) => sum + g.amountCents, 0);
+    expect(giftRevenue).toBeGreaterThan(0);
+  });
+
+  it("is idempotent — re-seeding leaves engagement counts stable", async () => {
+    if (!handle) {
+      return;
+    }
+    const counts = async () => ({
+      segments: (await db.query.segments.findMany({ where: eq(segments.tenantId, tenantId) }))
+        .length,
+      communications: (
+        await db.query.marketingMessages.findMany({
+          where: eq(marketingMessages.tenantId, tenantId),
+        })
+      ).length,
+      events: (await db.query.events.findMany({ where: eq(events.tenantId, tenantId) })).length,
+      registrations: (
+        await db.query.eventRegistrations.findMany({
+          where: eq(eventRegistrations.tenantId, tenantId),
+        })
+      ).length,
+    });
+    const before = await counts();
+    await seed(db);
+    const after = await counts();
     expect(after).toEqual(before);
   });
 });

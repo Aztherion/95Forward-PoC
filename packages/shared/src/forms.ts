@@ -185,3 +185,77 @@ export const proposalInputSchema = z.object({
     .optional(),
 });
 export type ProposalInput = z.infer<typeof proposalInputSchema>;
+
+// A segment is a saved filter over constituents, so it reuses the saved-list definition shape.
+export const segmentInputSchema = z.object({
+  name: z.string().trim().min(1, "Name the segment").max(120),
+  description: z.string().trim().max(500).optional(),
+  definition: savedListDefinitionSchema,
+});
+export type SegmentInput = z.infer<typeof segmentInputSchema>;
+
+// MARKETING_CHANNELS mirrors the marketing_channel pgEnum; the *_STATUSES and EVENT_TYPES below
+// back text columns and are enforced only here.
+export const MARKETING_CHANNELS = ["email", "appeal"] as const;
+export const MARKETING_STATUSES = ["draft", "scheduled", "sent"] as const;
+
+export const communicationInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name the communication").max(200),
+    channel: z.enum(MARKETING_CHANNELS),
+    segmentId: z.string().uuid().optional(),
+    subject: z.string().trim().max(300).optional(),
+    body: z.string().trim().max(20_000).optional(),
+    status: z.enum(MARKETING_STATUSES).default("draft"),
+    scheduledAt: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+  })
+  .refine((value) => value.status !== "scheduled" || Boolean(value.scheduledAt), {
+    message: "A scheduled communication needs a scheduled date",
+    path: ["scheduledAt"],
+  });
+export type CommunicationInput = z.infer<typeof communicationInputSchema>;
+
+export const EVENT_TYPES = [
+  "gala",
+  "breakfast",
+  "luncheon",
+  "house_party",
+  "site_visit",
+  "webinar",
+  "other",
+] as const;
+
+export const eventInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name the event").max(200),
+    eventType: z.enum(EVENT_TYPES).default("other"),
+    startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+    endsAt: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    location: z.string().trim().max(300).optional(),
+    capacity: z.number().int().positive().max(1_000_000).optional(),
+    goalAmountCents: z.number().int().positive().max(100_000_000_00).optional(),
+    description: z.string().trim().max(2000).optional(),
+  })
+  .refine((value) => !value.endsAt || value.endsAt >= value.startsAt, {
+    message: "The end date cannot be before the start date",
+    path: ["endsAt"],
+  });
+export type EventInput = z.infer<typeof eventInputSchema>;
+
+export const REGISTRATION_STATUSES = ["registered", "waitlisted", "cancelled"] as const;
+
+export const registrationInputSchema = z.object({
+  eventId: z.string().uuid(),
+  constituentId: z.string().uuid("Select a constituent"),
+  status: z.enum(REGISTRATION_STATUSES).default("registered"),
+  guestCount: z.number().int().min(0).max(100).default(0),
+  feeAmountCents: z.number().int().min(0).max(100_000_000_00).optional(),
+  attended: z.boolean().default(false),
+});
+export type RegistrationInput = z.infer<typeof registrationInputSchema>;

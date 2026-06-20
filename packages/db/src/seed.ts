@@ -6,6 +6,7 @@ import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
 import { seedRecordsCore } from "./seed-records-core";
 import { seedMajorGiving } from "./seed-major-giving";
+import { seedEngagement } from "./seed-engagement";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -64,6 +65,7 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
 
   await seedRecordsCore(db, tenantId);
   await seedMajorGiving(db, tenantId);
+  await seedEngagement(db, tenantId);
 
   return { tenantId };
 }

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  communicationInputSchema,
   constituentInputSchema,
+  eventInputSchema,
   giftInputSchema,
   interactionInputSchema,
+  registrationInputSchema,
   relationshipInputSchema,
   savedListInputSchema,
+  segmentInputSchema,
   tagInputSchema,
 } from "./forms";
 
@@ -131,5 +135,84 @@ describe("tagInputSchema", () => {
 
   it("requires either a tag id or a new tag name", () => {
     expect(() => tagInputSchema.parse({ constituentId: UUID })).toThrow();
+  });
+});
+
+describe("segmentInputSchema", () => {
+  it("accepts a segment defined by a constituent filter", () => {
+    const parsed = segmentInputSchema.parse({
+      name: "Lapsed donors",
+      definition: { filters: [{ field: "prospectStatus", operator: "eq", value: "donor" }] },
+    });
+    expect(parsed.definition.filters).toHaveLength(1);
+  });
+
+  it("requires a name", () => {
+    expect(() => segmentInputSchema.parse({ name: "", definition: { filters: [] } })).toThrow();
+  });
+});
+
+describe("communicationInputSchema", () => {
+  it("accepts a draft and defaults status to draft", () => {
+    const parsed = communicationInputSchema.parse({
+      name: "World Water Day appeal",
+      channel: "appeal",
+    });
+    expect(parsed.status).toBe("draft");
+  });
+
+  it("requires a scheduled date when status is scheduled", () => {
+    expect(() =>
+      communicationInputSchema.parse({
+        name: "Year-end email",
+        channel: "email",
+        status: "scheduled",
+      }),
+    ).toThrow();
+    const parsed = communicationInputSchema.parse({
+      name: "Year-end email",
+      channel: "email",
+      status: "scheduled",
+      scheduledAt: "2026-12-01",
+    });
+    expect(parsed.scheduledAt).toBe("2026-12-01");
+  });
+
+  it("rejects an unknown channel", () => {
+    expect(() =>
+      communicationInputSchema.parse({ name: "X", channel: "carrier_pigeon" }),
+    ).toThrow();
+  });
+});
+
+describe("eventInputSchema", () => {
+  it("accepts a valid event and defaults the type", () => {
+    const parsed = eventInputSchema.parse({ name: "Donor breakfast", startsAt: "2026-03-22" });
+    expect(parsed.eventType).toBe("other");
+  });
+
+  it("requires a start date", () => {
+    expect(() => eventInputSchema.parse({ name: "Gala" })).toThrow();
+  });
+
+  it("rejects an end date before the start date", () => {
+    expect(() =>
+      eventInputSchema.parse({ name: "Tour", startsAt: "2026-03-22", endsAt: "2026-03-21" }),
+    ).toThrow();
+  });
+});
+
+describe("registrationInputSchema", () => {
+  it("accepts a registration and defaults status, guests, and attendance", () => {
+    const parsed = registrationInputSchema.parse({ eventId: UUID, constituentId: UUID_B });
+    expect(parsed.status).toBe("registered");
+    expect(parsed.guestCount).toBe(0);
+    expect(parsed.attended).toBe(false);
+  });
+
+  it("rejects a negative guest count", () => {
+    expect(() =>
+      registrationInputSchema.parse({ eventId: UUID, constituentId: UUID_B, guestCount: -1 }),
+    ).toThrow();
   });
 });

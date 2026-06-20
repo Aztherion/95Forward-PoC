@@ -2,6 +2,7 @@ import { date, index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
 import { giftTypeEnum } from "./enums";
 import { constituents } from "./constituents";
+import { events } from "./engagement";
 
 export const funds = pgTable(
   "funds",
@@ -60,6 +61,7 @@ export const gifts = pgTable(
     fundId: uuid("fund_id").references(() => funds.id, { onDelete: "set null" }),
     campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
     appealId: uuid("appeal_id").references(() => appeals.id, { onDelete: "set null" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
     giftType: giftTypeEnum("gift_type").notNull(),
     designation: text("designation"),
     receiptStatus: text("receipt_status"),
@@ -71,5 +73,6 @@ export const gifts = pgTable(
     index("gifts_fund_id_idx").on(table.fundId),
     index("gifts_campaign_id_idx").on(table.campaignId),
     index("gifts_appeal_id_idx").on(table.appealId),
+    index("gifts_event_id_idx").on(table.eventId),
   ],
 );
