@@ -18,6 +18,8 @@ playwright-report/
 test-results/
 blob-report/
 .playwright/
+.playwright-mcp/
+**/playwright/.auth/
 
 # Env
 .env

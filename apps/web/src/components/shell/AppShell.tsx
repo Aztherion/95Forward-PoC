@@ -16,6 +16,7 @@ import {
   IdCard,
   List,
   ListOrdered,
+  LogOut,
   Megaphone,
   Radio,
   Settings,
@@ -25,10 +26,9 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { Register } from "@95forward/shared";
-import { HOST_BRAND } from "@95forward/shared";
+import type { CurrentUser, Register } from "@95forward/shared";
+import { HOST_BRAND, ROLE_LABELS } from "@95forward/shared";
 import { Avatar, Mark } from "@/components/ds";
-import { getCurrentUser } from "@/lib/auth";
 import { NAV_SECTIONS, type NavGroup, type NavIcon, type NavLeaf } from "./nav";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
@@ -122,12 +122,12 @@ function NavGroupRow({ group, pathname, branded }: NavGroupRowProps) {
 
 export interface AppShellProps {
   register: Register;
+  user: CurrentUser;
   children: ReactNode;
 }
 
-export function AppShell({ register, children }: AppShellProps) {
+export function AppShell({ register, user, children }: AppShellProps) {
   const pathname = usePathname();
-  const user = getCurrentUser();
   return (
     <div className="shell" data-register={register}>
       <aside className="shell-sidebar">
@@ -170,15 +170,18 @@ export function AppShell({ register, children }: AppShellProps) {
           </nav>
         ))}
 
-        <Link href="/settings" className="shell-user">
-          <Avatar name={user.name} size="md" ringColor="var(--role-manager)" />
-          <span className="shell-user__text">
-            <span className="shell-user__name">{user.name}</span>
-            <span className="shell-user__sub">
-              {user.name} · {user.role}
+        <div className="shell-account">
+          <Link href="/settings" className="shell-user">
+            <Avatar name={user.name} size="md" ringColor="var(--role-manager)" />
+            <span className="shell-user__text">
+              <span className="shell-user__name">{user.name}</span>
+              <span className="shell-user__sub">{ROLE_LABELS[user.role]}</span>
             </span>
-          </span>
-        </Link>
+          </Link>
+          <a href="/auth/logout" className="shell-signout" aria-label="Sign out">
+            <LogOut size={18} strokeWidth={1.8} />
+          </a>
+        </div>
       </aside>
 
       <div className="shell-main">

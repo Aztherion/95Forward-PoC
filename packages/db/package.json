@@ -21,12 +21,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
+    "seed": "tsx src/seed.ts",
     "wait": "tsx src/wait.ts",
     "studio": "drizzle-kit studio",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
+    "@95forward/shared": "workspace:*",
     "drizzle-orm": "^0.38.3",
     "pg": "^8.13.1"
   },

@@ -136,13 +136,41 @@
   flex: none;
 }
 
-.shell-user {
+.shell-account {
   margin-top: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: var(--space-4) 8px 8px;
   border-top: 1px solid var(--border-hairline);
+}
+.shell-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.shell-signout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.shell-signout:hover {
+  background: var(--surface-sunk);
+  color: var(--text-body);
+}
+.shell-signout:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 .shell-user__text {
   display: flex;

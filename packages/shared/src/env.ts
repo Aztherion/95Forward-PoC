@@ -12,9 +12,23 @@ export const envSchema = z.object({
 
   WORKER_PORT: z.coerce.number().int().positive().max(65535).default(3001),
 
+  // Auth0 (Initiative 1) — required. Names match what @auth0/nextjs-auth0 v4 reads.
+  AUTH0_DOMAIN: z.string().min(1, "AUTH0_DOMAIN is required"),
+  AUTH0_CLIENT_ID: z.string().min(1, "AUTH0_CLIENT_ID is required"),
+  AUTH0_CLIENT_SECRET: z.string().min(1, "AUTH0_CLIENT_SECRET is required"),
+  AUTH0_SECRET: z.string().min(1, "AUTH0_SECRET is required"),
+  APP_BASE_URL: z.string().url("APP_BASE_URL must be a valid URL"),
+
+  // Security gate: enables a deterministic dev/test login route (Playwright/CI)
+  // that mints a session cookie without a live Auth0 tenant. Never honored when
+  // NODE_ENV=production.
+  AUTH_DEV_LOGIN: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+
   // Placeholders for LATER initiatives — intentionally optional now; promote to
   // required as each lands:
-  //   Initiative 1 (Auth0): AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_SECRET, APP_BASE_URL
   //   Initiative 6 (AI):    ANTHROPIC_API_KEY, OPENAI_API_KEY, EMBEDDINGS_MODEL
   //   Initiative 11 (jobs): JOBS_CONCURRENCY, JOBS_SCHEMA (Graphile Worker reuses DATABASE_URL)
 });

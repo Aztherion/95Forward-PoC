@@ -4,10 +4,11 @@ An opinionated, AI-guided **major-gifts workspace** for nonprofit fundraising, e
 add-on inside a thin host CRM called **Keystone CRM** (a stand-in for Raiser's Edge NXT). The
 demo customer org is **Water For People**.
 
-This repository is **Initiative 0 — Foundation & Platform**. It contains only the skeleton that
-later initiatives hang on: the monorepo, the design-system wiring, the global app shell (with
-placeholder pages), the database/infra plumbing, the deploy config, and the test/CI harness.
-**No product features are implemented in this initiative** — every page is a placeholder.
+**Initiative 0 (foundation)** and **Initiative 1 (auth, tenancy & data model)** are complete:
+the monorepo, the design-system wiring, the global app shell, the infra/CI/test harness, plus
+Auth0 authentication, the full tenant-scoped relational schema, and the seed. **No product
+features are built yet** — the host CRM and 95 Forward screens remain placeholders; later
+initiatives build them on the schema and auth defined here.
 
 ## What is (and isn't) in Initiative 0
 
@@ -83,14 +84,18 @@ pnpm install
 # 2. Create your env file
 cp .env.example .env
 
-# 3. Start Postgres + pgvector and run the baseline migration
-pnpm db:up        # docker compose up -d
-pnpm db:wait      # waits until Postgres accepts connections
-pnpm db:migrate   # enables the pgvector extension
+# 3. Start Postgres + pgvector, migrate, and seed
+pnpm db:up                          # docker compose up -d
+pnpm db:wait                        # waits until Postgres accepts connections
+pnpm db:migrate                     # enables pgvector + creates the schema
+pnpm --filter @95forward/db seed    # Water For People tenant + the three users
 
 # 4. Run the apps (web on :3000, worker on :3001)
 pnpm dev
 ```
+
+For local development without a live Auth0 tenant, set `AUTH_DEV_LOGIN=true` in `.env` and use the
+gated dev-login seam (see Authentication below). Production requires real Auth0 credentials.
 
 Open <http://localhost:3000> for the app and <http://localhost:3000/styleguide> for the design
 gallery. The worker health check is at <http://localhost:3001/health>.
@@ -144,32 +149,61 @@ The handoff `SKILL.md` is added as an opencode skill at
 `.opencode/skills/95-forward-design/SKILL.md` (name `95-forward-design`); load it for all UI work in
 this and later initiatives.
 
-## Database & migrations
+## Database, schema & tenancy
 
-Local Postgres uses the `pgvector/pgvector:pg16` image. The single baseline migration
-(`packages/db/drizzle/0000_enable_pgvector.sql`) runs `CREATE EXTENSION IF NOT EXISTS vector;`.
-**No domain tables are defined in Initiative 0** — the schema (`packages/db/src/schema.ts`) is
-intentionally empty until Initiative 1. Migrations are applied by `packages/db/src/migrate.ts`
-(`pnpm db:migrate`) and are idempotent.
+Local Postgres uses the `pgvector/pgvector:pg16` image. Migrations live in `packages/db/drizzle/`:
+`0000_enable_pgvector` enables the extension; `0001` creates the full relational schema
+(`packages/db/src/schema/`). **Every table carries a NOT NULL `tenant_id` FK to `tenants`**, plus
+`created_at`/`updated_at`. Apply with `pnpm db:migrate` (idempotent); generate new migrations with
+`pnpm db:generate`. Seed the tenant + three users with `pnpm --filter @95forward/db seed`.
+
+**Tenant scoping.** All data access goes through `createTenantDb(db, tenantId)` from `@95forward/db`,
+which injects `tenant_id` into every read and write so cross-tenant queries return/affect zero rows.
+Isolation is proven by `packages/db/src/tenancy.test.ts`.
+
+## Authentication (Auth0)
+
+Auth is the official **`@auth0/nextjs-auth0` v4** SDK (App Router). `apps/web/src/middleware.ts`
+mounts the `/auth/*` routes and redirects unauthenticated requests to `/login`. On a request,
+`getCurrentUser()` (server-only) reads the Auth0 session, resolves the **email** to a local `users`
+row (yielding the user's `role` and `tenant_id`), and links `auth0_subject` on first login. The
+shell's user chip shows the real signed-in user.
+
+**Auth0 setup (one-time).** In the Auth0 dashboard create a **Regular Web Application** and set:
+
+- Allowed Callback URLs: `http://localhost:3000/auth/callback` (and your deployed URL).
+- Allowed Logout URLs: `http://localhost:3000` (and your deployed URL).
+- Create three test users whose emails match the seed: `dana.reese@waterforpeople.org`,
+  `priya.nair@waterforpeople.org`, `ruth.castellanos@waterforpeople.org`.
+- Put `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`
+  (`openssl rand -hex 32`), and `APP_BASE_URL` in `.env` (see `.env.example`).
+
+**Dev/test login (no live Auth0 needed).** When `AUTH_DEV_LOGIN=true` and `NODE_ENV != production`,
+`POST /api/test-login` mints a session cookie for a seeded email. This is how local dev and the
+Playwright suite authenticate deterministically; it is disabled in production.
 
 ## Testing
 
-- **Unit (Vitest):** `pnpm test`. Covers the Zod env schema and the register-resolution helper
-  (`packages/shared`), the nav contract (`apps/web`), and the worker health logic (`apps/worker`).
-- **E2E (Playwright):** `pnpm test:e2e`. Authored and run with the Playwright skill. Covers: the
-  shell renders all sidebar items in the correct order/grouping; the 95 Forward group
-  expands/collapses; host vs 95-forward registers apply per route; and `/styleguide` renders the
-  primitives. The Playwright `webServer` serves the app via `next dev` because `/styleguide` is a
-  **dev-only** gallery (it 404s in a production build by design).
+- **Unit (Vitest):** `pnpm test`. Covers the Zod env schema, the register helper, roles and QPI
+  defaults (`packages/shared`); **tenant isolation** and seed correctness (`packages/db` — these
+  run against a migrated DB and skip with a warning if none is reachable); the nav contract
+  (`apps/web`); and the worker health logic (`apps/worker`).
+- **E2E (Playwright):** `pnpm --filter @95forward/web test:e2e` (requires the DB up, migrated, and
+  seeded). Authored and run with the Playwright skill. Covers the **auth flow** (unauthenticated →
+  `/login`, post-login user/role in the shell, protected routes, logout) via the dev-login seam,
+  plus the shell order/grouping, the 95 Forward expand/collapse, the register switch, and the
+  `/styleguide` gallery. The `webServer` runs `next dev` with `AUTH_DEV_LOGIN=true`.
 
-CI (`.github/workflows/ci.yml`) runs install → build → lint → typecheck → unit tests → the pgvector
-migration (against a Postgres service) → Playwright E2E.
+CI (`.github/workflows/ci.yml`) runs install → build → lint → typecheck → **DB migrate + seed** →
+unit tests → Playwright E2E (against a Postgres service; auth uses the dev-login seam, no live Auth0).
 
 ## Environment variables
 
-See `.env.example`. Required now: `DATABASE_URL`. Also used: `NODE_ENV`, `APP_ENV`, `LOG_LEVEL`,
-`WORKER_PORT`, and the `NEXT_PUBLIC_*` web vars. Placeholders for later initiatives (Auth0 in I1, AI
-in I6, jobs in I11) are documented as comments in `.env.example` and `packages/shared/src/env.ts`.
+See `.env.example`. **Required:** `DATABASE_URL` and the Auth0 vars (`AUTH0_DOMAIN`,
+`AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`). Also used: `NODE_ENV`,
+`APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `AUTH_DEV_LOGIN` (dev/test only), and the `NEXT_PUBLIC_*` web
+vars. The schema is validated in `packages/shared/src/env.ts`; placeholders for later initiatives
+(AI in I6, jobs in I11) remain documented there and in `.env.example`.
 
 ## Deployment (DigitalOcean App Platform)
 

@@ -1,7 +1,11 @@
-# DigitalOcean App Platform spec for 95 Forward (Initiative 0).
-# Before `doctl apps create --spec .do/app.yaml`, set `github.repo` to your repo,
-# adjust `region`/instance sizes, and confirm the managed PG `vector` extension is
-# allowed (the pre-deploy `migrate` job runs CREATE EXTENSION IF NOT EXISTS vector).
+# DigitalOcean App Platform spec for 95 Forward.
+# Operator setup before `doctl apps create --spec .do/app.yaml`:
+#   - set github.repo, region, and instance sizes
+#   - ensure the managed PG vector extension is allowed (the PRE_DEPLOY migrate
+#     job runs CREATE EXTENSION IF NOT EXISTS vector)
+#   - supply real values for every REPLACE_ME (Auth0 client id/secret; the
+#     AUTH0_SECRET is a 32-byte hex from `openssl rand -hex 32`)
+# Worker carries Auth0 vars because the shared Zod env schema requires them.
 name: ninety-five-forward
 region: nyc
 
@@ -54,6 +58,23 @@ services:
         value: "Keystone CRM"
       - key: NEXT_PUBLIC_HOST_ORG
         value: "Water For People"
+      - key: AUTH0_DOMAIN
+        scope: RUN_AND_BUILD_TIME
+        value: your-tenant.us.auth0.com
+      - key: AUTH0_CLIENT_ID
+        scope: RUN_AND_BUILD_TIME
+        value: REPLACE_ME
+      - key: AUTH0_CLIENT_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: AUTH0_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: APP_BASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${APP_URL}
 
   - name: worker
     github:
@@ -78,3 +99,15 @@ services:
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${forward-db.DATABASE_URL}
+      - key: AUTH0_DOMAIN
+        value: your-tenant.us.auth0.com
+      - key: AUTH0_CLIENT_ID
+        value: REPLACE_ME
+      - key: AUTH0_CLIENT_SECRET
+        type: SECRET
+        value: REPLACE_ME
+      - key: AUTH0_SECRET
+        type: SECRET
+        value: REPLACE_ME
+      - key: APP_BASE_URL
+        value: ${APP_URL}

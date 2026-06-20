@@ -71,6 +71,7 @@ test.describe("app shell", () => {
   test("shows brand header and user chip", async ({ page }) => {
     await expect(page.locator(".shell-brand__name")).toHaveText("Keystone CRM");
     await expect(page.locator(".shell-brand__org")).toHaveText("Water For People");
-    await expect(page.locator(".shell-user__sub")).toHaveText("Dana Reese · Major Gifts Officer");
+    await expect(page.locator(".shell-user__name")).toHaveText("Dana Reese");
+    await expect(page.locator(".shell-user__sub")).toHaveText("Major Gifts Officer");
   });
 });

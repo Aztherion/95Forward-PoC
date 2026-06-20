@@ -14,6 +14,8 @@
   "dependencies": {
     "@95forward/db": "workspace:*",
     "@95forward/shared": "workspace:*",
+    "@auth0/nextjs-auth0": "^4.0.0",
+    "drizzle-orm": "^0.38.3",
     "lucide-react": "^0.469.0",
     "next": "^15.1.6",
     "react": "^19.0.0",

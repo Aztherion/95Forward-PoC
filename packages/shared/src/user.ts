@@ -1,8 +1,10 @@
+import type { Role } from "./roles";
+
 export interface CurrentUser {
   id: string;
+  tenantId: string;
   name: string;
-  role: string;
   email: string;
-  org: string;
+  role: Role;
   initials: string;
 }
