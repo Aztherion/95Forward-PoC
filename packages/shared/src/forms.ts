@@ -143,3 +143,45 @@ export const tagInputSchema = z
     path: ["tagId"],
   });
 export type TagInput = z.infer<typeof tagInputSchema>;
+
+export const OPPORTUNITY_STAGES = [
+  "identification",
+  "cultivation",
+  "solicitation",
+  "stewardship",
+] as const;
+
+export const opportunityInputSchema = z.object({
+  constituentId: z.string().uuid("Select a constituent"),
+  stage: z.enum(OPPORTUNITY_STAGES),
+  askAmountCents: z.number().int().positive().max(100_000_000_00).optional(),
+  expectedAmountCents: z.number().int().positive().max(100_000_000_00).optional(),
+  expectedCloseDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+  likelihoodPct: z.number().int().min(0).max(100).optional(),
+  ownerUserId: z.string().uuid().optional(),
+});
+export type OpportunityInput = z.infer<typeof opportunityInputSchema>;
+
+export const PROPOSAL_STATUSES = [
+  "draft",
+  "submitted",
+  "under_review",
+  "approved",
+  "declined",
+  "funded",
+] as const;
+
+export const proposalInputSchema = z.object({
+  constituentId: z.string().uuid("Select a constituent"),
+  purpose: z.string().trim().max(500).optional(),
+  amountCents: z.number().int().positive().max(100_000_000_00).optional(),
+  status: z.enum(PROPOSAL_STATUSES).default("draft"),
+  deadline: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+});
+export type ProposalInput = z.infer<typeof proposalInputSchema>;

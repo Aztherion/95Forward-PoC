@@ -714,8 +714,119 @@
   display: inline-flex;
 }
 
+.f95-mg-likelihood {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-500);
+}
+.f95-mg-likelihood__value {
+  font: var(--fw-semibold) var(--fs-body)/1 var(--font-sans);
+  color: var(--ink-700);
+  font-variant-numeric: tabular-nums;
+}
+.f95-mg-likelihood__empty {
+  font: var(--fw-semibold) var(--fs-body)/1 var(--font-sans);
+  color: var(--text-muted);
+}
+
+.f95-mg-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.f95-mg-stage__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.f95-mg-stage__title {
+  font: var(--text-h3);
+  color: var(--text-strong);
+}
+.f95-mg-stage__summary {
+  font: var(--text-caption);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.f95-analysis-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--fw-semibold) var(--fs-caption)/1 var(--font-sans);
+  color: var(--ink-600);
+}
+.f95-analysis-link:hover {
+  color: var(--ink-700);
+}
+.f95-analysis-link--muted {
+  color: var(--text-muted);
+}
+
+.f95-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--haze-100);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.f95-progress--lg {
+  height: 12px;
+}
+.f95-progress__fill {
+  height: 100%;
+  min-width: 2px;
+  background: var(--ink-400);
+  border-radius: var(--radius-sm);
+  transition: width 240ms ease;
+}
+
+.f95-rankbars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.f95-rankbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.f95-rankbar__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.f95-rankbar__name {
+  font: var(--fw-semibold) var(--fs-body)/1.3 var(--font-sans);
+  color: var(--text-strong);
+  min-width: 0;
+}
+.f95-rankbar__amount {
+  font: var(--fw-semibold) var(--fs-caption)/1 var(--font-sans);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.f95-goalmeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.f95-goalmeta__pct {
+  font: var(--fw-semibold) var(--fs-body)/1 var(--font-sans);
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .f95-bars__fill {
+  .f95-bars__fill,
+  .f95-progress__fill {
     transition: none;
   }
 }

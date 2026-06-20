@@ -10,6 +10,7 @@ import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
 import { constituents } from "./schema/constituents";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
+import { opportunities, proposals } from "./schema/pipeline";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -199,6 +200,134 @@ describe("seed: records-core slice", () => {
         await db.query.constituents.findMany({ where: eq(constituents.tenantId, tenantId) })
       ).length,
       gifts: (await db.query.gifts.findMany({ where: eq(gifts.tenantId, tenantId) })).length,
+    };
+    expect(after).toEqual(before);
+  });
+});
+
+describe("seed: major-giving slice", () => {
+  it("seeds opportunities across all four stages", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.opportunities.findMany({
+      where: eq(opportunities.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThanOrEqual(16);
+    const stages = new Set(rows.map((r) => r.stage));
+    for (const stage of ["identification", "cultivation", "solicitation", "stewardship"]) {
+      expect(stages.has(stage as (typeof rows)[number]["stage"])).toBe(true);
+    }
+  });
+
+  it("gives Hallworth a solicitation-stage opportunity with a large ask owned by Dana", async () => {
+    if (!handle) {
+      return;
+    }
+    const hallworthId = stableId("constituent:hallworth");
+    const danaUser = await db.query.users.findFirst({
+      where: eq(users.email, "dana.reese@waterforpeople.org"),
+    });
+    const opp = await db.query.opportunities.findFirst({
+      where: eq(opportunities.id, stableId("opportunity:hallworth:bolivia")),
+    });
+    expect(opp).toBeDefined();
+    expect(opp?.constituentId).toBe(hallworthId);
+    expect(opp?.stage).toBe("solicitation");
+    expect(opp?.askAmountCents ?? 0).toBeGreaterThanOrEqual(200_000_000);
+    expect(opp?.ownerUserId).toBe(danaUser?.id);
+  });
+
+  it("splits opportunity ownership between Dana and Priya", async () => {
+    if (!handle) {
+      return;
+    }
+    const [dana, priya] = await Promise.all([
+      db.query.users.findFirst({ where: eq(users.email, "dana.reese@waterforpeople.org") }),
+      db.query.users.findFirst({ where: eq(users.email, "priya.nair@waterforpeople.org") }),
+    ]);
+    const rows = await db.query.opportunities.findMany({
+      where: eq(opportunities.tenantId, tenantId),
+    });
+    expect(rows.some((r) => r.ownerUserId === dana?.id)).toBe(true);
+    expect(rows.some((r) => r.ownerUserId === priya?.id)).toBe(true);
+  });
+
+  it("uses opaque likelihood_pct within the 0-100 range", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.opportunities.findMany({
+      where: eq(opportunities.tenantId, tenantId),
+    });
+    const withLikelihood = rows.filter((r) => r.likelihoodPct !== null);
+    expect(withLikelihood.length).toBeGreaterThan(0);
+    expect(
+      withLikelihood.every((r) => (r.likelihoodPct ?? 0) >= 0 && (r.likelihoodPct ?? 0) <= 100),
+    ).toBe(true);
+  });
+
+  it("seeds proposals with a spread of statuses", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.proposals.findMany({
+      where: eq(proposals.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThanOrEqual(10);
+    const statuses = new Set(rows.map((r) => r.status));
+    expect(statuses.has("submitted")).toBe(true);
+    expect(statuses.has("under_review")).toBe(true);
+    expect(statuses.has("approved")).toBe(true);
+    expect(statuses.has("funded")).toBe(true);
+  });
+
+  it("sets goal_amount_cents on all seeded campaigns and appeals", async () => {
+    if (!handle) {
+      return;
+    }
+    const [campaignRows, appealRows] = await Promise.all([
+      db.query.campaigns.findMany({ where: eq(campaigns.tenantId, tenantId) }),
+      db.query.appeals.findMany({ where: eq(appeals.tenantId, tenantId) }),
+    ]);
+    expect(campaignRows.length).toBeGreaterThan(0);
+    expect(appealRows.length).toBeGreaterThan(0);
+    expect(campaignRows.every((c) => c.goalAmountCents !== null && c.goalAmountCents > 0)).toBe(
+      true,
+    );
+    expect(appealRows.every((a) => a.goalAmountCents !== null && a.goalAmountCents > 0)).toBe(true);
+  });
+
+  it("is idempotent — re-seeding leaves opportunity and proposal counts and goals stable", async () => {
+    if (!handle) {
+      return;
+    }
+    const before = {
+      opportunities: (
+        await db.query.opportunities.findMany({ where: eq(opportunities.tenantId, tenantId) })
+      ).length,
+      proposals: (await db.query.proposals.findMany({ where: eq(proposals.tenantId, tenantId) }))
+        .length,
+      campaignGoals: (
+        await db.query.campaigns.findMany({ where: eq(campaigns.tenantId, tenantId) })
+      ).reduce((sum, c) => sum + (c.goalAmountCents ?? 0), 0),
+      appealGoals: (
+        await db.query.appeals.findMany({ where: eq(appeals.tenantId, tenantId) })
+      ).reduce((sum, a) => sum + (a.goalAmountCents ?? 0), 0),
+    };
+    await seed(db);
+    const after = {
+      opportunities: (
+        await db.query.opportunities.findMany({ where: eq(opportunities.tenantId, tenantId) })
+      ).length,
+      proposals: (await db.query.proposals.findMany({ where: eq(proposals.tenantId, tenantId) }))
+        .length,
+      campaignGoals: (
+        await db.query.campaigns.findMany({ where: eq(campaigns.tenantId, tenantId) })
+      ).reduce((sum, c) => sum + (c.goalAmountCents ?? 0), 0),
+      appealGoals: (
+        await db.query.appeals.findMany({ where: eq(appeals.tenantId, tenantId) })
+      ).reduce((sum, a) => sum + (a.goalAmountCents ?? 0), 0),
     };
     expect(after).toEqual(before);
   });

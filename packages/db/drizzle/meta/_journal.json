@@ -36,6 +36,13 @@
       "when": 1781961351865,
       "tag": "0004_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781971058326,
+      "tag": "0005_lethal_power_man",
+      "breakpoints": true
     }
   ]
 }

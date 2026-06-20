@@ -1,28 +1,36 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Hanken_Grotesk, IBM_Plex_Mono, Newsreader } from "next/font/google";
+import localFont from "next/font/local";
 import "../styles/globals.css";
 
-const hanken = Hanken_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const hanken = localFont({
+  src: "./fonts/hanken-grotesk-latin-wght-normal.woff2",
+  weight: "100 900",
   variable: "--font-hanken",
   display: "swap",
+  adjustFontFallback: false,
 });
 
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
+const newsreader = localFont({
+  src: [
+    { path: "./fonts/newsreader-latin-wght-normal.woff2", style: "normal" },
+    { path: "./fonts/newsreader-latin-wght-italic.woff2", style: "italic" },
+  ],
+  weight: "200 800",
   variable: "--font-newsreader",
   display: "swap",
+  adjustFontFallback: false,
 });
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {

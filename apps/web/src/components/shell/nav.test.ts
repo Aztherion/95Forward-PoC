@@ -38,9 +38,9 @@ describe("nav configuration", () => {
     expect(group?.label).toBe("Major Giving");
     expect(group?.basePath).toBe("/major-giving");
     expect(group?.children.map((c) => [c.label, c.href])).toEqual([
-      ["Opportunities", "/opportunities"],
-      ["Proposals", "/proposals"],
-      ["Portfolio", "/portfolio"],
+      ["Opportunities", "/major-giving/opportunities"],
+      ["Proposals", "/major-giving/proposals"],
+      ["Portfolio", "/major-giving/portfolio"],
     ]);
   });
 
