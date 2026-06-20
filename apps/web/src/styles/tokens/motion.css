@@ -1,0 +1,65 @@
+/* ============================================================
+   95 Forward — MOTION TOKENS
+   "Purposeful & in motion" — momentum, never frantic. A quiet
+   heartbeat for cadence (the 24-hour follow-up), calm fades and
+   gentle ease for everything else. No bounce, no spectacle.
+   Respect prefers-reduced-motion everywhere.
+   ============================================================ */
+:root {
+  --dur-instant: 80ms; /* @kind other */
+  --dur-fast: 140ms; /* @kind other */
+  --dur-base: 220ms; /* @kind other */
+  --dur-slow: 360ms; /* @kind other */
+  --dur-deliberate: 520ms; /* @kind other */
+
+  /* Easing — calm, confident. Standard ease-out for entrances. */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.45, 0, 0.25, 1); /* @kind other */
+  --ease-emph: cubic-bezier(0.16, 0.84, 0.44, 1); /* @kind other */
+
+  /* The heartbeat — cadence made felt. Slow, alive, never urgent. */
+  --beat-period: 2600ms; /* @kind other */
+}
+
+/* A quiet heartbeat for cadence indicators (follow-up due, etc.) */
+@keyframes f95-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+/* Calm rise — default entrance */
+@keyframes f95-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Score count-up companion fade */
+@keyframes f95-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

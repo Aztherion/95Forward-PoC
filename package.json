@@ -1,0 +1,40 @@
+{
+  "name": "95-forward-poc",
+  "version": "0.0.0",
+  "private": true,
+  "description": "95 Forward — an AI-guided major-gifts workspace embedded in the Keystone CRM host. Initiative 0: foundation & platform.",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22 <23",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,yaml,yml}\"",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:wait": "pnpm --filter @95forward/db wait",
+    "db:migrate": "pnpm --filter @95forward/db migrate",
+    "db:generate": "pnpm --filter @95forward/db generate",
+    "clean": "turbo run clean --no-cache && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@next/eslint-plugin-next": "^15.1.6",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.4",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
+  }
+}

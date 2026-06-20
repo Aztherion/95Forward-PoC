@@ -1,0 +1,7 @@
+<svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="95 Forward">
+  <rect width="48" height="48" rx="12" fill="#235C86"></rect>
+  <path d="M13 31.5 L24 21 L35 31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"></path>
+  <circle cx="24" cy="13.5" r="3.1" fill="#C8862A"></circle>
+  <text x="60" y="31.5" font-family="&#39;Hanken Grotesk&#39;, sans-serif" font-size="22" font-weight="800" letter-spacing="-0.5" fill="#16202B">95</text>
+  <text x="86" y="31.5" font-family="&#39;Hanken Grotesk&#39;, sans-serif" font-size="22" font-weight="500" letter-spacing="-0.3" fill="#2B3E4F">Forward</text>
+</svg>

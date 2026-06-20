@@ -1,0 +1,62 @@
+/* ============================================================
+   95 Forward — base resets & document defaults.
+   Minimal; sets the warm-credible baseline so any consuming page
+   inherits the right type, color, and rendering.
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-body);
+  font: var(--text-body-r);
+  font-feature-settings: var(--num-tabular);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-strong);
+  margin: 0;
+}
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--brand-primary-hover);
+}
+
+::selection {
+  background: var(--blue-100);
+  color: var(--ink-900);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-xs);
+}
+
+/* Numbers everywhere should be tabular & lined */
+.f95-num {
+  font-feature-settings: var(--num-tabular);
+}

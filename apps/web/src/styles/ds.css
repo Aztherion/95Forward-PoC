@@ -1,0 +1,592 @@
+.f95-btn {
+  --_h: var(--control-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--_h);
+  padding: 0 16px;
+  box-sizing: border-box;
+  font: var(--fw-semibold) var(--fs-body)/1 var(--font-sans);
+  letter-spacing: var(--ls-snug);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+.f95-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.f95-btn:active {
+  transform: translateY(0.5px);
+}
+.f95-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.f95-btn .f95-btn__ic {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+/* sizes */
+.f95-btn--sm {
+  --_h: var(--control-sm);
+  padding: 0 12px;
+  font-size: var(--fs-small);
+  border-radius: var(--radius-sm);
+}
+.f95-btn--lg {
+  --_h: var(--control-lg);
+  padding: 0 22px;
+  font-size: var(--fs-lg);
+}
+
+/* primary — horizon blue */
+.f95-btn--primary {
+  background: var(--brand-primary);
+  color: var(--text-on-accent);
+}
+.f95-btn--primary:hover:not([disabled]) {
+  background: var(--brand-primary-hover);
+}
+.f95-btn--primary:active:not([disabled]) {
+  background: var(--brand-primary-press);
+}
+
+/* go — the momentum CTA (dawn gold). Use sparingly: the next right move. */
+.f95-btn--go {
+  background: var(--accent-go);
+  color: var(--text-on-accent);
+}
+.f95-btn--go:hover:not([disabled]) {
+  background: var(--gold-500);
+}
+.f95-btn--go:active:not([disabled]) {
+  background: var(--gold-700);
+}
+.f95-btn--go:focus-visible {
+  box-shadow: var(--ring-go);
+}
+
+/* secondary — calm outline on surface */
+.f95-btn--secondary {
+  background: var(--surface-card);
+  color: var(--text-strong);
+  border-color: var(--border-default);
+}
+.f95-btn--secondary:hover:not([disabled]) {
+  background: var(--haze-50);
+  border-color: var(--border-strong);
+}
+.f95-btn--secondary:active:not([disabled]) {
+  background: var(--haze-100);
+}
+
+/* ghost — quietest */
+.f95-btn--ghost {
+  background: transparent;
+  color: var(--text-body);
+}
+.f95-btn--ghost:hover:not([disabled]) {
+  background: var(--haze-100);
+}
+.f95-btn--ghost:active:not([disabled]) {
+  background: var(--haze-200);
+}
+
+/* danger — destructive, rare */
+.f95-btn--danger {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: var(--brick-100);
+}
+.f95-btn--danger:hover:not([disabled]) {
+  background: var(--brick-100);
+}
+
+.f95-btn--block {
+  display: flex;
+  width: 100%;
+}
+
+.f95-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.f95-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.f95-badge--neutral {
+  background: var(--haze-100);
+  color: var(--ink-600);
+}
+.f95-badge--info {
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+.f95-badge--success {
+  background: var(--sage-100);
+  color: var(--sage-700);
+}
+.f95-badge--attention {
+  background: var(--gold-100);
+  color: var(--gold-700);
+}
+.f95-badge--danger {
+  background: var(--brick-100);
+  color: var(--brick-600);
+}
+.f95-badge--go {
+  background: var(--gold-600);
+  color: var(--white);
+}
+.f95-badge--ai {
+  background: var(--ai-tint);
+  color: var(--ai-ink);
+  border-color: var(--ai-border);
+}
+/* Unknown — honorable research gap, never an error */
+.f95-badge--unknown {
+  background: var(--unknown-surface);
+  color: var(--unknown-ink);
+  border: 1px dashed var(--unknown-border);
+}
+.f95-badge--solid.f95-badge--info {
+  background: var(--blue-600);
+  color: #fff;
+}
+.f95-badge--solid.f95-badge--success {
+  background: var(--sage-600);
+  color: #fff;
+}
+.f95-badge--solid.f95-badge--attention {
+  background: var(--gold-600);
+  color: #fff;
+}
+
+.f95-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font: var(--fw-medium) var(--fs-caption)/1 var(--font-sans);
+  color: var(--text-body);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.f95-tag--interactive {
+  cursor: pointer;
+}
+.f95-tag--interactive:hover {
+  background: var(--haze-50);
+  border-color: var(--border-strong);
+}
+.f95-tag--selected {
+  background: var(--blue-50);
+  border-color: var(--blue-300);
+  color: var(--blue-700);
+}
+.f95-tag__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.f95-tag__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-right: -3px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.f95-tag__x:hover {
+  background: var(--haze-200);
+  color: var(--text-strong);
+}
+
+.f95-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  font: var(--fw-semibold) var(--fs-caption)/1 var(--font-sans);
+  color: var(--white);
+  background: var(--blue-500);
+  box-shadow: inset 0 0 0 1px rgba(22, 32, 43, 0.08);
+  position: relative;
+}
+.f95-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.f95-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+.f95-avatar--md {
+  width: 36px;
+  height: 36px;
+  font-size: var(--fs-caption);
+}
+.f95-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: var(--fs-body);
+}
+/* org/foundation avatars read as rounded-square, not people */
+.f95-avatar--org {
+  border-radius: var(--radius-sm);
+}
+.f95-avatar__ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 2px var(--surface-card),
+    0 0 0 3.5px var(--role-manager);
+  pointer-events: none;
+}
+
+.f95-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.f95-card--raised {
+  box-shadow: var(--shadow-md);
+}
+.f95-card--flat {
+  box-shadow: none;
+}
+.f95-card--sunk {
+  background: var(--surface-sunk);
+  box-shadow: var(--inset-sunk);
+  border-color: transparent;
+}
+.f95-card--interactive {
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.f95-card--interactive:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-default);
+  transform: translateY(-1px);
+}
+/* AI card — the copilot surface, set apart but harmonious */
+.f95-card--ai {
+  background: var(--ai-surface);
+  border-color: var(--ai-border);
+}
+.f95-card--ai.f95-card--accent {
+  border-left: 3px solid var(--ai-ink);
+}
+/* Go card — the 90+ energizing state */
+.f95-card--go {
+  border-color: var(--gold-300);
+  box-shadow: var(--ring-go);
+}
+.f95-card__pad {
+  padding: var(--space-5);
+}
+.f95-card__pad--lg {
+  padding: var(--space-7);
+}
+.f95-card__pad--sm {
+  padding: var(--space-4);
+}
+
+.f95-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f95-field__label {
+  font: var(--text-label);
+  color: var(--text-strong);
+}
+.f95-field__label .f95-field__opt {
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+.f95-field__hint {
+  font: var(--text-caption);
+  color: var(--text-muted);
+}
+.f95-field__err {
+  font: var(--text-caption);
+  color: var(--color-danger);
+}
+.f95-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.f95-input {
+  width: 100%;
+  height: var(--control-md);
+  box-sizing: border-box;
+  padding: 0 12px;
+  font: var(--text-body-r);
+  color: var(--text-strong);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.f95-input::placeholder {
+  color: var(--text-muted);
+}
+.f95-input:hover {
+  border-color: var(--border-strong);
+}
+.f95-input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: var(--ring);
+}
+.f95-input--has-icon {
+  padding-left: 36px;
+}
+.f95-input__icon {
+  position: absolute;
+  left: 11px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  display: inline-flex;
+  pointer-events: none;
+}
+.f95-input--invalid {
+  border-color: var(--color-danger);
+}
+.f95-input--invalid:focus {
+  box-shadow: 0 0 0 3px rgba(168, 64, 47, 0.25);
+}
+/* AI-proposed value — provisional, tinted, never silently committed */
+.f95-input--ai {
+  background: var(--ai-surface);
+  border-color: var(--ai-border);
+  color: var(--iris-700);
+}
+.f95-input--ai:focus {
+  box-shadow: 0 0 0 3px rgba(91, 97, 168, 0.25);
+  border-color: var(--iris-500);
+}
+.f95-input[disabled] {
+  background: var(--haze-100);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.f95-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 5px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  max-width: 100%;
+}
+.f95-role__av {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--fw-semibold) 11px/1 var(--font-sans);
+  color: #fff;
+}
+.f95-role__txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.f95-role__lbl {
+  font: var(--fw-semibold) var(--fs-micro)/1.1 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+.f95-role__name {
+  font: var(--fw-semibold) var(--fs-small)/1.2 var(--font-sans);
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.f95-role__ic {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* MANAGER — ownership. Solid, anchored, filled tint, blue. */
+.f95-role--manager {
+  background: var(--role-manager-tint);
+  box-shadow: inset 0 0 0 1px rgba(35, 92, 134, 0.18);
+}
+.f95-role--manager .f95-role__av {
+  background: var(--role-manager);
+}
+.f95-role--manager .f95-role__lbl {
+  color: var(--role-manager);
+}
+
+/* PARTNER — leverage / the door. Outlined, lighter, sage, leads with a door-opening glyph. */
+.f95-role--partner {
+  background: var(--surface-card);
+  border: 1.5px dashed var(--role-partner);
+  padding-left: 11px;
+}
+.f95-role--partner .f95-role__lbl {
+  color: var(--role-partner);
+}
+.f95-role--partner .f95-role__ic {
+  color: var(--role-partner);
+}
+
+.f95-horizon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  font: var(--fw-semibold) var(--fs-caption)/1 var(--font-sans);
+  white-space: nowrap;
+}
+.f95-horizon__ic {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.f95-horizon--today {
+  background: var(--gold-100);
+  color: var(--gold-700);
+}
+.f95-horizon--tomorrow {
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+.f95-horizon--forever {
+  background: var(--iris-100);
+  color: var(--iris-700);
+}
+.f95-horizon--solid.f95-horizon--today {
+  background: var(--horizon-today);
+  color: #fff;
+}
+.f95-horizon--solid.f95-horizon--tomorrow {
+  background: var(--horizon-tomorrow);
+  color: #fff;
+}
+.f95-horizon--solid.f95-horizon--forever {
+  background: var(--horizon-forever);
+  color: #fff;
+}
+
+.f95-src {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--fw-medium) var(--fs-micro)/1.3 var(--font-mono);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+}
+.f95-src--grounded {
+  color: var(--ai-ink);
+  background: var(--ai-tint);
+}
+.f95-src--grounded.f95-src--link {
+  cursor: pointer;
+}
+.f95-src--grounded.f95-src--link:hover {
+  background: var(--iris-100);
+  text-decoration: underline;
+}
+.f95-src--unknown {
+  color: var(--unknown-ink);
+  background: var(--unknown-surface);
+  border: 1px dashed var(--unknown-border);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.f95-src--unknown:hover {
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+.f95-src__ic {
+  width: 11px;
+  height: 11px;
+  flex: none;
+}
+
+.f95-heartbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--gold-50);
+  border: 1px solid var(--gold-300);
+}
+.f95-heartbeat__pulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold-600);
+  animation: f95-heartbeat var(--beat-period) var(--ease-in-out) infinite;
+}
+.f95-heartbeat__label {
+  font: var(--text-label);
+  color: var(--gold-700);
+}

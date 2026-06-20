@@ -1,0 +1,80 @@
+# DigitalOcean App Platform spec for 95 Forward (Initiative 0).
+# Before `doctl apps create --spec .do/app.yaml`, set `github.repo` to your repo,
+# adjust `region`/instance sizes, and confirm the managed PG `vector` extension is
+# allowed (the pre-deploy `migrate` job runs CREATE EXTENSION IF NOT EXISTS vector).
+name: ninety-five-forward
+region: nyc
+
+databases:
+  - name: forward-db
+    engine: PG
+    version: "16"
+    production: false
+
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    github:
+      repo: your-org/95forward-poc
+      branch: main
+    source_dir: /
+    instance_size_slug: basic-xxs
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/db build
+    run_command: pnpm --filter @95forward/db migrate
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${forward-db.DATABASE_URL}
+
+services:
+  - name: web
+    github:
+      repo: your-org/95forward-poc
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    instance_size_slug: basic-xs
+    instance_count: 1
+    http_port: 8080
+    health_check:
+      http_path: /
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/web build
+    run_command: pnpm --filter @95forward/web exec next start --hostname 0.0.0.0 --port ${PORT}
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${forward-db.DATABASE_URL}
+      - key: NEXT_PUBLIC_APP_NAME
+        value: "95 Forward"
+      - key: NEXT_PUBLIC_HOST_NAME
+        value: "Keystone CRM"
+      - key: NEXT_PUBLIC_HOST_ORG
+        value: "Water For People"
+
+  - name: worker
+    github:
+      repo: your-org/95forward-poc
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    http_port: 8080
+    health_check:
+      http_path: /health
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/worker build
+    run_command: pnpm --filter @95forward/worker start
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: production
+      - key: WORKER_PORT
+        value: "8080"
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${forward-db.DATABASE_URL}

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: forward_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forward
+      POSTGRES_PASSWORD: forward
+      POSTGRES_DB: forward
+    ports:
+      - "5432:5432"
+    volumes:
+      - forward_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forward -d forward"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  forward_pgdata:

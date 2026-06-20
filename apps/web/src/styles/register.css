@@ -1,0 +1,19 @@
+[data-register="95-forward"] {
+  --reg-accent: var(--brand-primary);
+  --reg-accent-strong: var(--blue-700);
+  --reg-accent-surface: var(--blue-50);
+  --reg-nav-active-bg: var(--blue-50);
+  --reg-nav-active-fg: var(--blue-700);
+  --reg-nav-active-icon: var(--blue-600);
+  --reg-eyebrow: var(--brand-primary);
+}
+
+[data-register="host"] {
+  --reg-accent: var(--ink-500);
+  --reg-accent-strong: var(--ink-700);
+  --reg-accent-surface: var(--haze-100);
+  --reg-nav-active-bg: var(--haze-100);
+  --reg-nav-active-fg: var(--ink-900);
+  --reg-nav-active-icon: var(--ink-500);
+  --reg-eyebrow: var(--text-muted);
+}
