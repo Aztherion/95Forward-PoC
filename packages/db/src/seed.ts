@@ -4,6 +4,7 @@ import { createDb, type Database } from "./client";
 import { tenants } from "./schema/tenants";
 import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
+import { seedRecordsCore } from "./seed-records-core";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -59,6 +60,8 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
       draft24hFollowups: QPI_DEFAULT_TOGGLES.draft_24h_followups,
     })
     .onConflictDoNothing({ target: tenantSettings.tenantId });
+
+  await seedRecordsCore(db, tenantId);
 
   return { tenantId };
 }

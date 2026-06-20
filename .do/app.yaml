@@ -52,6 +52,10 @@ services:
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${forward-db.DATABASE_URL}
+      - key: APP_DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
       - key: NEXT_PUBLIC_APP_NAME
         value: "95 Forward"
       - key: NEXT_PUBLIC_HOST_NAME

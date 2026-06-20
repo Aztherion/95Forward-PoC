@@ -16,6 +16,7 @@ jobs:
     env:
       CI: "true"
       DATABASE_URL: postgres://forward:forward@localhost:5432/forward
+      APP_DATABASE_URL: postgres://app_user:app_user@localhost:5432/forward
       APP_ENV: ci
       # Dummy Auth0 values: CI authenticates via the gated dev-login seam
       # (generateSessionCookie), so no live Auth0 tenant is needed.

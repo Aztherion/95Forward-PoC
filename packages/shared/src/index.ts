@@ -3,4 +3,5 @@ export * from "./register";
 export * from "./roles";
 export * from "./user";
 export * from "./qpi";
+export * from "./forms";
 export * from "./constants";

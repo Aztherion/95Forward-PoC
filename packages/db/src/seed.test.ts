@@ -1,12 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { QPI_DEFAULT_TOGGLES, QPI_DEFAULT_WEIGHTS } from "@95forward/shared";
 import { seed } from "./seed";
+import { stableId } from "./seed-records-core";
 import type { Database } from "./client";
 import { connectTestDb, type TestDb } from "./test-support";
 import { tenants } from "./schema/tenants";
 import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
+import { constituents } from "./schema/constituents";
+import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -88,5 +91,115 @@ describe("seed: Water For People", () => {
       QPI_DEFAULT_TOGGLES.propose_qpi_updates_automatically,
     );
     expect(settings?.draft24hFollowups).toBe(QPI_DEFAULT_TOGGLES.draft_24h_followups);
+  });
+});
+
+describe("seed: records-core slice", () => {
+  it("seeds dozens of constituents", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.constituents.findMany({
+      where: eq(constituents.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThan(20);
+  });
+
+  it("seeds The Hallworth Family Foundation as a foundation with 3 grants summing to $370,000", async () => {
+    if (!handle) {
+      return;
+    }
+    const hallworthId = stableId("constituent:hallworth");
+    const hallworth = await db.query.constituents.findFirst({
+      where: eq(constituents.id, hallworthId),
+    });
+    expect(hallworth?.displayName).toBe("The Hallworth Family Foundation");
+    expect(hallworth?.type).toBe("foundation");
+
+    const hallworthGifts = await db.query.gifts.findMany({
+      where: eq(gifts.constituentId, hallworthId),
+    });
+    expect(hallworthGifts.length).toBe(3);
+    const total = hallworthGifts.reduce((sum, g) => sum + g.amountCents, 0);
+    expect(total).toBe(37_000_000);
+    expect(hallworthGifts.every((g) => g.giftType === "corporate_grant")).toBe(true);
+  });
+
+  it("seeds funds, campaigns, and appeals", async () => {
+    if (!handle) {
+      return;
+    }
+    const [fundRows, campaignRows, appealRows] = await Promise.all([
+      db.query.funds.findMany({ where: eq(funds.tenantId, tenantId) }),
+      db.query.campaigns.findMany({ where: eq(campaigns.tenantId, tenantId) }),
+      db.query.appeals.findMany({ where: eq(appeals.tenantId, tenantId) }),
+    ]);
+    expect(fundRows.length).toBeGreaterThanOrEqual(1);
+    expect(campaignRows.length).toBeGreaterThanOrEqual(1);
+    expect(appealRows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("has at least one wavemaker monthly donor with recurring gifts", async () => {
+    if (!handle) {
+      return;
+    }
+    const wavemakers = await db.query.constituents.findMany({
+      where: and(eq(constituents.tenantId, tenantId), eq(constituents.wavemakerMonthly, true)),
+    });
+    expect(wavemakers.length).toBeGreaterThanOrEqual(1);
+    const first = wavemakers[0];
+    expect(first).toBeDefined();
+    if (!first) {
+      return;
+    }
+    const recurring = await db.query.gifts.findMany({
+      where: and(eq(gifts.constituentId, first.id), eq(gifts.giftType, "recurring")),
+    });
+    expect(recurring.length).toBeGreaterThan(0);
+  });
+
+  it("has at least one legacy donor with a planned gift", async () => {
+    if (!handle) {
+      return;
+    }
+    const legacyDonors = await db.query.constituents.findMany({
+      where: and(eq(constituents.tenantId, tenantId), eq(constituents.legacy, true)),
+    });
+    expect(legacyDonors.length).toBeGreaterThanOrEqual(1);
+    const ids = new Set(legacyDonors.map((c) => c.id));
+    const plannedGifts = await db.query.gifts.findMany({
+      where: and(eq(gifts.tenantId, tenantId), eq(gifts.giftType, "planned")),
+    });
+    expect(plannedGifts.some((g) => ids.has(g.constituentId))).toBe(true);
+  });
+
+  it("populates host_likelihood on some constituents", async () => {
+    if (!handle) {
+      return;
+    }
+    const withLikelihood = await db.query.constituents.findMany({
+      where: and(eq(constituents.tenantId, tenantId), isNotNull(constituents.hostLikelihood)),
+    });
+    expect(withLikelihood.length).toBeGreaterThan(0);
+  });
+
+  it("is idempotent — re-seeding does not change constituent or gift counts", async () => {
+    if (!handle) {
+      return;
+    }
+    const before = {
+      constituents: (
+        await db.query.constituents.findMany({ where: eq(constituents.tenantId, tenantId) })
+      ).length,
+      gifts: (await db.query.gifts.findMany({ where: eq(gifts.tenantId, tenantId) })).length,
+    };
+    await seed(db);
+    const after = {
+      constituents: (
+        await db.query.constituents.findMany({ where: eq(constituents.tenantId, tenantId) })
+      ).length,
+      gifts: (await db.query.gifts.findMany({ where: eq(gifts.tenantId, tenantId) })).length,
+    };
+    expect(after).toEqual(before);
   });
 });

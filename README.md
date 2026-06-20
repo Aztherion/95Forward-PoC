@@ -4,28 +4,31 @@ An opinionated, AI-guided **major-gifts workspace** for nonprofit fundraising, e
 add-on inside a thin host CRM called **Keystone CRM** (a stand-in for Raiser's Edge NXT). The
 demo customer org is **Water For People**.
 
-**Initiative 0 (foundation)** and **Initiative 1 (auth, tenancy & data model)** are complete:
-the monorepo, the design-system wiring, the global app shell, the infra/CI/test harness, plus
-Auth0 authentication, the full tenant-scoped relational schema, and the seed. **No product
-features are built yet** — the host CRM and 95 Forward screens remain placeholders; later
-initiatives build them on the schema and auth defined here.
+**Initiatives 0–2 are complete:** the monorepo + design system + app shell + infra/CI/test
+harness (I0); Auth0 auth + the full tenant-scoped relational schema + seed (I1); and the **host
+CRM records core** — Constituents, Revenue/Gifts, Funds/Campaigns/Appeals, Lists, and the Home
+dashboard — with real CRUD on real Water-For-People-shaped data, enforced by Postgres Row-Level
+Security (I2). The 95 Forward product and the remaining host modules (Major Giving, Analysis,
+Marketing, Events, Volunteers, Memberships) are still placeholders; later initiatives build them
+on this base.
 
-## What is (and isn't) in Initiative 0
+## What's built
 
-**In scope (built here):**
+- **Monorepo** (I0): pnpm + Turborepo (Node 22, TS strict); `apps/web` (Next.js App Router,
+  design system, app shell, the two emphasis registers, `/styleguide`); `apps/worker` (NestJS
+  `/health` scaffold); `packages/shared` (Zod env + types + form validation); `packages/db`
+  (Drizzle + pgvector); docker-compose, GitHub Actions CI, DigitalOcean spec.
+- **Auth & data backbone** (I1): Auth0 (App Router), the complete relational schema with
+  `tenant_id` on every table, the tenancy helpers, and the seed (Water For People + 3 users).
+- **Host CRM records core** (I2): Constituents (list + record + full CRUD + saved views),
+  Revenue/Gifts (list + record/edit, simulated receipting), Funds/Campaigns/Appeals management,
+  Lists (saved filter builder), and the Home dashboard (live tiles + a deliberately opaque
+  "major-gift likelihood" foil). Tenant isolation for every read/write — **including JOINs** — is
+  enforced by Postgres RLS (see "Database, schema & tenancy").
 
-- pnpm + Turborepo monorepo (Node 22, TypeScript strict).
-- `apps/web` — Next.js (App Router) with the design system, the global shell, all placeholder
-  routes, the two emphasis registers, and a dev-only `/styleguide` gallery.
-- `apps/worker` — a bootable NestJS scaffold with a `/health` check (no jobs yet).
-- `packages/shared` — Zod-validated env schema + a register-resolution helper.
-- `packages/db` — Drizzle ORM + a baseline migration that enables **pgvector** (no domain tables).
-- Local Postgres+pgvector via `docker-compose`, GitHub Actions CI, and a DigitalOcean App
-  Platform spec.
-
-**Out of scope (later initiatives):** domain/data tables (I1), Auth0 (I1), CRM & 95 Forward
-features (all pages are placeholders), background jobs / Graphile Worker (I11), AI / embeddings /
-retrieval (I6).
+**Still placeholders / out of scope:** the 95 Forward product (I6+), host Major Giving + Analysis
+(I3), Marketing + Events (I4), Volunteers + Memberships (I5), the editable Settings page (I7),
+background jobs (I11), AI / embeddings (I6).
 
 ## Tech stack
 
@@ -100,10 +103,10 @@ gated dev-login seam (see Authentication below). Production requires real Auth0 
 Open <http://localhost:3000> for the app and <http://localhost:3000/styleguide> for the design
 gallery. The worker health check is at <http://localhost:3001/health>.
 
-> The worker validates its environment on boot and requires `DATABASE_URL`. Make sure `.env` is
-> populated (and exported into your shell, or use a dotenv runner) before `pnpm dev`. The web app
-> does not need the database at runtime in Initiative 0, so `pnpm --filter @95forward/web dev`
-> runs standalone.
+> Make sure `.env` is populated (and exported into your shell, or use a dotenv runner) before
+> `pnpm dev`. The host CRM now reads/writes the database at runtime, so the web app needs both
+> `DATABASE_URL` and `APP_DATABASE_URL` and an up-to-date, seeded database (`pnpm db:migrate` then
+> `pnpm --filter @95forward/db seed`). The worker validates its env on boot and requires `DATABASE_URL`.
 
 ## Scripts (run from the repo root)
 
@@ -152,14 +155,27 @@ this and later initiatives.
 ## Database, schema & tenancy
 
 Local Postgres uses the `pgvector/pgvector:pg16` image. Migrations live in `packages/db/drizzle/`:
-`0000_enable_pgvector` enables the extension; `0001` creates the full relational schema
-(`packages/db/src/schema/`). **Every table carries a NOT NULL `tenant_id` FK to `tenants`**, plus
-`created_at`/`updated_at`. Apply with `pnpm db:migrate` (idempotent); generate new migrations with
-`pnpm db:generate`. Seed the tenant + three users with `pnpm --filter @95forward/db seed`.
+`0000` enables pgvector; `0001` creates the full schema; `0002`/`0003` add integrity constraints,
+the host foil + archive columns, and the `saved_lists` table; **`0004` enables Row-Level Security**.
+**Every table carries a NOT NULL `tenant_id` FK to `tenants`**, plus `created_at`/`updated_at`. Apply
+with `pnpm db:migrate` (idempotent); seed Water For People + the three users + a realistic records-core
+dataset with `pnpm --filter @95forward/db seed` (idempotent).
 
-**Tenant scoping.** All data access goes through `createTenantDb(db, tenantId)` from `@95forward/db`,
-which injects `tenant_id` into every read and write so cross-tenant queries return/affect zero rows.
-Isolation is proven by `packages/db/src/tenancy.test.ts`.
+**Tenant scoping is enforced by Postgres RLS.** Two database roles:
+
+- **Owner** (`DATABASE_URL`, `forward`) — runs migrate/seed and the `getCurrentUser()` auth lookup;
+  bypasses RLS.
+- **App** (`APP_DATABASE_URL`, `app_user`, non-superuser) — used by **all feature data access**;
+  subject to RLS.
+
+Migration `0004` creates `app_user` and a `tenant_isolation` policy on every `tenant_id` table.
+Feature code wraps queries in `withTenant(getAppDb(), tenantId, (tx) => …)`, which opens a transaction
+and `set_config('app.tenant_id', …)`; RLS then filters **every** row the transaction touches — so
+JOINs and Drizzle relational (`with: { … }`) queries are auto-scoped and an unscoped JOIN is impossible.
+`tenantId` always comes from `getCurrentUser()`, never from user input. Feature reads live in
+`apps/web/src/server/data/*` and mutations (Server Actions, Zod-validated via `@95forward/shared`) in
+`apps/web/src/server/actions/*`. Isolation is proven by `packages/db/src/rls-isolation.test.ts` (and
+the app-layer helper by `tenancy.test.ts`).
 
 ## Authentication (Auth0)
 
@@ -184,26 +200,30 @@ Playwright suite authenticate deterministically; it is disabled in production.
 
 ## Testing
 
-- **Unit (Vitest):** `pnpm test`. Covers the Zod env schema, the register helper, roles and QPI
-  defaults (`packages/shared`); **tenant isolation** and seed correctness (`packages/db` — these
-  run against a migrated DB and skip with a warning if none is reachable); the nav contract
-  (`apps/web`); and the worker health logic (`apps/worker`).
+- **Unit (Vitest):** `pnpm test`. Covers the Zod env + form-validation schemas, the register helper,
+  roles/QPI defaults (`packages/shared`); **RLS tenant isolation on JOINs**, the app-layer tenancy
+  helper, and seed correctness (`packages/db` — run against a migrated DB; the RLS suite connects as
+  `app_user` and skips with a warning if `APP_DATABASE_URL` is unreachable); the host CRM list/format
+  helpers + nav contract (`apps/web`); and the worker health logic.
 - **E2E (Playwright):** `pnpm --filter @95forward/web test:e2e` (requires the DB up, migrated, and
-  seeded). Authored and run with the Playwright skill. Covers the **auth flow** (unauthenticated →
-  `/login`, post-login user/role in the shell, protected routes, logout) via the dev-login seam,
-  plus the shell order/grouping, the 95 Forward expand/collapse, the register switch, and the
-  `/styleguide` gallery. The `webServer` runs `next dev` with `AUTH_DEV_LOGIN=true`.
+  seeded). Authored/run with the Playwright skill. Covers the **auth flow** (redirect/login/logout/
+  protected routes), the shell/register behavior, the `/styleguide` gallery, and the **host CRM
+  workflows**: browse/filter/search constituents + save a view, the constituent record (giving
+  history, relationships, actions, tags, the opaque foil), create/edit a constituent, record a gift
+  and see it appear on the donor + the gifts list, build/save/run a list, and the Home dashboard.
 
 CI (`.github/workflows/ci.yml`) runs install → build → lint → typecheck → **DB migrate + seed** →
 unit tests → Playwright E2E (against a Postgres service; auth uses the dev-login seam, no live Auth0).
 
 ## Environment variables
 
-See `.env.example`. **Required:** `DATABASE_URL` and the Auth0 vars (`AUTH0_DOMAIN`,
-`AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`). Also used: `NODE_ENV`,
-`APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `AUTH_DEV_LOGIN` (dev/test only), and the `NEXT_PUBLIC_*` web
-vars. The schema is validated in `packages/shared/src/env.ts`; placeholders for later initiatives
-(AI in I6, jobs in I11) remain documented there and in `.env.example`.
+See `.env.example`. **Required:** `DATABASE_URL` (owner role — migrate/seed/auth),
+**`APP_DATABASE_URL`** (the `app_user` role used by all RLS-scoped feature data access), and the
+Auth0 vars (`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`).
+Also used: `NODE_ENV`, `APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `AUTH_DEV_LOGIN` (dev/test only), and the
+`NEXT_PUBLIC_*` web vars. `DATABASE_URL`/Auth0 are validated in `packages/shared/src/env.ts`;
+`APP_DATABASE_URL` is read directly by the web app's data layer. Placeholders for later initiatives
+(AI in I6, jobs in I11) remain documented in `.env.example`.
 
 ## Deployment (DigitalOcean App Platform)
 

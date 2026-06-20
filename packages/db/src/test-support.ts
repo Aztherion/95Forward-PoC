@@ -8,12 +8,11 @@ export interface TestDb {
   pool: Pool;
 }
 
-export async function connectTestDb(): Promise<TestDb | null> {
-  const url = process.env.DATABASE_URL;
+async function connect(url: string | undefined, label: string): Promise<TestDb | null> {
   if (!url) {
     console.warn(
-      "[db tests] DATABASE_URL is not set — skipping integration suite. " +
-        "Start Postgres (pnpm db:up && pnpm db:wait && pnpm db:migrate) and set DATABASE_URL to run it.",
+      `[db tests] ${label} is not set — skipping suite. ` +
+        "Start Postgres (pnpm db:up && pnpm db:wait && pnpm db:migrate) and set the URL to run it.",
     );
     return null;
   }
@@ -24,13 +23,21 @@ export async function connectTestDb(): Promise<TestDb | null> {
   } catch (error: unknown) {
     await pool.end().catch(() => undefined);
     console.warn(
-      `[db tests] could not reach DATABASE_URL (${(error as Error).message}) — skipping integration suite.`,
+      `[db tests] could not reach ${label} (${(error as Error).message}) — skipping suite.`,
     );
     return null;
   }
 
   const db = drizzle(pool, { schema, casing: "snake_case" });
   return { db, pool };
+}
+
+export function connectTestDb(): Promise<TestDb | null> {
+  return connect(process.env.DATABASE_URL, "DATABASE_URL");
+}
+
+export function connectAppTestDb(): Promise<TestDb | null> {
+  return connect(process.env.APP_DATABASE_URL, "APP_DATABASE_URL");
 }
 
 export function uniqueSuffix(): string {

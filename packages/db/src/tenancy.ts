@@ -1,4 +1,4 @@
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable, PgUpdateSetSource } from "drizzle-orm/pg-core";
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { Database } from "./client";
@@ -95,4 +95,17 @@ export function createTenantDb(db: Database, tenantId: string): TenantDb {
       return rows as InferSelectModel<typeof table>[];
     },
   };
+}
+
+export type TenantTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+export function withTenant<T>(
+  db: Database,
+  tenantId: string,
+  fn: (tx: TenantTransaction) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
+    return fn(tx);
+  });
 }

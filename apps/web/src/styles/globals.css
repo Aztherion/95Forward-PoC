@@ -6,5 +6,6 @@
 @import "./tokens/base.css";
 @import "./register.css";
 @import "./ds.css";
+@import "./ds-data.css";
 @import "./shell.css";
 @import "./login.css";

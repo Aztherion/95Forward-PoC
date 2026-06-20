@@ -1,4 +1,13 @@
-import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
 import { constituentProspectStatusEnum, constituentTypeEnum } from "./enums";
 import { users } from "./users";
@@ -27,6 +36,11 @@ export const constituents = pgTable(
     volunteer: boolean("volunteer").notNull().default(false),
     wavemakerMonthly: boolean("wavemaker_monthly").notNull().default(false),
     legacy: boolean("legacy").notNull().default(false),
+    // host_likelihood: the host CRM's deliberately opaque "major-gift likelihood"
+    // foil (0-100). No provenance, no breakdown — meaningless by design; 95 Forward's
+    // transparent QPI answers it later.
+    hostLikelihood: integer("host_likelihood"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [

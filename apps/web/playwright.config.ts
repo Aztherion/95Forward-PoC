@@ -39,6 +39,7 @@ export default defineConfig({
       AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       APP_BASE_URL: BASE_URL,
       DATABASE_URL: "postgres://forward:forward@localhost:5432/forward",
+      APP_DATABASE_URL: "postgres://app_user:app_user@localhost:5432/forward",
       NODE_ENV: "development",
     },
   },

@@ -27,6 +27,7 @@ import {
 import { asks, followUpTasks, referrals, visits } from "./execution";
 import { candidates, discoveryTasks } from "./discovery";
 import { powerQuestions, tenantSettings } from "./config";
+import { savedLists } from "./lists";
 
 export const tenantsRelations = relations(tenants, ({ many, one }) => ({
   users: many(users),
@@ -358,4 +359,9 @@ export const tenantSettingsRelations = relations(tenantSettings, ({ one }) => ({
 
 export const powerQuestionsRelations = relations(powerQuestions, ({ one }) => ({
   tenant: one(tenants, { fields: [powerQuestions.tenantId], references: [tenants.id] }),
+}));
+
+export const savedListsRelations = relations(savedLists, ({ one }) => ({
+  tenant: one(tenants, { fields: [savedLists.tenantId], references: [tenants.id] }),
+  owner: one(users, { fields: [savedLists.ownerUserId], references: [users.id] }),
 }));

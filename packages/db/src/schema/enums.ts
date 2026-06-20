@@ -85,3 +85,9 @@ export const constituentProspectStatusEnum = pgEnum("constituent_prospect_status
   "active",
   "donor",
 ]);
+
+export const savedListRecordTypeEnum = pgEnum("saved_list_record_type", [
+  "constituent",
+  "gift",
+  "interaction",
+]);
