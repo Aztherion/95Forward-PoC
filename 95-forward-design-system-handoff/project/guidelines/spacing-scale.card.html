@@ -1,0 +1,28 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Spacing scale" subtitle="4px base grid — calm density in A, open air in B" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 22px; }
+  .row { display: flex; align-items: flex-end; gap: 14px; }
+  .col { text-align: center; }
+  .bar { background: var(--blue-300); border-radius: var(--radius-xs) var(--radius-xs) 0 0; width: 100%; }
+  .col { width: 48px; }
+  .tok { font: var(--fw-medium) var(--fs-micro)/1 var(--font-mono); color: var(--text-secondary); margin-top: 8px; }
+  .px { font: var(--text-caption); color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="col"><div class="bar" style="height:8px"></div><div class="tok">2</div><div class="px">8</div></div>
+    <div class="col"><div class="bar" style="height:12px"></div><div class="tok">3</div><div class="px">12</div></div>
+    <div class="col"><div class="bar" style="height:16px"></div><div class="tok">4</div><div class="px">16</div></div>
+    <div class="col"><div class="bar" style="height:24px"></div><div class="tok">6</div><div class="px">24</div></div>
+    <div class="col"><div class="bar" style="height:32px"></div><div class="tok">7</div><div class="px">32</div></div>
+    <div class="col"><div class="bar" style="height:48px"></div><div class="tok">9</div><div class="px">48</div></div>
+    <div class="col"><div class="bar" style="height:64px"></div><div class="tok">10</div><div class="px">64</div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+/* ============================================================
+   95 Forward — ELEVATION: radii, borders, shadows
+   Soft, low, warm shadows (tinted with ink, never pure black).
+   Cards are defined by a hairline + a quiet lift, not heavy drop
+   shadows. Radius is gentle and consistent — present, never zero
+   (we are not broadsheet), never pill-soft everywhere.
+   ============================================================ */
+:root {
+  /* Corner radii */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;   /* default card / control                */
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Borders */
+  --border-w:      1px;
+  --border-w-2:    1.5px;
+  --border-w-emph: 2px;
+
+  /* Shadows — ink-tinted, soft, layered. Calm lift. */
+  --shadow-xs:  0 1px 2px rgba(22, 32, 43, 0.05);
+  --shadow-sm:  0 1px 2px rgba(22, 32, 43, 0.06), 0 1px 1px rgba(22, 32, 43, 0.04);
+  --shadow-md:  0 2px 4px rgba(22, 32, 43, 0.05), 0 4px 12px rgba(22, 32, 43, 0.07);
+  --shadow-lg:  0 4px 8px rgba(22, 32, 43, 0.06), 0 12px 28px rgba(22, 32, 43, 0.10);
+  --shadow-xl:  0 8px 16px rgba(22, 32, 43, 0.08), 0 24px 56px rgba(22, 32, 43, 0.14);
+
+  /* Focus ring (accessible, blue) */
+  --ring: 0 0 0 3px rgba(56, 120, 163, 0.35);
+
+  /* "Go" glow — the ONE energizing emphasis, a soft warm ring
+     for 90+ states. Subtle, not neon. */
+  --ring-go: 0 0 0 3px rgba(200, 134, 42, 0.28);
+
+  /* Inset for sunken wells (e.g. unknown / research gaps) */
+  --inset-sunk: inset 0 1px 2px rgba(22, 32, 43, 0.05);
+}

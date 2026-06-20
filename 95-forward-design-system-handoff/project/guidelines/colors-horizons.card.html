@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Funding horizons" subtitle="Today / Tomorrow / Forever — near to far" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 20px; }
+  .grad { height: 56px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+          background: linear-gradient(90deg, var(--horizon-today) 0%, var(--horizon-today) 28%, var(--horizon-tomorrow) 50%, var(--horizon-tomorrow) 62%, var(--horizon-forever) 84%, var(--horizon-forever) 100%); }
+  .row { display: flex; margin-top: 10px; }
+  .col { flex: 1; }
+  .name { font: var(--text-label); color: var(--text-strong); }
+  .role { font: var(--text-caption); color: var(--text-muted); margin-top: 1px; }
+  .col.r { text-align: right; }
+  .col.c { text-align: center; }
+</style>
+</head>
+<body>
+  <div class="grad"></div>
+  <div class="row">
+    <div class="col"><div class="name">Today</div><div class="role">Current need · the ask now</div></div>
+    <div class="col c"><div class="name">Tomorrow</div><div class="role">Multi-year priority</div></div>
+    <div class="col r"><div class="name">Forever</div><div class="role">Legacy · planned gift</div></div>
+  </div>
+</body>
+</html>

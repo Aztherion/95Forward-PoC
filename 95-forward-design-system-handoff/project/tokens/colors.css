@@ -1,0 +1,137 @@
+/* ============================================================
+   95 Forward — COLOR TOKENS
+   "Altitude" palette. Derived from the method's world: the
+   horizon (near→far), elevation/perspective, and a dawn-gold
+   "go" light for the 90+ prospect you should see today.
+   Warm + credible, with transparency (legibility) as the soul.
+   ============================================================ */
+:root {
+  /* ---- Atmospheric neutrals (high-altitude haze; cool-leaning to
+          stay clear of cream cliché, never pure black) ---- */
+  --haze-50:  #F7F9FA;   /* app background — atmospheric haze   */
+  --haze-100: #EFF2F4;
+  --haze-200: #E3E8EC;
+  --haze-300: #CDD6DD;
+  --white:    #FFFFFF;   /* card surface                        */
+
+  /* ---- Ink (warm slate-blue; the "ground", credibility) ---- */
+  --ink-900: #16202B;    /* primary text, deepest               */
+  --ink-800: #20303F;
+  --ink-700: #2B3E4F;
+  --ink-600: #44586A;
+  --ink-500: #5C7081;    /* secondary text                      */
+  --ink-400: #7E909F;    /* muted / placeholder                 */
+  --ink-300: #A7B4BE;
+  --ink-200: #C9D2D9;    /* borders, dividers                   */
+  --ink-100: #E1E7EB;    /* hairlines                           */
+
+  /* ---- Horizon blue (primary brand; confident, trustworthy,
+          warm-not-cold; Relationship Manager / ownership) ---- */
+  --blue-700: #1A3F5C;   /* pressed                             */
+  --blue-600: #235C86;   /* PRIMARY                             */
+  --blue-500: #3878A3;   /* hover edge / focus ring             */
+  --blue-300: #8FB7D2;
+  --blue-100: #DCEAF3;   /* tint surface                        */
+  --blue-50:  #EEF5FA;
+
+  /* ---- Dawn gold (momentum / "go see them today" / Today
+          horizon; energizing, never alarming) ---- */
+  --gold-700: #A56F1E;
+  --gold-600: #C8862A;   /* GO accent                           */
+  --gold-500: #DFA13C;
+  --gold-300: #EBC684;
+  --gold-100: #F7E9CD;
+  --gold-50:  #FBF4E4;
+
+  /* ---- Sage (Natural Partner / the warm path; growth, leverage,
+          "open the door"; also success) ---- */
+  --sage-700: #2D5C46;
+  --sage-600: #3B7458;   /* NATURAL PARTNER                     */
+  --sage-500: #4E8F6F;
+  --sage-300: #9CC6B1;
+  --sage-100: #DCEBE2;
+  --sage-50:  #EDF5F0;
+
+  /* ---- Iris (THE AI / COPILOT VOICE — reserved. Never used for
+          human-entered data. Calm, distinct, harmonious; no glow,
+          no gradient.) ---- */
+  --iris-700: #393E80;
+  --iris-600: #4A4F94;   /* AI text / markers                   */
+  --iris-500: #5B61A8;
+  --iris-300: #ACAFD6;
+  --iris-100: #E6E7F4;   /* AI surface tint                     */
+  --iris-50:  #F1F2F9;
+
+  /* ---- Teal-slate (the 5th QPI part: Philanthropy; calm) ---- */
+  --teal-600: #2F7E8C;
+  --teal-100: #D7EAEC;
+
+  /* ---- Brick (destructive only — rare; muted, never punitive) */
+  --brick-600: #A8402F;
+  --brick-100: #F1DBD6;
+
+  /* ===========================================================
+     SEMANTIC ALIASES — reference these in components
+     =========================================================== */
+  --bg-app:          var(--haze-50);
+  --surface-card:    var(--white);
+  --surface-sunk:    var(--haze-100);
+  --surface-raised:  var(--white);
+
+  --text-strong:     var(--ink-900);
+  --text-body:       var(--ink-700);
+  --text-secondary:  var(--ink-500);
+  --text-muted:      var(--ink-400);
+  --text-on-dark:    var(--haze-50);
+  --text-on-accent:  var(--white);
+
+  --border-hairline: var(--ink-100);
+  --border-default:  var(--ink-200);
+  --border-strong:   var(--ink-300);
+
+  --brand-primary:        var(--blue-600);
+  --brand-primary-hover:  var(--blue-500);
+  --brand-primary-press:  var(--blue-700);
+  --focus-ring:           var(--blue-500);
+
+  --accent-go:       var(--gold-600);   /* 90+, momentum, Today  */
+  --color-success:   var(--sage-600);
+  --color-attention: var(--gold-600);
+  --color-danger:    var(--brick-600);
+  --color-info:      var(--blue-600);
+
+  /* Roles — must never look alike */
+  --role-manager:        var(--blue-600);   /* ownership          */
+  --role-manager-tint:   var(--blue-100);
+  --role-partner:        var(--sage-600);   /* leverage / door    */
+  --role-partner-tint:   var(--sage-100);
+
+  /* AI / copilot */
+  --ai-ink:      var(--iris-600);
+  --ai-surface:  var(--iris-50);
+  --ai-tint:     var(--iris-100);
+  --ai-border:   var(--iris-300);
+
+  /* Unknown — honorable research gap, NOT an error */
+  --unknown-ink:     var(--ink-400);
+  --unknown-surface: var(--haze-100);
+  --unknown-border:  var(--ink-200);
+
+  /* Three funding horizons (near → far) */
+  --horizon-today:    var(--gold-600);
+  --horizon-tomorrow: var(--blue-600);
+  --horizon-forever:  var(--iris-700);
+
+  /* QPI five parts */
+  --qpi-capacity:     var(--blue-600);
+  --qpi-relationship: var(--sage-600);
+  --qpi-timing:       var(--gold-600);
+  --qpi-history:      var(--iris-600);
+  --qpi-philanthropy: var(--teal-600);
+
+  /* QPI tier bands */
+  --qpi-go:      var(--gold-600);   /* 90-100 — go today          */
+  --qpi-strong:  var(--blue-600);   /* 70-89                      */
+  --qpi-build:   var(--sage-600);   /* 50-69                      */
+  --qpi-early:   var(--ink-400);    /* <50 — research / nurture   */
+}

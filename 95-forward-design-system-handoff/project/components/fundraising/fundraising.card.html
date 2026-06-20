@@ -1,0 +1,80 @@
+<!-- @dsCard group="Components" viewport="760x900" name="Fundraising primitives" subtitle="QPIScore · RoleChip · HorizonTag · SourceTag · AISuggestion · ProspectRow" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--bg-app); padding: 24px; }
+  .wrap { display: flex; flex-direction: column; gap: 22px; max-width: 700px; }
+  .lbl { font: var(--text-caption); color: var(--text-muted); letter-spacing: var(--ls-caps); text-transform: uppercase; font-weight: var(--fw-semibold); margin-bottom: 10px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .panel { background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 22px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { QPIScore, RoleChip, HorizonTag, SourceTag, AISuggestion, ProspectRow } = window.Ds95ForwardDesignSystem_31a0c4;
+    function Demo() {
+      return (
+        <div className="wrap">
+          <div>
+            <div className="lbl">The signature — QPIScore</div>
+            <div className="panel" style={{maxWidth: 460}}>
+              <QPIScore value={92} defaultOpen parts={{
+                capacity:     { score: 24, reason: "Foundation assets ≈ $40M; prior $1M+ gifts to peers.", source: "IRS 990-PF · 2024" },
+                relationship: { score: 22, reason: "Board chair is a close friend of our ED.", source: "Logged · Dana R." },
+                timing:       { score: 18, reason: "Campaign closes Q3 — the window is open now." },
+                history:      { score: 15, reason: "Three gifts over five years, trending up.", source: "Gift records" },
+                philanthropy: { score: 13 },
+              }} />
+            </div>
+          </div>
+
+          <div>
+            <div className="lbl">Roles — ownership vs the door</div>
+            <div className="row">
+              <RoleChip role="manager" name="Dana Reese" />
+              <RoleChip role="partner" name="Tom Bradley" />
+            </div>
+          </div>
+
+          <div>
+            <div className="lbl">Horizons & sources</div>
+            <div className="row">
+              <HorizonTag horizon="today" />
+              <HorizonTag horizon="tomorrow" />
+              <HorizonTag horizon="forever" />
+              <SourceTag source="IRS 990-PF · 2024" />
+              <SourceTag />
+            </div>
+          </div>
+
+          <div>
+            <div className="lbl">Copilot — proposes, you dispose</div>
+            <AISuggestion source="IRS 990-PF · 2024" from="$50,000" to="$250,000"
+              onApprove={()=>{}} onEdit={()=>{}} onDismiss={()=>{}}>
+              Capacity looks higher than recorded — this foundation gave $1M+ to peer orgs last year.
+            </AISuggestion>
+          </div>
+
+          <div>
+            <div className="lbl">Master Prospect List rows</div>
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              <ProspectRow rank={1} name="Hartwell Family Foundation" kind="foundation" subtitle="Private foundation · Capital campaign" qpi={92} horizon="today" manager="Dana Reese" partner="Tom Bradley" cadence="Follow up in 18h" dueSoon />
+              <ProspectRow rank={2} name="Maria Alvarez" kind="person" subtitle="Retired CEO · Lives in district" qpi={81} horizon="tomorrow" manager="Dana Reese" cadence="Last contact 6d" />
+              <ProspectRow rank={3} name="Okoro Logistics" kind="company" subtitle="Regional employer · ESG budget" qpi={64} horizon="forever" manager="Priya N." cadence="Research stage" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!-- @dsCard group="Colors" viewport="700x200" name="Human vs AI voice" subtitle="Iris is reserved for the copilot — you can always tell which is which" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 20px; font: var(--text-body-r); }
+  .row { display: flex; gap: 16px; align-items: stretch; }
+  .panel { flex: 1; border-radius: var(--radius-md); padding: 14px 16px; }
+  .human { background: var(--white); border: 1px solid var(--border-default); }
+  .ai { background: var(--ai-surface); border: 1px solid var(--ai-border); border-left: 3px solid var(--ai-ink); }
+  .tag { display: inline-flex; align-items: center; gap: 6px; font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans); letter-spacing: var(--ls-caps); text-transform: uppercase; }
+  .human .tag { color: var(--text-muted); }
+  .ai .tag { color: var(--ai-ink); }
+  .glyph { width: 13px; height: 13px; border-radius: 3px; display: inline-block; }
+  .body { font: var(--fw-medium) var(--fs-body)/1.4 var(--font-sans); color: var(--text-strong); margin-top: 8px; }
+  .ai .body { color: var(--iris-700); }
+  .meta { font: var(--text-caption); color: var(--text-muted); margin-top: 6px; }
+  .cite { font: var(--fw-medium) var(--fs-micro)/1.3 var(--font-mono); color: var(--ai-ink); background: var(--ai-tint); padding: 2px 6px; border-radius: var(--radius-xs); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="panel human">
+      <span class="tag"><span class="glyph" style="background:var(--ink-300)"></span> Entered by you</span>
+      <div class="body">Maria chairs the capital campaign.</div>
+      <div class="meta">Logged · Apr 12 · Dana R.</div>
+    </div>
+    <div class="panel ai">
+      <span class="tag"><span class="glyph" style="background:var(--ai-ink)"></span> Copilot suggests</span>
+      <div class="body">Capacity looks like ~$250K, not $50K.</div>
+      <div class="meta"><span class="cite">990-PF · 2024</span> &nbsp; Approve · Edit · Dismiss</div>
+    </div>
+  </div>
+</body>
+</html>

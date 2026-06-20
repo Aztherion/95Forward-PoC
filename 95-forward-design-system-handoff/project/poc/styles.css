@@ -1,0 +1,406 @@
+/* 95 Forward — vendored stylesheet (self-contained for the PoC).
+   Concatenated from styles.css @imports so poc/ deploys standalone. */
+
+/* ===== fonts/fonts.css ===== */
+/* 95 Forward — Webfonts
+   Loaded from Google Fonts CDN. These are PROPOSED faces (no brand fonts existed);
+   easy to swap. See readme.md > VISUAL FOUNDATIONS.
+   - Hanken Grotesk : warm humanist grotesque — all UI & body
+   - Newsreader      : low-contrast humanist serif — human/editorial moments only
+   - IBM Plex Mono   : evidence/provenance — citation tags, IDs, raw data
+*/
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,18..48,400;0,18..48,500;1,18..48,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+
+/* ===== tokens/colors.css ===== */
+/* ============================================================
+   95 Forward — COLOR TOKENS
+   "Altitude" palette. Derived from the method's world: the
+   horizon (near→far), elevation/perspective, and a dawn-gold
+   "go" light for the 90+ prospect you should see today.
+   Warm + credible, with transparency (legibility) as the soul.
+   ============================================================ */
+:root {
+  /* ---- Atmospheric neutrals (high-altitude haze; cool-leaning to
+          stay clear of cream cliché, never pure black) ---- */
+  --haze-50:  #F7F9FA;   /* app background — atmospheric haze   */
+  --haze-100: #EFF2F4;
+  --haze-200: #E3E8EC;
+  --haze-300: #CDD6DD;
+  --white:    #FFFFFF;   /* card surface                        */
+
+  /* ---- Ink (warm slate-blue; the "ground", credibility) ---- */
+  --ink-900: #16202B;    /* primary text, deepest               */
+  --ink-800: #20303F;
+  --ink-700: #2B3E4F;
+  --ink-600: #44586A;
+  --ink-500: #5C7081;    /* secondary text                      */
+  --ink-400: #7E909F;    /* muted / placeholder                 */
+  --ink-300: #A7B4BE;
+  --ink-200: #C9D2D9;    /* borders, dividers                   */
+  --ink-100: #E1E7EB;    /* hairlines                           */
+
+  /* ---- Horizon blue (primary brand; confident, trustworthy,
+          warm-not-cold; Relationship Manager / ownership) ---- */
+  --blue-700: #1A3F5C;   /* pressed                             */
+  --blue-600: #235C86;   /* PRIMARY                             */
+  --blue-500: #3878A3;   /* hover edge / focus ring             */
+  --blue-300: #8FB7D2;
+  --blue-100: #DCEAF3;   /* tint surface                        */
+  --blue-50:  #EEF5FA;
+
+  /* ---- Dawn gold (momentum / "go see them today" / Today
+          horizon; energizing, never alarming) ---- */
+  --gold-700: #A56F1E;
+  --gold-600: #C8862A;   /* GO accent                           */
+  --gold-500: #DFA13C;
+  --gold-300: #EBC684;
+  --gold-100: #F7E9CD;
+  --gold-50:  #FBF4E4;
+
+  /* ---- Sage (Natural Partner / the warm path; growth, leverage,
+          "open the door"; also success) ---- */
+  --sage-700: #2D5C46;
+  --sage-600: #3B7458;   /* NATURAL PARTNER                     */
+  --sage-500: #4E8F6F;
+  --sage-300: #9CC6B1;
+  --sage-100: #DCEBE2;
+  --sage-50:  #EDF5F0;
+
+  /* ---- Iris (THE AI / COPILOT VOICE — reserved. Never used for
+          human-entered data. Calm, distinct, harmonious; no glow,
+          no gradient.) ---- */
+  --iris-700: #393E80;
+  --iris-600: #4A4F94;   /* AI text / markers                   */
+  --iris-500: #5B61A8;
+  --iris-300: #ACAFD6;
+  --iris-100: #E6E7F4;   /* AI surface tint                     */
+  --iris-50:  #F1F2F9;
+
+  /* ---- Teal-slate (the 5th QPI part: Philanthropy; calm) ---- */
+  --teal-600: #2F7E8C;
+  --teal-100: #D7EAEC;
+
+  /* ---- Brick (destructive only — rare; muted, never punitive) */
+  --brick-600: #A8402F;
+  --brick-100: #F1DBD6;
+
+  /* ===========================================================
+     SEMANTIC ALIASES — reference these in components
+     =========================================================== */
+  --bg-app:          var(--haze-50);
+  --surface-card:    var(--white);
+  --surface-sunk:    var(--haze-100);
+  --surface-raised:  var(--white);
+
+  --text-strong:     var(--ink-900);
+  --text-body:       var(--ink-700);
+  --text-secondary:  var(--ink-500);
+  --text-muted:      var(--ink-400);
+  --text-on-dark:    var(--haze-50);
+  --text-on-accent:  var(--white);
+
+  --border-hairline: var(--ink-100);
+  --border-default:  var(--ink-200);
+  --border-strong:   var(--ink-300);
+
+  --brand-primary:        var(--blue-600);
+  --brand-primary-hover:  var(--blue-500);
+  --brand-primary-press:  var(--blue-700);
+  --focus-ring:           var(--blue-500);
+
+  --accent-go:       var(--gold-600);   /* 90+, momentum, Today  */
+  --color-success:   var(--sage-600);
+  --color-attention: var(--gold-600);
+  --color-danger:    var(--brick-600);
+  --color-info:      var(--blue-600);
+
+  /* Roles — must never look alike */
+  --role-manager:        var(--blue-600);   /* ownership          */
+  --role-manager-tint:   var(--blue-100);
+  --role-partner:        var(--sage-600);   /* leverage / door    */
+  --role-partner-tint:   var(--sage-100);
+
+  /* AI / copilot */
+  --ai-ink:      var(--iris-600);
+  --ai-surface:  var(--iris-50);
+  --ai-tint:     var(--iris-100);
+  --ai-border:   var(--iris-300);
+
+  /* Unknown — honorable research gap, NOT an error */
+  --unknown-ink:     var(--ink-400);
+  --unknown-surface: var(--haze-100);
+  --unknown-border:  var(--ink-200);
+
+  /* Three funding horizons (near → far) */
+  --horizon-today:    var(--gold-600);
+  --horizon-tomorrow: var(--blue-600);
+  --horizon-forever:  var(--iris-700);
+
+  /* QPI five parts */
+  --qpi-capacity:     var(--blue-600);
+  --qpi-relationship: var(--sage-600);
+  --qpi-timing:       var(--gold-600);
+  --qpi-history:      var(--iris-600);
+  --qpi-philanthropy: var(--teal-600);
+
+  /* QPI tier bands */
+  --qpi-go:      var(--gold-600);   /* 90-100 — go today          */
+  --qpi-strong:  var(--blue-600);   /* 70-89                      */
+  --qpi-build:   var(--sage-600);   /* 50-69                      */
+  --qpi-early:   var(--ink-400);    /* <50 — research / nurture   */
+}
+
+
+/* ===== tokens/typography.css ===== */
+/* ============================================================
+   95 Forward — TYPOGRAPHY TOKENS
+   Three voices:
+   - Hanken Grotesk : warm humanist grotesque — ALL UI & body
+   - Newsreader      : low-contrast humanist serif — human moments
+                       only (the ask, big quotes, the "conversation")
+   - IBM Plex Mono   : evidence — citation tags, IDs, raw scores
+   Type carries the dual-register system: Register A (portfolio,
+   dense-but-calm) uses tighter steps; Register B (in-the-moment,
+   large readable) leans on --fs-display / --fs-moment.
+   ============================================================ */
+:root {
+  --font-sans:  "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Weights */
+  --fw-regular:  400; /* @kind font */
+  --fw-medium:   500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold:     700; /* @kind font */
+  --fw-heavy:    800; /* @kind font */
+
+  /* Type scale (px). Major-third-ish, calm. */
+  --fs-micro:  11px;   /* citation tags, overline meta            */
+  --fs-caption:12px;   /* labels, secondary meta                  */
+  --fs-small:  13px;
+  --fs-body:   15px;   /* default UI body                         */
+  --fs-base:   16px;
+  --fs-lg:     18px;
+  --fs-xl:     21px;
+  --fs-2xl:    26px;
+  --fs-3xl:    32px;
+  --fs-4xl:    40px;
+  --fs-5xl:    52px;
+  --fs-moment: 28px;   /* Register B in-the-moment body           */
+  --fs-score:  64px;   /* the QPI number — the signature          */
+  --fs-score-lg: 88px;
+
+  /* Line heights */
+  --lh-tight:   1.1;  /* @kind other */
+  --lh-snug:    1.25; /* @kind other */
+  --lh-normal:  1.45; /* @kind other */
+  --lh-relaxed: 1.6;  /* @kind other */
+
+  /* Letter spacing */
+  --ls-tight:   -0.02em; /* @kind other */
+  --ls-snug:    -0.01em; /* @kind other */
+  --ls-normal:  0;       /* @kind other */
+  --ls-wide:    0.04em;  /* @kind other */
+  --ls-caps:    0.08em; /* @kind other */
+
+  /* ---- Semantic roles ---- */
+  --text-display:  var(--fw-bold) var(--fs-4xl)/var(--lh-tight) var(--font-sans);
+  --text-h1:       var(--fw-bold) var(--fs-3xl)/var(--lh-tight) var(--font-sans);
+  --text-h2:       var(--fw-semibold) var(--fs-2xl)/var(--lh-snug) var(--font-sans);
+  --text-h3:       var(--fw-semibold) var(--fs-xl)/var(--lh-snug) var(--font-sans);
+  --text-title:    var(--fw-semibold) var(--fs-lg)/var(--lh-snug) var(--font-sans);
+  --text-body-r:   var(--fw-regular) var(--fs-body)/var(--lh-normal) var(--font-sans);
+  --text-label:    var(--fw-medium) var(--fs-small)/var(--lh-snug) var(--font-sans);
+  --text-caption:  var(--fw-medium) var(--fs-caption)/var(--lh-snug) var(--font-sans);
+
+  /* Tabular figures for all numeric/score surfaces */
+  --num-tabular: "tnum" 1, "lnum" 1; /* @kind other */
+}
+
+/* Utility: eyebrow / overline label — small caps-spaced meta */
+.f95-overline {
+  font: var(--fw-semibold) var(--fs-micro)/1.2 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+/* Utility: provenance / citation mono tag */
+.f95-mono {
+  font: var(--fw-medium) var(--fs-micro)/1.2 var(--font-mono);
+  letter-spacing: var(--ls-snug);
+}
+/* Utility: human/editorial moment (the ask, quotes) */
+.f95-moment {
+  font: var(--fw-regular) var(--fs-moment)/var(--lh-snug) var(--font-serif);
+  letter-spacing: var(--ls-snug);
+}
+
+
+/* ===== tokens/spacing.css ===== */
+/* ============================================================
+   95 Forward — SPACING & SIZING TOKENS
+   4px base grid. Two densities share the same scale; Register A
+   (portfolio) leans on --space-2/3/4, Register B (in-the-moment)
+   opens up with --space-6/8/10 and larger hit targets.
+   ============================================================ */
+:root {
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  /* Layout */
+  --container-max:   1320px;
+  --sidebar-w:       264px;
+  --rail-w:          72px;
+  --content-gutter:  var(--space-7);
+
+  /* Hit targets (never below 44px touch in Register B) */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --touch-min:  44px;
+}
+
+
+/* ===== tokens/elevation.css ===== */
+/* ============================================================
+   95 Forward — ELEVATION: radii, borders, shadows
+   Soft, low, warm shadows (tinted with ink, never pure black).
+   Cards are defined by a hairline + a quiet lift, not heavy drop
+   shadows. Radius is gentle and consistent — present, never zero
+   (we are not broadsheet), never pill-soft everywhere.
+   ============================================================ */
+:root {
+  /* Corner radii */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;   /* default card / control                */
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-2xl:  28px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Borders */
+  --border-w:      1px;
+  --border-w-2:    1.5px;
+  --border-w-emph: 2px;
+
+  /* Shadows — ink-tinted, soft, layered. Calm lift. */
+  --shadow-xs:  0 1px 2px rgba(22, 32, 43, 0.05);
+  --shadow-sm:  0 1px 2px rgba(22, 32, 43, 0.06), 0 1px 1px rgba(22, 32, 43, 0.04);
+  --shadow-md:  0 2px 4px rgba(22, 32, 43, 0.05), 0 4px 12px rgba(22, 32, 43, 0.07);
+  --shadow-lg:  0 4px 8px rgba(22, 32, 43, 0.06), 0 12px 28px rgba(22, 32, 43, 0.10);
+  --shadow-xl:  0 8px 16px rgba(22, 32, 43, 0.08), 0 24px 56px rgba(22, 32, 43, 0.14);
+
+  /* Focus ring (accessible, blue) */
+  --ring: 0 0 0 3px rgba(56, 120, 163, 0.35);
+
+  /* "Go" glow — the ONE energizing emphasis, a soft warm ring
+     for 90+ states. Subtle, not neon. */
+  --ring-go: 0 0 0 3px rgba(200, 134, 42, 0.28);
+
+  /* Inset for sunken wells (e.g. unknown / research gaps) */
+  --inset-sunk: inset 0 1px 2px rgba(22, 32, 43, 0.05);
+}
+
+
+/* ===== tokens/motion.css ===== */
+/* ============================================================
+   95 Forward — MOTION TOKENS
+   "Purposeful & in motion" — momentum, never frantic. A quiet
+   heartbeat for cadence (the 24-hour follow-up), calm fades and
+   gentle ease for everything else. No bounce, no spectacle.
+   Respect prefers-reduced-motion everywhere.
+   ============================================================ */
+:root {
+  --dur-instant: 80ms;  /* @kind other */
+  --dur-fast:    140ms; /* @kind other */
+  --dur-base:    220ms; /* @kind other */
+  --dur-slow:    360ms; /* @kind other */
+  --dur-deliberate: 520ms; /* @kind other */
+
+  /* Easing — calm, confident. Standard ease-out for entrances. */
+  --ease-out:    cubic-bezier(0.22, 0.61, 0.36, 1);   /* @kind other */
+  --ease-in-out: cubic-bezier(0.45, 0, 0.25, 1);      /* @kind other */
+  --ease-emph:   cubic-bezier(0.16, 0.84, 0.44, 1); /* @kind other */
+
+  /* The heartbeat — cadence made felt. Slow, alive, never urgent. */
+  --beat-period: 2600ms; /* @kind other */
+}
+
+/* A quiet heartbeat for cadence indicators (follow-up due, etc.) */
+@keyframes f95-heartbeat {
+  0%, 100% { transform: scale(1);    opacity: 0.9; }
+  50%      { transform: scale(1.12); opacity: 1;   }
+}
+/* Calm rise — default entrance */
+@keyframes f95-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Score count-up companion fade */
+@keyframes f95-reveal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+
+/* ===== tokens/base.css ===== */
+/* ============================================================
+   95 Forward — base resets & document defaults.
+   Minimal; sets the warm-credible baseline so any consuming page
+   inherits the right type, color, and rendering.
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-body);
+  font: var(--text-body-r);
+  font-feature-settings: var(--num-tabular);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--text-strong); margin: 0; }
+p { margin: 0; }
+
+a { color: var(--brand-primary); text-decoration: none; }
+a:hover { color: var(--brand-primary-hover); }
+
+::selection { background: var(--blue-100); color: var(--ink-900); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-xs);
+}
+
+/* Numbers everywhere should be tabular & lined */
+.f95-num { font-feature-settings: var(--num-tabular); }
+

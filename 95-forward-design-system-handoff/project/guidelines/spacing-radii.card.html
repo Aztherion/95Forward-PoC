@@ -1,0 +1,25 @@
+<!-- @dsCard group="Spacing" viewport="700x160" name="Radii" subtitle="Gentle, consistent — present but never broadsheet-sharp or pill-soft" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 22px; }
+  .row { display: flex; gap: 18px; align-items: flex-end; }
+  .col { text-align: center; }
+  .box { width: 64px; height: 64px; background: var(--blue-100); border: 1.5px solid var(--blue-300); }
+  .tok { font: var(--fw-medium) var(--fs-micro)/1 var(--font-mono); color: var(--text-secondary); margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="col"><div class="box" style="border-radius:var(--radius-xs)"></div><div class="tok">xs · 4</div></div>
+    <div class="col"><div class="box" style="border-radius:var(--radius-sm)"></div><div class="tok">sm · 6</div></div>
+    <div class="col"><div class="box" style="border-radius:var(--radius-md)"></div><div class="tok">md · 10</div></div>
+    <div class="col"><div class="box" style="border-radius:var(--radius-lg)"></div><div class="tok">lg · 14</div></div>
+    <div class="col"><div class="box" style="border-radius:var(--radius-xl)"></div><div class="tok">xl · 20</div></div>
+    <div class="col"><div class="box" style="border-radius:var(--radius-pill)"></div><div class="tok">pill</div></div>
+  </div>
+</body>
+</html>

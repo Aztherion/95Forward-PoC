@@ -1,0 +1,26 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Logo & mark" subtitle="Altitude mark — forward/up motion with a dawn point of light" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .cell { padding: 26px; display: flex; align-items: center; gap: 16px; min-height: 92px; }
+  .light { background: var(--white); border-right: 1px solid var(--border-hairline); }
+  .haze { background: var(--haze-50); border-right: 1px solid var(--border-hairline); }
+  .dark { background: var(--ink-900); grid-column: 1 / -1; border-top: 1px solid var(--border-hairline); }
+  img { display: block; }
+  .cap { font: var(--text-caption); color: var(--text-muted); }
+  .dark .cap { color: var(--ink-300); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell light"><img src="../assets/mark.svg" width="48" height="48" alt="mark" /><span class="cap">Mark · app icon</span></div>
+    <div class="cell haze"><img src="../assets/logo-horizontal.svg" width="170" height="41" alt="logo" /></div>
+    <div class="cell dark"><img src="../assets/logo-on-dark.svg" width="170" height="41" alt="logo on dark" /><span class="cap" style="margin-left:16px">On ink — the rising chevron points forward; the gold dot is the dawn you're heading toward.</span></div>
+  </div>
+</body>
+</html>

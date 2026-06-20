@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>95 Forward — Workspace (print)</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: var(--bg-app); }
+  #root { min-height: 100vh; }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  @page { size: 1320px 1180px; margin: 0; }
+
+  @media print {
+    html, body { height: auto !important; background: var(--bg-app) !important; }
+    #root { min-height: 0 !important; }
+    #root > div { min-height: 1180px !important; }           /* fill the sheet */
+    #root main > div { overflow: visible !important; }       /* unclip the scroll area */
+
+    /* freeze animations/transitions at their end state */
+    *, *::before, *::after {
+      animation-delay: -99s !important; animation-duration: .001s !important;
+      animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+      animation-play-state: running !important; transition-duration: 0s !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="data.js"></script>
+  <script type="text/babel" data-presets="react" src="Shell.jsx"></script>
+  <script type="text/babel" data-presets="react" src="MasterList.jsx"></script>
+  <script type="text/babel" data-presets="react" src="ProspectProfile.jsx"></script>
+  <script type="text/babel" data-presets="react" src="GreenSheet.jsx"></script>
+  <script type="text/babel" data-presets="react" src="VisitCompanion.jsx"></script>
+  <script type="text/babel" data-presets="react" src="App.jsx"></script>
+
+  <script>
+    addEventListener('load', () => {
+      (async () => {
+        // wait for the React app to mount and icons to paint
+        const ready = () => {
+          const root = document.getElementById('root');
+          return root && root.firstChild && document.querySelector('#root svg');
+        };
+        const t0 = Date.now();
+        while (!ready() && Date.now() - t0 < 8000) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        try { await document.fonts.ready; } catch (e) {}
+        const imgs = Array.from(document.images).filter((i) => !i.complete);
+        await Promise.race([
+          Promise.allSettled(imgs.map((i) => i.decode())),
+          new Promise((r) => setTimeout(r, 8000)),
+        ]);
+        setTimeout(() => window.print(), 600);
+      })();
+    });
+  </script>
+</body>
+</html>

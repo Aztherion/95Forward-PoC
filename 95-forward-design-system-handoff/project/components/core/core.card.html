@@ -1,0 +1,70 @@
+<!-- @dsCard group="Components" viewport="700x380" name="Core controls" subtitle="Button · Badge · Tag · Avatar · Input · Card" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; background: var(--bg-app); padding: 22px; }
+  .wrap { display: flex; flex-direction: column; gap: 18px; }
+  .group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lbl { font: var(--text-caption); color: var(--text-muted); width: 84px; flex: none; letter-spacing: var(--ls-caps); text-transform: uppercase; font-weight: var(--fw-semibold); }
+  .ico { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { Button, Badge, Tag, Avatar, Input, Card } = window.Ds95ForwardDesignSystem_31a0c4;
+    const Plus = () => <svg className="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>;
+    function Demo() {
+      return (
+        <div className="wrap">
+          <div className="group"><span className="lbl">Buttons</span>
+            <Button variant="go" iconLeft={<Plus/>}>Plan the visit</Button>
+            <Button variant="primary">Save</Button>
+            <Button variant="secondary">Edit</Button>
+            <Button variant="ghost">Dismiss</Button>
+            <Button variant="secondary" size="sm">Small</Button>
+            <Button variant="primary" disabled>Disabled</Button>
+          </div>
+          <div className="group"><span className="lbl">Badges</span>
+            <Badge tone="success" dot>Ask logged</Badge>
+            <Badge tone="attention" dot>Follow up by tomorrow</Badge>
+            <Badge tone="info">Visit planned</Badge>
+            <Badge tone="ai">Copilot</Badge>
+            <Badge tone="unknown">Unknown — worth researching</Badge>
+            <Badge tone="go" solid>QPI 92</Badge>
+          </div>
+          <div className="group"><span className="lbl">Tags</span>
+            <Tag color="var(--horizon-today)">Today</Tag>
+            <Tag color="var(--horizon-tomorrow)">Tomorrow</Tag>
+            <Tag selected>Major gifts</Tag>
+            <Tag onRemove={()=>{}}>Lapsed</Tag>
+          </div>
+          <div className="group"><span className="lbl">Avatars</span>
+            <Avatar name="Maria Alvarez" />
+            <Avatar name="Dana Reese" ringColor="var(--role-manager)" />
+            <Avatar name="Hartwell Foundation" kind="org" />
+            <Avatar name="James Okoro" size="lg" />
+          </div>
+          <div className="group" style={{alignItems:'flex-end'}}><span className="lbl">Inputs</span>
+            <div style={{width:200}}><Input label="Estimated capacity" optional placeholder="$ range is fine" /></div>
+            <div style={{width:200}}><Input label="Capacity" ai defaultValue="$250,000" /></div>
+          </div>
+          <div className="group" style={{alignItems:'stretch'}}><span className="lbl">Cards</span>
+            <Card pad="sm" style={{width:170}}><div style={{font:'var(--text-label)',color:'var(--text-strong)'}}>Default surface</div><div style={{font:'var(--text-caption)',color:'var(--text-muted)',marginTop:4}}>A hairline + quiet lift</div></Card>
+            <Card tone="ai" accent pad="sm" style={{width:170}}><div style={{font:'var(--text-label)',color:'var(--ai-ink)'}}>Copilot</div><div style={{font:'var(--text-caption)',color:'var(--iris-700)',marginTop:4}}>Provisional surface</div></Card>
+            <Card tone="go" pad="sm" style={{width:170}}><div style={{font:'var(--text-label)',color:'var(--gold-700)'}}>Go today</div><div style={{font:'var(--text-caption)',color:'var(--text-secondary)',marginTop:4}}>The 90+ state</div></Card>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  </script>
+</body>
+</html>

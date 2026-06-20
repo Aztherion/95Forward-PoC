@@ -1,0 +1,23 @@
+<!-- @dsCard group="Type" viewport="700x220" name="Body, labels & overline" subtitle="The everyday reading sizes and meta styles" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); padding: 22px; }
+  .stack > div { display: flex; align-items: baseline; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--border-hairline); }
+  .stack > div:last-child { border-bottom: none; }
+  .spec { font: var(--fw-medium) var(--fs-micro)/1 var(--font-mono); color: var(--text-muted); width: 92px; flex: none; }
+</style>
+</head>
+<body>
+  <div class="stack">
+    <div><span class="spec">Body 15</span><span style="font:var(--text-body-r); color:var(--text-body)">Find the right people, learn enough to matter, then go have the conversation.</span></div>
+    <div><span class="spec">Small 13</span><span style="font:var(--fw-regular) var(--fs-small)/1.45 var(--font-sans); color:var(--text-secondary)">Secondary detail and supporting copy sits here, calm and legible.</span></div>
+    <div><span class="spec">Label 13</span><span style="font:var(--text-label); color:var(--text-strong)">Relationship Manager</span></div>
+    <div><span class="spec">Caption 12</span><span style="font:var(--text-caption); color:var(--text-muted)">Last contact · 6 days ago</span></div>
+    <div><span class="spec">Overline 11</span><span class="f95-overline">Predisposition</span></div>
+  </div>
+</body>
+</html>

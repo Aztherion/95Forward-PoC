@@ -1,0 +1,8 @@
+/* 95 Forward — Webfonts
+   Loaded from Google Fonts CDN. These are PROPOSED faces (no brand fonts existed);
+   easy to swap. See readme.md > VISUAL FOUNDATIONS.
+   - Hanken Grotesk : warm humanist grotesque — all UI & body
+   - Newsreader      : low-contrast humanist serif — human/editorial moments only
+   - IBM Plex Mono   : evidence/provenance — citation tags, IDs, raw data
+*/
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,18..48,400;0,18..48,500;1,18..48,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
