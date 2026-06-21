@@ -26,7 +26,7 @@ test.describe("Copilot lab demonstration harness", () => {
     await expect(draftCard).toBeVisible();
 
     await expect(qpiCard.locator(".f95-src--grounded")).toContainText("990-PF");
-    await expect(qpiCard.locator(".f95-prov__to")).toHaveText("78");
+    await expect(qpiCard.locator(".f95-prov__to")).toHaveText("5");
 
     await qpiCard.getByRole("button", { name: "Approve" }).click();
 

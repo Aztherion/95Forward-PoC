@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq, isNotNull } from "drizzle-orm";
-import { QPI_DEFAULT_TOGGLES, QPI_DEFAULT_WEIGHTS } from "@95forward/shared";
+import {
+  computeQpi,
+  QPI_DEFAULT_TOGGLES,
+  QPI_DEFAULT_WEIGHTS,
+  type QpiDimension,
+} from "@95forward/shared";
 import { seed } from "./seed";
 import { stableId } from "./seed-records-core";
 import type { Database } from "./client";
@@ -9,6 +14,7 @@ import { tenants } from "./schema/tenants";
 import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
 import { constituents } from "./schema/constituents";
+import { knowledgeBase, naturalPartners, prospects, qpiAssessments } from "./schema/prospects";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import { opportunities, proposals } from "./schema/pipeline";
 import {
@@ -529,6 +535,122 @@ describe("seed: volunteers & memberships slice", () => {
       ).length,
       members: (await db.query.memberships.findMany({ where: eq(memberships.tenantId, tenantId) }))
         .length,
+    });
+    const before = await counts();
+    await seed(db);
+    const after = await counts();
+    expect(after).toEqual(before);
+  });
+});
+
+describe("seed: prospects & QPI (the 95 Forward grounding set)", () => {
+  const GROUNDING_TOTALS: Record<string, number> = {
+    hallworth: 92,
+    cordova: 83,
+    osgood: 77,
+    vega: 70,
+    cornerstone: 64,
+    whitfield: 58,
+    northwater: 48,
+    bello: 40,
+  };
+
+  it("seeds all eight grounding prospects, each 1:1 with its host constituent", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.prospects.findMany({ where: eq(prospects.tenantId, tenantId) });
+    expect(rows.length).toBeGreaterThanOrEqual(8);
+    for (const key of Object.keys(GROUNDING_TOTALS)) {
+      const row = rows.find((r) => r.id === stableId(`prospect:${key}`));
+      expect(row).toBeDefined();
+      expect(row?.constituentId).toBe(stableId(`constituent:${key}`));
+    }
+  });
+
+  it("seeds QPI assessments that compute to the exact grounding totals", async () => {
+    if (!handle) {
+      return;
+    }
+    for (const [key, expectedTotal] of Object.entries(GROUNDING_TOTALS)) {
+      const prospectId = stableId(`prospect:${key}`);
+      const rows = await db.query.qpiAssessments.findMany({
+        where: eq(qpiAssessments.prospectId, prospectId),
+      });
+      expect(rows).toHaveLength(5);
+      const result = computeQpi(
+        rows.map((r) => ({
+          dimension: r.dimension as QpiDimension,
+          rating: r.rating,
+          isUnknown: r.isUnknown,
+        })),
+        QPI_DEFAULT_WEIGHTS,
+      );
+      expect(result.total).toBe(expectedTotal);
+    }
+  });
+
+  it("gives Hallworth the grounding hero breakdown (92 = 35+24+15+8+10, all known)", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.qpiAssessments.findMany({
+      where: eq(qpiAssessments.prospectId, stableId("prospect:hallworth")),
+    });
+    const ratingByDimension = Object.fromEntries(rows.map((r) => [r.dimension, r.rating]));
+    expect(ratingByDimension).toEqual({
+      capacity: 5,
+      relationship: 4,
+      timing: 5,
+      gift_history: 4,
+      philanthropy: 5,
+    });
+    const capacity = rows.find((r) => r.dimension === "capacity");
+    expect(capacity?.source).toContain("990-PF");
+    expect(rows.every((r) => !r.isUnknown)).toBe(true);
+  });
+
+  it("seeds unknown QPI gaps on research-stage prospects (rating null, contributing 0)", async () => {
+    if (!handle) {
+      return;
+    }
+    const unknownRows = await db.query.qpiAssessments.findMany({
+      where: and(eq(qpiAssessments.tenantId, tenantId), eq(qpiAssessments.isUnknown, true)),
+    });
+    expect(unknownRows.length).toBeGreaterThanOrEqual(4);
+    expect(unknownRows.every((r) => r.rating === null)).toBe(true);
+  });
+
+  it("seeds natural partners and the Hallworth grounding capacity detail", async () => {
+    if (!handle) {
+      return;
+    }
+    const partners = await db.query.naturalPartners.findMany({
+      where: eq(naturalPartners.tenantId, tenantId),
+    });
+    expect(partners.length).toBeGreaterThanOrEqual(5);
+    const hallworthPartner = partners.find((p) => p.prospectId === stableId("prospect:hallworth"));
+    expect(hallworthPartner?.constituentId).toBe(stableId("constituent:bradley"));
+
+    const kb = await db.query.knowledgeBase.findFirst({
+      where: eq(knowledgeBase.prospectId, stableId("prospect:hallworth")),
+    });
+    expect(kb?.capacitySource).toContain("$180M");
+  });
+
+  it("is idempotent — re-seeding leaves prospect/QPI counts stable", async () => {
+    if (!handle) {
+      return;
+    }
+    const counts = async () => ({
+      prospects: (await db.query.prospects.findMany({ where: eq(prospects.tenantId, tenantId) }))
+        .length,
+      qpi: (
+        await db.query.qpiAssessments.findMany({ where: eq(qpiAssessments.tenantId, tenantId) })
+      ).length,
+      partners: (
+        await db.query.naturalPartners.findMany({ where: eq(naturalPartners.tenantId, tenantId) })
+      ).length,
     });
     const before = await counts();
     await seed(db);

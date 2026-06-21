@@ -194,7 +194,7 @@ export function buildMockScripts(params: BuildMockScriptsParams): Record<string,
       toolUseResponse("propose_qpi", {
         prospectId: params.prospectId,
         dimension,
-        rating: 78,
+        rating: 5,
         rationale: "Two five-figure gifts in the last 24 months and a board seat at a peer funder.",
         source: "IRS 990-PF · 2024",
       }),

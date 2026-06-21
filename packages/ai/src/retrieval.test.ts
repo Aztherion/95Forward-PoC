@@ -64,7 +64,7 @@ function caller(f: Fixture): CallerContext {
 beforeAll(async () => {
   owner = await connectTestDb();
   app = await connectAppTestDb();
-  if (!owner || !app) return;
+  if (!owner) return;
   fixtures.a = await makeFixture(owner.db, "a");
   fixtures.b = await makeFixture(owner.db, "b");
   await embedAndStore(owner.db, provider, fixtures.a.tenantId, true);
@@ -83,7 +83,7 @@ afterAll(async () => {
 
 describe("hybridRetrieve — tenant-scoped vector + structured facts", () => {
   it("SECURITY 3: every citation rowId belongs to tenant A only", async () => {
-    if (!owner || !app) return;
+    if (!owner || !app || !fixtures.a.tenantId) return;
     const result = await hybridRetrieve(
       app.db,
       caller(fixtures.a),
@@ -104,7 +104,7 @@ describe("hybridRetrieve — tenant-scoped vector + structured facts", () => {
   });
 
   it("includes a deterministic lifetime-giving fact with structured provenance", async () => {
-    if (!owner) return;
+    if (!owner || !fixtures.a.tenantId) return;
     const result = await hybridRetrieve(owner.db, caller(fixtures.a), provider, "giving history", {
       subjectType: "constituent",
       subjectId: fixtures.a.constituentId,
@@ -117,7 +117,7 @@ describe("hybridRetrieve — tenant-scoped vector + structured facts", () => {
   });
 
   it("SECURITY 8: a subject with no evidence returns first-class unknown", async () => {
-    if (!owner) return;
+    if (!owner || !fixtures.a.tenantId) return;
     const result = await hybridRetrieve(
       owner.db,
       caller(fixtures.a),

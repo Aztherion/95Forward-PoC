@@ -206,7 +206,7 @@ const proposeQpiInput = z
   .object({
     prospectId: z.string().uuid(),
     dimension: z.enum(["capacity", "relationship", "timing", "gift_history", "philanthropy"]),
-    rating: z.number().int().min(0).max(100),
+    rating: z.number().int().min(1).max(5),
     rationale: z.string().min(1),
     source: z.string().min(1),
   })
@@ -215,7 +215,7 @@ const proposeQpiInput = z
 const proposeQpi: Tool<z.infer<typeof proposeQpiInput>> = {
   name: "propose_qpi",
   description:
-    "Propose a QPI rating for one dimension of a prospect, staged for human review rather than applied directly. Requires a rationale and a source so the assessment is auditable. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; it never mutates the prospect's live QPI.",
+    "Propose a QPI rating (1-5) for one dimension of a prospect, staged for human review rather than applied directly. The QPI total weights each dimension's 1-5 rating, so ratings must be 1-5. Requires a rationale and a source so the assessment is auditable. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; it never mutates the prospect's live QPI.",
   inputSchema: proposeQpiInput,
   async handler(input, ctx: ToolContext): Promise<string> {
     const provenance: Citation[] = [

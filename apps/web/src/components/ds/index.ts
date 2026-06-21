@@ -43,3 +43,7 @@ export type {
   ProvisionalSuggestionProps,
   ProvisionalSuggestionState,
 } from "./ProvisionalSuggestion";
+export { QpiScore } from "./QpiScore";
+export type { QpiScoreProps } from "./QpiScore";
+export { QpiBreakdown } from "./QpiBreakdown";
+export type { QpiBreakdownProps } from "./QpiBreakdown";

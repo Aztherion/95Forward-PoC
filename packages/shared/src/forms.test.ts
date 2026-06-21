@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   communicationInputSchema,
   constituentInputSchema,
+  copilotTogglesInputSchema,
   eventInputSchema,
   giftInputSchema,
   interactionInputSchema,
   membershipInputSchema,
   membershipTierInputSchema,
+  naturalPartnerInputSchema,
+  qpiOverrideInputSchema,
+  qpiWeightsInputSchema,
   registrationInputSchema,
   relationshipInputSchema,
   savedListInputSchema,
@@ -292,5 +296,81 @@ describe("membershipInputSchema", () => {
     expect(() =>
       membershipInputSchema.parse({ constituentId: UUID, tierId: UUID_B, status: "frozen" }),
     ).toThrow();
+  });
+});
+
+describe("qpiOverrideInputSchema", () => {
+  it("accepts a 1-5 rating with rationale", () => {
+    const parsed = qpiOverrideInputSchema.parse({
+      prospectId: UUID,
+      dimension: "capacity",
+      rating: 5,
+      rationale: "Foundation assets ≈ $180M",
+      source: "IRS 990-PF · 2024",
+    });
+    expect(parsed.rating).toBe(5);
+  });
+
+  it("accepts marking a dimension unknown without a rating", () => {
+    const parsed = qpiOverrideInputSchema.parse({
+      prospectId: UUID,
+      dimension: "capacity",
+      isUnknown: true,
+    });
+    expect(parsed.isUnknown).toBe(true);
+  });
+
+  it("rejects neither a rating nor an unknown flag, and out-of-range ratings", () => {
+    expect(() => qpiOverrideInputSchema.parse({ prospectId: UUID, dimension: "timing" })).toThrow();
+    expect(() =>
+      qpiOverrideInputSchema.parse({ prospectId: UUID, dimension: "timing", rating: 6 }),
+    ).toThrow();
+  });
+});
+
+describe("naturalPartnerInputSchema", () => {
+  it("accepts a constituent-linked partner", () => {
+    const parsed = naturalPartnerInputSchema.parse({ prospectId: UUID, constituentId: UUID_B });
+    expect(parsed.constituentId).toBe(UUID_B);
+  });
+
+  it("requires at least one of user / constituent / external name", () => {
+    expect(() => naturalPartnerInputSchema.parse({ prospectId: UUID })).toThrow();
+  });
+});
+
+describe("qpiWeightsInputSchema", () => {
+  it("accepts the default weighting (points sum to 100)", () => {
+    const parsed = qpiWeightsInputSchema.parse({
+      capacity: 7,
+      relationship: 6,
+      timing: 3,
+      gift_history: 2,
+      philanthropy: 2,
+    });
+    expect(parsed.capacity).toBe(7);
+  });
+
+  it("rejects a weighting whose points do not sum to 100", () => {
+    expect(() =>
+      qpiWeightsInputSchema.parse({
+        capacity: 8,
+        relationship: 6,
+        timing: 3,
+        gift_history: 2,
+        philanthropy: 2,
+      }),
+    ).toThrow();
+  });
+});
+
+describe("copilotTogglesInputSchema", () => {
+  it("accepts the three booleans", () => {
+    const parsed = copilotTogglesInputSchema.parse({
+      researchPublicSources: true,
+      proposeQpiUpdatesAutomatically: false,
+      draft24hFollowups: true,
+    });
+    expect(parsed.proposeQpiUpdatesAutomatically).toBe(false);
   });
 });

@@ -60,7 +60,7 @@ function caller(f: Fixture): CallerContext {
 beforeAll(async () => {
   owner = await connectTestDb();
   app = await connectAppTestDb();
-  if (!owner || !app) return;
+  if (!owner) return;
   fixtures.a = await makeFixture(owner.db, "a");
   fixtures.b = await makeFixture(owner.db, "b");
 });
@@ -77,7 +77,7 @@ afterAll(async () => {
 
 describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", () => {
   it("SECURITY 1: a proposal created in tenant A is invisible to tenant B", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const id = await createProposal(app.db, caller(fixtures.a), {
       subjectType: "prospect",
       subjectId: fixtures.a.prospectId,
@@ -99,7 +99,7 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
   });
 
   it("SECURITY 4: tenant A cannot approve tenant B's proposal", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const bId = await createProposal(app.db, caller(fixtures.b), {
       subjectType: "prospect",
       subjectId: fixtures.b.prospectId,
@@ -116,7 +116,7 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
   });
 
   it("SECURITY 5: double-approve is prevented by the optimistic lock", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const id = await createProposal(app.db, caller(fixtures.a), {
       subjectType: "prospect",
       subjectId: fixtures.a.prospectId,
@@ -132,13 +132,13 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
   });
 
   it("SECURITY 6: dismissing a qpi proposal applies no domain write", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const id = await createProposal(app.db, caller(fixtures.a), {
       subjectType: "prospect",
       subjectId: fixtures.a.prospectId,
       proposalType: "qpi_assessment",
       title: "QPI capacity",
-      payload: { dimension: "capacity", rating: 90, rationale: "rich", source: "manual" },
+      payload: { dimension: "capacity", rating: 5, rationale: "rich", source: "manual" },
       provenance: [],
     });
     const dismissed = await dismissProposal(app.db, caller(fixtures.a), id);
@@ -159,7 +159,7 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
   });
 
   it("SECURITY 7: approving a qpi proposal writes back exactly and sets applied=true", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const id = await createProposal(app.db, caller(fixtures.a), {
       subjectType: "prospect",
       subjectId: fixtures.a.prospectId,
@@ -167,7 +167,7 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
       title: "QPI relationship",
       payload: {
         dimension: "relationship",
-        rating: 75,
+        rating: 4,
         rationale: "strong board tie",
         source: "interview",
       },
@@ -191,23 +191,69 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
         ),
     );
     expect(assessments).toHaveLength(1);
-    expect(assessments[0]?.rating).toBe(75);
+    expect(assessments[0]?.rating).toBe(4);
     expect(assessments[0]?.rationale).toBe("strong board tie");
     expect(assessments[0]?.source).toBe("interview");
+    expect(assessments[0]?.isUnknown).toBe(false);
+  });
+
+  it("approving a qpi proposal over an unknown gap clears is_unknown so the score recomputes", async () => {
+    if (!app || !fixtures.a.tenantId) return;
+    await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx.insert(qpiAssessments).values({
+        tenantId: fixtures.a.tenantId,
+        prospectId: fixtures.a.prospectId,
+        dimension: "gift_history",
+        rating: null,
+        isUnknown: true,
+        updatedByUserId: fixtures.a.userId,
+      }),
+    );
+
+    const id = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "qpi_assessment",
+      title: "QPI gift history",
+      payload: {
+        dimension: "gift_history",
+        rating: 4,
+        rationale: "two prior gifts",
+        source: "crm",
+      },
+      provenance: [],
+    });
+    const result = await approveProposal(app.db, caller(fixtures.a), id);
+    expect(result.ok).toBe(true);
+
+    const assessments = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx
+        .select()
+        .from(qpiAssessments)
+        .where(
+          and(
+            eq(qpiAssessments.prospectId, fixtures.a.prospectId),
+            eq(qpiAssessments.dimension, "gift_history"),
+          ),
+        ),
+    );
+    expect(assessments).toHaveLength(1);
+    expect(assessments[0]?.isUnknown).toBe(false);
+    expect(assessments[0]?.rating).toBe(4);
   });
 
   it("edits flip status to 'edited' and persist the edited payload", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const id = await createProposal(app.db, caller(fixtures.a), {
       subjectType: "prospect",
       subjectId: fixtures.a.prospectId,
       proposalType: "qpi_assessment",
       title: "QPI timing",
-      payload: { dimension: "timing", rating: 40, rationale: "soon", source: "note" },
+      payload: { dimension: "timing", rating: 2, rationale: "soon", source: "note" },
       provenance: [],
     });
     const result = await approveProposal(app.db, caller(fixtures.a), id, {
-      payload: { dimension: "timing", rating: 60, rationale: "sooner", source: "note" },
+      payload: { dimension: "timing", rating: 3, rationale: "sooner", source: "note" },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -224,6 +270,6 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
           ),
         ),
     );
-    expect(assessments[0]?.rating).toBe(60);
+    expect(assessments[0]?.rating).toBe(3);
   });
 });

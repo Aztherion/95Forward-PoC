@@ -37,7 +37,7 @@ function qpiProviders(prospectId: string): Providers {
       toolUseResponse("propose_qpi", {
         prospectId,
         dimension: "capacity",
-        rating: 78,
+        rating: 5,
         rationale: "Foundation assets near $40M with $1.2M granted to peer water orgs last cycle.",
         source: "IRS 990-PF · 2024",
       }),

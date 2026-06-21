@@ -96,7 +96,7 @@ async function makeFixture(db: TestDb["db"], label: string): Promise<Fixture> {
 beforeAll(async () => {
   owner = await connectTestDb();
   app = await connectAppTestDb();
-  if (!owner || !app) return;
+  if (!owner) return;
   fixtures.a = await makeFixture(owner.db, "a");
   fixtures.b = await makeFixture(owner.db, "b");
 });
@@ -132,7 +132,7 @@ describe("buildToolset contract", () => {
 
 describe("tools — tenant isolation (app pool, RLS)", () => {
   it("SECURITY 2: read_constituent in tenant A with tenant B's id returns not-found", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const out = await tool("read_constituent").handler(
       { constituentId: fixtures.b.constituentId },
       ctxFor(fixtures.a),
@@ -142,7 +142,7 @@ describe("tools — tenant isolation (app pool, RLS)", () => {
   });
 
   it("SECURITY 2: read_prospect in tenant A with tenant B's id returns not-found", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const out = await tool("read_prospect").handler(
       { prospectId: fixtures.b.prospectId },
       ctxFor(fixtures.a),
@@ -151,7 +151,7 @@ describe("tools — tenant isolation (app pool, RLS)", () => {
   });
 
   it("read_constituent in own tenant returns the profile + lifetime giving", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const out = await tool("read_constituent").handler(
       { constituentId: fixtures.a.constituentId },
       ctxFor(fixtures.a),
@@ -161,7 +161,7 @@ describe("tools — tenant isolation (app pool, RLS)", () => {
   });
 
   it("retrieve wraps content as untrusted data", async () => {
-    if (!owner || !app) return;
+    if (!owner || !app || !fixtures.a.tenantId) return;
     await withTenant(owner.db, fixtures.a.tenantId, async (tx) => {
       await tx
         .update(constituents)
@@ -176,12 +176,12 @@ describe("tools — tenant isolation (app pool, RLS)", () => {
   });
 
   it("propose_qpi stages a pending proposal without mutating live QPI", async () => {
-    if (!app) return;
+    if (!app || !fixtures.a.tenantId) return;
     const out = await tool("propose_qpi").handler(
       {
         prospectId: fixtures.a.prospectId,
         dimension: "capacity",
-        rating: 80,
+        rating: 4,
         rationale: "owns business",
         source: "research",
       },

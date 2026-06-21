@@ -304,3 +304,72 @@ export const membershipInputSchema = z.object({
     .optional(),
 });
 export type MembershipInput = z.infer<typeof membershipInputSchema>;
+
+export const QPI_DIMENSION_VALUES = [
+  "capacity",
+  "relationship",
+  "timing",
+  "gift_history",
+  "philanthropy",
+] as const;
+
+// A human override of one QPI dimension: either set a 1-5 rating with rationale, or mark it an
+// unknown gap (rating omitted). The score then recomputes from the stored assessments.
+export const qpiOverrideInputSchema = z
+  .object({
+    prospectId: z.string().uuid(),
+    dimension: z.enum(QPI_DIMENSION_VALUES),
+    isUnknown: z.boolean().default(false),
+    rating: z.number().int().min(1).max(5).optional(),
+    rationale: z.string().trim().max(1000).optional(),
+    source: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => v.isUnknown || v.rating !== undefined, {
+    message: "Set a rating (1-5) or mark the dimension unknown",
+    path: ["rating"],
+  });
+export type QpiOverrideInput = z.infer<typeof qpiOverrideInputSchema>;
+
+export const naturalPartnerInputSchema = z
+  .object({
+    prospectId: z.string().uuid(),
+    userId: z.string().uuid().optional(),
+    constituentId: z.string().uuid().optional(),
+    externalName: z.string().trim().max(200).optional(),
+    role: z.string().trim().max(120).optional(),
+    warmPathNote: z.string().trim().max(1000).optional(),
+  })
+  .refine((v) => Boolean(v.userId || v.constituentId || v.externalName), {
+    message: "Link a staff member, a constituent, or name an external partner",
+    path: ["externalName"],
+  });
+export type NaturalPartnerInput = z.infer<typeof naturalPartnerInputSchema>;
+
+export const rmAssignInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  rmUserId: z.string().uuid().optional(),
+});
+export type RmAssignInput = z.infer<typeof rmAssignInputSchema>;
+
+// QPI weights edit: each dimension's 1-5 rating is multiplied by its weight, so the points must sum
+// to 100 — i.e. the five weights must sum to 20 (× the max rating of 5).
+export const qpiWeightsInputSchema = z
+  .object({
+    capacity: z.number().int().min(1).max(20),
+    relationship: z.number().int().min(1).max(20),
+    timing: z.number().int().min(1).max(20),
+    gift_history: z.number().int().min(1).max(20),
+    philanthropy: z.number().int().min(1).max(20),
+  })
+  .refine(
+    (w) => (w.capacity + w.relationship + w.timing + w.gift_history + w.philanthropy) * 5 === 100,
+    { message: "The dimension points must sum to 100", path: ["capacity"] },
+  );
+export type QpiWeightsInput = z.infer<typeof qpiWeightsInputSchema>;
+
+export const copilotTogglesInputSchema = z.object({
+  researchPublicSources: z.boolean(),
+  proposeQpiUpdatesAutomatically: z.boolean(),
+  draft24hFollowups: z.boolean(),
+});
+export type CopilotTogglesInput = z.infer<typeof copilotTogglesInputSchema>;

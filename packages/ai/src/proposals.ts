@@ -121,6 +121,7 @@ async function applyWriteBack(
         prospectId: proposal.subjectId,
         dimension: payload.dimension as (typeof qpiAssessments.$inferInsert)["dimension"],
         rating: payload.rating ?? null,
+        isUnknown: false,
         rationale: payload.rationale ?? null,
         source: payload.source ?? null,
         updatedByUserId: caller.id,
@@ -129,6 +130,7 @@ async function applyWriteBack(
         target: [qpiAssessments.tenantId, qpiAssessments.prospectId, qpiAssessments.dimension],
         set: {
           rating: payload.rating ?? null,
+          isUnknown: false,
           rationale: payload.rationale ?? null,
           source: payload.source ?? null,
           updatedByUserId: caller.id,
