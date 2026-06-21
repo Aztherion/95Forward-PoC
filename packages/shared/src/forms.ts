@@ -259,3 +259,48 @@ export const registrationInputSchema = z.object({
   attended: z.boolean().default(false),
 });
 export type RegistrationInput = z.infer<typeof registrationInputSchema>;
+
+export const volunteerOpportunityInputSchema = z.object({
+  name: z.string().trim().min(1, "Name the opportunity").max(200),
+  startsAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+  location: z.string().trim().max(300).optional(),
+  capacity: z.number().int().positive().max(1_000_000).optional(),
+  description: z.string().trim().max(2000).optional(),
+});
+export type VolunteerOpportunityInput = z.infer<typeof volunteerOpportunityInputSchema>;
+
+export const volunteerHoursInputSchema = z.object({
+  constituentId: z.string().uuid("Select a volunteer"),
+  opportunityId: z.string().uuid("Select an opportunity"),
+  hours: z.number().positive("Hours must be greater than zero").max(9999.99),
+  loggedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use the YYYY-MM-DD format"),
+});
+export type VolunteerHoursInput = z.infer<typeof volunteerHoursInputSchema>;
+
+export const membershipTierInputSchema = z.object({
+  name: z.string().trim().min(1, "Name the tier").max(120),
+  level: z.number().int().min(0).max(100).optional(),
+  amountCents: z.number().int().min(0).max(100_000_000_00).optional(),
+  benefits: z.string().trim().max(2000).optional(),
+});
+export type MembershipTierInput = z.infer<typeof membershipTierInputSchema>;
+
+export const MEMBERSHIP_STATUSES = ["active", "lapsed", "pending", "cancelled"] as const;
+
+export const membershipInputSchema = z.object({
+  constituentId: z.string().uuid("Select a constituent"),
+  tierId: z.string().uuid("Select a tier"),
+  status: z.enum(MEMBERSHIP_STATUSES).default("active"),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+  renewalDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+});
+export type MembershipInput = z.infer<typeof membershipInputSchema>;

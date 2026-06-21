@@ -11,7 +11,16 @@ import { tenantSettings } from "./schema/config";
 import { constituents } from "./schema/constituents";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import { opportunities, proposals } from "./schema/pipeline";
-import { events, eventRegistrations, marketingMessages, segments } from "./schema/engagement";
+import {
+  events,
+  eventRegistrations,
+  marketingMessages,
+  membershipTiers,
+  memberships,
+  segments,
+  volunteerHours,
+  volunteerOpportunities,
+} from "./schema/engagement";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -413,6 +422,113 @@ describe("seed: engagement slice", () => {
           where: eq(eventRegistrations.tenantId, tenantId),
         })
       ).length,
+    });
+    const before = await counts();
+    await seed(db);
+    const after = await counts();
+    expect(after).toEqual(before);
+  });
+});
+
+describe("seed: volunteers & memberships slice", () => {
+  it("seeds volunteer opportunities and flags volunteers", async () => {
+    if (!handle) {
+      return;
+    }
+    const opps = await db.query.volunteerOpportunities.findMany({
+      where: eq(volunteerOpportunities.tenantId, tenantId),
+    });
+    expect(opps.length).toBeGreaterThanOrEqual(4);
+    expect(opps.some((o) => o.name === "World Water Day Booth")).toBe(true);
+
+    const lin = await db.query.constituents.findFirst({
+      where: eq(constituents.id, stableId("constituent:lin")),
+    });
+    expect(lin?.volunteer).toBe(true);
+  });
+
+  it("seeds logged hours that roll up per volunteer and per opportunity", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.volunteerHours.findMany({
+      where: eq(volunteerHours.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThanOrEqual(14);
+
+    const linId = stableId("constituent:lin");
+    const linHours = rows
+      .filter((r) => r.constituentId === linId)
+      .reduce((sum, r) => sum + Number(r.hours), 0);
+    expect(linHours).toBe(10);
+
+    const boothId = stableId("opportunity:wwd-booth");
+    const boothHours = rows
+      .filter((r) => r.opportunityId === boothId)
+      .reduce((sum, r) => sum + Number(r.hours), 0);
+    expect(boothHours).toBe(18);
+  });
+
+  it("seeds membership tiers with levels and member records across statuses", async () => {
+    if (!handle) {
+      return;
+    }
+    const tiers = await db.query.membershipTiers.findMany({
+      where: eq(membershipTiers.tenantId, tenantId),
+    });
+    expect(tiers.length).toBeGreaterThanOrEqual(4);
+    expect(tiers.every((t) => t.level !== null)).toBe(true);
+
+    const members = await db.query.memberships.findMany({
+      where: eq(memberships.tenantId, tenantId),
+    });
+    expect(members.length).toBeGreaterThanOrEqual(12);
+    const statuses = new Set(members.map((m) => m.status));
+    expect(statuses.has("active")).toBe(true);
+    expect(statuses.has("lapsed")).toBe(true);
+    expect(statuses.has("pending")).toBe(true);
+  });
+
+  it("includes both upcoming and lapsed renewals relative to mid-2026", async () => {
+    if (!handle) {
+      return;
+    }
+    const members = await db.query.memberships.findMany({
+      where: eq(memberships.tenantId, tenantId),
+    });
+    const reference = "2026-06-21";
+    const lapsed = members.filter(
+      (m) => m.renewalDate !== null && m.renewalDate < reference && m.status !== "cancelled",
+    );
+    const upcoming = members.filter(
+      (m) =>
+        m.status === "active" &&
+        m.renewalDate !== null &&
+        m.renewalDate >= reference &&
+        m.renewalDate <= "2026-08-20",
+    );
+    expect(lapsed.length).toBeGreaterThan(0);
+    expect(upcoming.length).toBeGreaterThan(0);
+  });
+
+  it("is idempotent — re-seeding leaves volunteer and membership counts stable", async () => {
+    if (!handle) {
+      return;
+    }
+    const counts = async () => ({
+      opportunities: (
+        await db.query.volunteerOpportunities.findMany({
+          where: eq(volunteerOpportunities.tenantId, tenantId),
+        })
+      ).length,
+      hours: (
+        await db.query.volunteerHours.findMany({ where: eq(volunteerHours.tenantId, tenantId) })
+      ).length,
+      tiers: (
+        await db.query.membershipTiers.findMany({ where: eq(membershipTiers.tenantId, tenantId) })
+      ).length,
+      members: (await db.query.memberships.findMany({ where: eq(memberships.tenantId, tenantId) }))
+        .length,
     });
     const before = await counts();
     await seed(db);

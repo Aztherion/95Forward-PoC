@@ -5,11 +5,15 @@ import {
   eventInputSchema,
   giftInputSchema,
   interactionInputSchema,
+  membershipInputSchema,
+  membershipTierInputSchema,
   registrationInputSchema,
   relationshipInputSchema,
   savedListInputSchema,
   segmentInputSchema,
   tagInputSchema,
+  volunteerHoursInputSchema,
+  volunteerOpportunityInputSchema,
 } from "./forms";
 
 const UUID = "11111111-1111-1111-1111-111111111111";
@@ -213,6 +217,80 @@ describe("registrationInputSchema", () => {
   it("rejects a negative guest count", () => {
     expect(() =>
       registrationInputSchema.parse({ eventId: UUID, constituentId: UUID_B, guestCount: -1 }),
+    ).toThrow();
+  });
+});
+
+describe("volunteerOpportunityInputSchema", () => {
+  it("accepts a minimal opportunity", () => {
+    const parsed = volunteerOpportunityInputSchema.parse({ name: "World Water Day booth" });
+    expect(parsed.name).toBe("World Water Day booth");
+  });
+
+  it("requires a name and rejects a non-positive capacity", () => {
+    expect(() => volunteerOpportunityInputSchema.parse({ name: "" })).toThrow();
+    expect(() =>
+      volunteerOpportunityInputSchema.parse({ name: "Gala setup", capacity: 0 }),
+    ).toThrow();
+  });
+});
+
+describe("volunteerHoursInputSchema", () => {
+  it("accepts logged hours", () => {
+    const parsed = volunteerHoursInputSchema.parse({
+      constituentId: UUID,
+      opportunityId: UUID_B,
+      hours: 3.5,
+      loggedDate: "2026-03-22",
+    });
+    expect(parsed.hours).toBe(3.5);
+  });
+
+  it("rejects zero/negative hours and malformed dates", () => {
+    expect(() =>
+      volunteerHoursInputSchema.parse({
+        constituentId: UUID,
+        opportunityId: UUID_B,
+        hours: 0,
+        loggedDate: "2026-03-22",
+      }),
+    ).toThrow();
+    expect(() =>
+      volunteerHoursInputSchema.parse({
+        constituentId: UUID,
+        opportunityId: UUID_B,
+        hours: 2,
+        loggedDate: "03/22/2026",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("membershipTierInputSchema", () => {
+  it("accepts a tier with level, dues, and benefits", () => {
+    const parsed = membershipTierInputSchema.parse({
+      name: "Wavemaker Circle",
+      level: 2,
+      amountCents: 50_000,
+      benefits: "Quarterly impact reports",
+    });
+    expect(parsed.level).toBe(2);
+  });
+
+  it("requires a name", () => {
+    expect(() => membershipTierInputSchema.parse({ name: "" })).toThrow();
+  });
+});
+
+describe("membershipInputSchema", () => {
+  it("accepts a membership and defaults status to active", () => {
+    const parsed = membershipInputSchema.parse({ constituentId: UUID, tierId: UUID_B });
+    expect(parsed.status).toBe("active");
+  });
+
+  it("rejects an unknown status", () => {
+    expect(() =>
+      membershipInputSchema.parse({ constituentId: UUID, tierId: UUID_B, status: "frozen" }),
     ).toThrow();
   });
 });

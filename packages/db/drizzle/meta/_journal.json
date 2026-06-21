@@ -50,6 +50,13 @@
       "when": 1781989674990,
       "tag": "0006_bizarre_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781999426441,
+      "tag": "0007_aberrant_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

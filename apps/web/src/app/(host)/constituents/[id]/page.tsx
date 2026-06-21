@@ -10,6 +10,8 @@ import {
   searchConstituents,
 } from "@/server/data/constituents";
 import { listTags, listUsers } from "@/server/data/reference";
+import { getConstituentVolunteerActivity } from "@/server/data/volunteers";
+import { getConstituentMemberships } from "@/server/data/memberships";
 import { archiveConstituentAction } from "@/server/actions/constituents";
 import {
   formatCurrencyFromCents,
@@ -20,10 +22,20 @@ import {
 import { ActionsTab } from "./ActionsTab";
 import { RelationshipsTab } from "./RelationshipsTab";
 import { TagsTab } from "./TagsTab";
+import { VolunteerActivityTab } from "./VolunteerActivityTab";
+import { MembershipTab } from "./MembershipTab";
 
 export const dynamic = "force-dynamic";
 
-const TAB_IDS = ["profile", "giving", "relationships", "actions", "tags"] as const;
+const TAB_IDS = [
+  "profile",
+  "giving",
+  "relationships",
+  "actions",
+  "tags",
+  "volunteer",
+  "membership",
+] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 function resolveTab(value: string | undefined): TabId {
@@ -58,11 +70,13 @@ export default async function ConstituentRecordPage({
   const record = await getConstituentDetail(user.tenantId, id);
   if (!record) notFound();
 
-  const [hasGifts, allTags, candidates, users] = await Promise.all([
+  const [hasGifts, allTags, candidates, users, volunteerActivity, memberships] = await Promise.all([
     constituentHasGifts(user.tenantId, id),
     listTags(user.tenantId),
     searchConstituents(user.tenantId, "", id),
     listUsers(user.tenantId),
+    getConstituentVolunteerActivity(user.tenantId, id),
+    getConstituentMemberships(user.tenantId, id),
   ]);
 
   const lifetime = lifetimeGivingCents(record.gifts);
@@ -74,6 +88,8 @@ export default async function ConstituentRecordPage({
     { id: "relationships", label: "Relationships", href: `/constituents/${id}?tab=relationships` },
     { id: "actions", label: "Actions", href: `/constituents/${id}?tab=actions` },
     { id: "tags", label: "Tags", href: `/constituents/${id}?tab=tags` },
+    { id: "volunteer", label: "Volunteer", href: `/constituents/${id}?tab=volunteer` },
+    { id: "membership", label: "Membership", href: `/constituents/${id}?tab=membership` },
   ];
 
   return (
@@ -199,6 +215,10 @@ export default async function ConstituentRecordPage({
             tags={record.constituentTags.map((ct) => ({ id: ct.tag.id, name: ct.tag.name }))}
           />
         ) : null}
+
+        {activeTab === "volunteer" ? <VolunteerActivityTab activity={volunteerActivity} /> : null}
+
+        {activeTab === "membership" ? <MembershipTab memberships={memberships} /> : null}
       </Tabs>
     </div>
   );

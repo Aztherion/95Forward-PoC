@@ -1,11 +1,5 @@
-import { PagePlaceholder } from "@/components/shell";
+import { redirect } from "next/navigation";
 
 export default function MembershipsPage() {
-  return (
-    <PagePlaceholder
-      eyebrow="Keystone CRM"
-      title="Memberships"
-      empty="Built in a later initiative. Membership tiers and renewals arrive here later."
-    />
-  );
+  redirect("/memberships/members");
 }

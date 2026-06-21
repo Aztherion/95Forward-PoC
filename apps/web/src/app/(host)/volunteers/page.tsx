@@ -1,11 +1,5 @@
-import { PagePlaceholder } from "@/components/shell";
+import { redirect } from "next/navigation";
 
 export default function VolunteersPage() {
-  return (
-    <PagePlaceholder
-      eyebrow="Keystone CRM"
-      title="Volunteers"
-      empty="Built in a later initiative. Volunteer records and shifts will live here."
-    />
-  );
+  redirect("/volunteers/roster");
 }
