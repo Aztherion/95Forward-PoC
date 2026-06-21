@@ -112,7 +112,7 @@ afterAll(async () => {
 });
 
 describe("buildToolset contract", () => {
-  it("returns the seven foundational tools with strict zod schemas", () => {
+  it("returns the eleven foundational tools with strict zod schemas", () => {
     const names = buildToolset().map((t) => t.name);
     expect(names).toEqual([
       "read_prospect",
@@ -122,6 +122,10 @@ describe("buildToolset contract", () => {
       "draft_text",
       "propose_qpi",
       "propose_knowledge_base_update",
+      "propose_strategy",
+      "propose_visit_plan",
+      "propose_relationship_map_entry",
+      "propose_funding_initiative_rationale",
     ]);
     for (const t of buildToolset()) {
       expect(t.description.length).toBeGreaterThan(40);

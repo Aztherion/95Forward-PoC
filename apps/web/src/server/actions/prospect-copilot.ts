@@ -81,3 +81,153 @@ export async function runProspectQpiAction(formData: FormData): Promise<void> {
     }
   }
 }
+
+function knowledgeProviders(prospectId: string): Providers {
+  const model = MockModelProvider.scripted({
+    research_prospect: [
+      toolUseResponse("retrieve", { query: "what the records already hold about this prospect" }),
+      toolUseResponse("propose_knowledge_base_update", {
+        prospectId,
+        field: "connectorsNote",
+        value:
+          "A board member already knows a trustee — worth a warm introduction before any formal approach.",
+        source: "Logged · Dana R.",
+      }),
+      textResponse("Proposed a knowledge-base update for your review, grounded in the file."),
+    ],
+  });
+  return {
+    model,
+    embedding: new MockEmbeddingProvider(),
+    research: new SeededResearchProvider(),
+  };
+}
+
+function strategyProviders(prospectId: string): Providers {
+  const model = MockModelProvider.scripted({
+    draft_strategy: [
+      toolUseResponse("retrieve", { query: "prospect capacity, interests, and timing" }),
+      toolUseResponse("propose_strategy", {
+        prospectId,
+        field: "relationshipGoals",
+        value:
+          "Move from an institutional contact to a personal relationship with a lead trustee, anchored on the multi-year scale-up.",
+        rationale:
+          "Strong capacity and an open window, but the relationship is still building — the goal should deepen the personal tie.",
+      }),
+      textResponse("Drafted a relationship goal for your review."),
+    ],
+  });
+  return {
+    model,
+    embedding: new MockEmbeddingProvider(),
+    research: new SeededResearchProvider(),
+  };
+}
+
+function visitPlanProviders(prospectId: string): Providers {
+  const model = MockModelProvider.scripted({
+    draft_visit_plan: [
+      toolUseResponse("retrieve", { query: "what is known and unknown about this prospect" }),
+      toolUseResponse("propose_visit_plan", {
+        prospectId,
+        goal: "Confirm interest in the multi-year scale-up and surface who else shapes the decision.",
+        discoveryQuestions:
+          "What outcomes matter most to your board this cycle? Who else weighs in on a commitment of this size? What would make this an easy yes?",
+      }),
+      textResponse("Drafted a visit plan for your review, grounded in the prospect file."),
+    ],
+  });
+  return {
+    model,
+    embedding: new MockEmbeddingProvider(),
+    research: new SeededResearchProvider(),
+  };
+}
+
+function relationshipMapProviders(prospectId: string): Providers {
+  const model = MockModelProvider.scripted({
+    propose_relationship_map: [
+      toolUseResponse("retrieve", { query: "key decision-makers and board members" }),
+      toolUseResponse("propose_relationship_map_entry", {
+        prospectId,
+        name: "David Hallworth",
+        role: "Trustee",
+        decisionPower: "High — sits on the grants committee",
+        warmPathNote: "Serves with our CDO Ruth on a water-sector board.",
+        source: "Board minutes",
+      }),
+      textResponse("Proposed a key decision-maker for your review."),
+    ],
+  });
+  return {
+    model,
+    embedding: new MockEmbeddingProvider(),
+    research: new SeededResearchProvider(),
+  };
+}
+
+async function runCopilotTask(
+  formData: FormData,
+  taskType:
+    | "draft_strategy"
+    | "propose_relationship_map"
+    | "research_prospect"
+    | "draft_visit_plan",
+  providersFor: (prospectId: string) => Providers,
+  label: string,
+): Promise<void> {
+  let prospectId: string | null = null;
+  try {
+    const user = await getCurrentUser();
+    if (!user) return;
+    const raw = formData.get("prospectId");
+    if (typeof raw !== "string" || raw.length === 0) return;
+    prospectId = raw;
+
+    const providers = getEnv().AI_MODE === "live" ? createProviders(getEnv()) : providersFor(raw);
+    await runTask({
+      providers,
+      taskType,
+      tools: buildToolset(),
+      caller: callerOf(user),
+      db: getAppDb(),
+      userContent: `${taskType} for prospect ${raw}.`,
+    });
+  } catch (error) {
+    console.error(`[prospects] ${label} failed`, error);
+  } finally {
+    if (prospectId) revalidatePath(`/95-forward/prospects/${prospectId}`);
+  }
+}
+
+export async function runProspectKnowledgeAction(formData: FormData): Promise<void> {
+  await runCopilotTask(
+    formData,
+    "research_prospect",
+    knowledgeProviders,
+    "runProspectKnowledgeAction",
+  );
+}
+
+export async function runProspectStrategyAction(formData: FormData): Promise<void> {
+  await runCopilotTask(formData, "draft_strategy", strategyProviders, "runProspectStrategyAction");
+}
+
+export async function runProspectVisitPlanAction(formData: FormData): Promise<void> {
+  await runCopilotTask(
+    formData,
+    "draft_visit_plan",
+    visitPlanProviders,
+    "runProspectVisitPlanAction",
+  );
+}
+
+export async function runProspectRelationshipMapAction(formData: FormData): Promise<void> {
+  await runCopilotTask(
+    formData,
+    "propose_relationship_map",
+    relationshipMapProviders,
+    "runProspectRelationshipMapAction",
+  );
+}

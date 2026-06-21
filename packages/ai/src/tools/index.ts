@@ -278,6 +278,149 @@ const proposeKnowledgeBaseUpdate: Tool<z.infer<typeof proposeKnowledgeBaseUpdate
   },
 };
 
+const proposeStrategyInput = z
+  .object({
+    prospectId: z.string().uuid(),
+    field: z.enum([
+      "relationshipGoals",
+      "hooks",
+      "objections",
+      "predispositionPlan",
+      "presentationDesign",
+      "actionPlan",
+    ]),
+    value: z.string().min(1),
+    rationale: z.string().min(1),
+  })
+  .strict();
+
+const proposeStrategy: Tool<z.infer<typeof proposeStrategyInput>> = {
+  name: "propose_strategy",
+  description:
+    "Propose a draft for one element of a prospect's cultivation strategy (relationship goals, hooks, objections, predisposition plan, presentation design, or action plan), staged for human review. Ground the draft in the prospect's knowledge base and QPI. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; it never mutates the live strategy.",
+  inputSchema: proposeStrategyInput,
+  async handler(input, ctx: ToolContext): Promise<string> {
+    const provenance: Citation[] = [
+      { source: "Prospect file", sourceType: "structured", detail: `strategy ${input.field}` },
+    ];
+    await createProposal(ctx.db, ctx.caller, {
+      subjectType: "prospect",
+      subjectId: input.prospectId,
+      proposalType: "prospect_strategy",
+      title: `Strategy: ${input.field}`,
+      summary: input.value.slice(0, 280),
+      payload: { field: input.field, value: input.value },
+      provenance,
+      taskType: "draft_strategy",
+    });
+    return `Proposed strategy draft for ${input.field} on prospect ${input.prospectId} (pending review).`;
+  },
+};
+
+const proposeVisitPlanInput = z
+  .object({
+    prospectId: z.string().uuid(),
+    goal: z.string().min(1),
+    discoveryQuestions: z.string().min(1),
+  })
+  .strict();
+
+const proposeVisitPlan: Tool<z.infer<typeof proposeVisitPlanInput>> = {
+  name: "propose_visit_plan",
+  description:
+    "Propose a planned-visit draft (a visit goal and discovery questions) for a prospect, staged for human review. Ground the questions in what is and is not yet known about the prospect. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; approval creates a planned visit — it never logs an executed visit or outcome.",
+  inputSchema: proposeVisitPlanInput,
+  async handler(input, ctx: ToolContext): Promise<string> {
+    const provenance: Citation[] = [
+      { source: "Prospect file", sourceType: "structured", detail: "visit plan" },
+    ];
+    await createProposal(ctx.db, ctx.caller, {
+      subjectType: "prospect",
+      subjectId: input.prospectId,
+      proposalType: "visit_plan",
+      title: "Visit plan draft",
+      summary: input.goal.slice(0, 280),
+      payload: { goal: input.goal, discoveryQuestions: input.discoveryQuestions },
+      provenance,
+      taskType: "draft_visit_plan",
+    });
+    return `Proposed visit plan for prospect ${input.prospectId} (pending review).`;
+  },
+};
+
+const proposeRelationshipMapEntryInput = z
+  .object({
+    prospectId: z.string().uuid(),
+    name: z.string().min(1),
+    role: z.string().min(1),
+    decisionPower: z.string().min(1),
+    warmPathNote: z.string().min(1),
+    source: z.string().min(1),
+  })
+  .strict();
+
+const proposeRelationshipMapEntry: Tool<z.infer<typeof proposeRelationshipMapEntryInput>> = {
+  name: "propose_relationship_map_entry",
+  description:
+    "Propose a key decision-maker for an organization or foundation prospect's relationship map (name, role, decision power, warm path), staged for human review. Requires a source so the entry is auditable. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; it never mutates the live relationship map.",
+  inputSchema: proposeRelationshipMapEntryInput,
+  async handler(input, ctx: ToolContext): Promise<string> {
+    const provenance: Citation[] = [
+      { source: input.source, sourceType: "research", detail: "relationship_map" },
+    ];
+    await createProposal(ctx.db, ctx.caller, {
+      subjectType: "prospect",
+      subjectId: input.prospectId,
+      proposalType: "relationship_map_entry",
+      title: `Decision-maker: ${input.name}`,
+      summary: `${input.name} — ${input.role}`,
+      payload: {
+        name: input.name,
+        role: input.role,
+        decisionPower: input.decisionPower,
+        warmPathNote: input.warmPathNote,
+        source: input.source,
+      },
+      provenance,
+      taskType: "propose_relationship_map",
+    });
+    return `Proposed relationship-map entry ${input.name} for prospect ${input.prospectId} (pending review).`;
+  },
+};
+
+const proposeFundingInitiativeRationaleInput = z
+  .object({
+    fundingInitiativeId: z.string().uuid(),
+    story: z.string().min(1),
+    rationale: z.string().min(1),
+  })
+  .strict();
+
+const proposeFundingInitiativeRationale: Tool<
+  z.infer<typeof proposeFundingInitiativeRationaleInput>
+> = {
+  name: "propose_funding_initiative_rationale",
+  description:
+    "Propose a funding rationale (the case-for-support story) for a funding initiative, staged for human review. Ground it in the initiative's frame, goal, and mission; make the case concrete and donor-centric. Returns a confirmation that the proposal is pending review. This writes only to the proposals staging table; it never mutates the live initiative.",
+  inputSchema: proposeFundingInitiativeRationaleInput,
+  async handler(input, ctx: ToolContext): Promise<string> {
+    const provenance: Citation[] = [
+      { source: "Initiative file", sourceType: "structured", detail: "funding rationale" },
+    ];
+    await createProposal(ctx.db, ctx.caller, {
+      subjectType: "funding_initiative",
+      subjectId: input.fundingInitiativeId,
+      proposalType: "funding_initiative_rationale",
+      title: "Funding rationale draft",
+      summary: input.story.slice(0, 280),
+      payload: { story: input.story },
+      provenance,
+      taskType: "draft_funding_initiative_rationale",
+    });
+    return `Proposed a funding rationale for initiative ${input.fundingInitiativeId} (pending review).`;
+  },
+};
+
 export function buildToolset(): AnyTool[] {
   return [
     readProspect,
@@ -287,5 +430,9 @@ export function buildToolset(): AnyTool[] {
     draftText,
     proposeQpi,
     proposeKnowledgeBaseUpdate,
+    proposeStrategy,
+    proposeVisitPlan,
+    proposeRelationshipMapEntry,
+    proposeFundingInitiativeRationale,
   ] as AnyTool[];
 }

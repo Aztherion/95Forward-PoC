@@ -14,7 +14,7 @@ import {
   volunteerHours,
   volunteerOpportunities,
 } from "./engagement";
-import { fundingInitiatives } from "./funding";
+import { fundingInitiatives, prospectFundingInitiatives } from "./funding";
 import {
   knowledgeBase,
   naturalPartners,
@@ -208,7 +208,26 @@ export const fundingInitiativesRelations = relations(fundingInitiatives, ({ one,
   tenant: one(tenants, { fields: [fundingInitiatives.tenantId], references: [tenants.id] }),
   asks: many(asks),
   discoveryTasks: many(discoveryTasks),
+  prospectAssociations: many(prospectFundingInitiatives),
 }));
+
+export const prospectFundingInitiativesRelations = relations(
+  prospectFundingInitiatives,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [prospectFundingInitiatives.tenantId],
+      references: [tenants.id],
+    }),
+    prospect: one(prospects, {
+      fields: [prospectFundingInitiatives.prospectId],
+      references: [prospects.id],
+    }),
+    fundingInitiative: one(fundingInitiatives, {
+      fields: [prospectFundingInitiatives.fundingInitiativeId],
+      references: [fundingInitiatives.id],
+    }),
+  }),
+);
 
 export const prospectsRelations = relations(prospects, ({ one, many }) => ({
   tenant: one(tenants, { fields: [prospects.tenantId], references: [tenants.id] }),
@@ -225,6 +244,7 @@ export const prospectsRelations = relations(prospects, ({ one, many }) => ({
   strategy: one(prospectStrategy),
   visits: many(visits),
   asks: many(asks),
+  fundingInitiativeAssociations: many(prospectFundingInitiatives),
 }));
 
 export const qpiAssessmentsRelations = relations(qpiAssessments, ({ one }) => ({

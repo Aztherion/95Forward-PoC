@@ -3,19 +3,28 @@ import {
   communicationInputSchema,
   constituentInputSchema,
   copilotTogglesInputSchema,
+  cultivationAssociationInputSchema,
+  fundingInitiativeInputSchema,
+  fundingInitiativeRationaleInputSchema,
   eventInputSchema,
   giftInputSchema,
   interactionInputSchema,
+  knowledgeBaseFieldInputSchema,
   membershipInputSchema,
   membershipTierInputSchema,
   naturalPartnerInputSchema,
+  prospectStrategyFieldInputSchema,
   qpiOverrideInputSchema,
   qpiWeightsInputSchema,
   registrationInputSchema,
   relationshipInputSchema,
+  relationshipMapEntryInputSchema,
+  researchGapInputSchema,
+  researchGapResolveInputSchema,
   savedListInputSchema,
   segmentInputSchema,
   tagInputSchema,
+  visitPlanInputSchema,
   volunteerHoursInputSchema,
   volunteerOpportunityInputSchema,
 } from "./forms";
@@ -372,5 +381,144 @@ describe("copilotTogglesInputSchema", () => {
       draft24hFollowups: true,
     });
     expect(parsed.proposeQpiUpdatesAutomatically).toBe(false);
+  });
+});
+
+describe("knowledgeBaseFieldInputSchema", () => {
+  it("accepts a writable field with value and source", () => {
+    const parsed = knowledgeBaseFieldInputSchema.parse({
+      prospectId: UUID,
+      field: "capacitySource",
+      value: "Foundation assets ≈ $180M",
+      source: "IRS 990-PF · 2024",
+    });
+    expect(parsed.field).toBe("capacitySource");
+  });
+
+  it("rejects a field outside the writable set", () => {
+    expect(() =>
+      knowledgeBaseFieldInputSchema.parse({ prospectId: UUID, field: "wealthScreen" }),
+    ).toThrow();
+  });
+});
+
+describe("researchGapInputSchema", () => {
+  it("accepts a non-empty label", () => {
+    const parsed = researchGapInputSchema.parse({ prospectId: UUID, label: "Wealth screen" });
+    expect(parsed.label).toBe("Wealth screen");
+  });
+
+  it("rejects an empty label", () => {
+    expect(() => researchGapInputSchema.parse({ prospectId: UUID, label: "" })).toThrow();
+  });
+});
+
+describe("researchGapResolveInputSchema", () => {
+  it("accepts open and resolved statuses", () => {
+    expect(researchGapResolveInputSchema.parse({ gapId: UUID, status: "resolved" }).status).toBe(
+      "resolved",
+    );
+  });
+
+  it("rejects an unknown status", () => {
+    expect(() => researchGapResolveInputSchema.parse({ gapId: UUID, status: "maybe" })).toThrow();
+  });
+});
+
+describe("prospectStrategyFieldInputSchema", () => {
+  it("accepts a strategy field with a value", () => {
+    const parsed = prospectStrategyFieldInputSchema.parse({
+      prospectId: UUID,
+      field: "relationshipGoals",
+      value: "Move from institutional contact to a personal trustee relationship.",
+    });
+    expect(parsed.field).toBe("relationshipGoals");
+  });
+
+  it("rejects a field outside the strategy set", () => {
+    expect(() =>
+      prospectStrategyFieldInputSchema.parse({ prospectId: UUID, field: "budget" }),
+    ).toThrow();
+  });
+});
+
+describe("visitPlanInputSchema", () => {
+  it("accepts a plan with only a goal (planned state)", () => {
+    const parsed = visitPlanInputSchema.parse({ prospectId: UUID, goal: "Explore a lead gift." });
+    expect(parsed.goal).toBe("Explore a lead gift.");
+    expect(parsed.discoveryQuestions).toBeUndefined();
+  });
+
+  it("rejects a plan without a goal", () => {
+    expect(() => visitPlanInputSchema.parse({ prospectId: UUID, goal: "" })).toThrow();
+  });
+});
+
+describe("relationshipMapEntryInputSchema", () => {
+  it("accepts a decision-maker with role and decision power", () => {
+    const parsed = relationshipMapEntryInputSchema.parse({
+      prospectId: UUID,
+      name: "David Hallworth",
+      role: "Trustee",
+      decisionPower: "High — chairs the grants committee",
+      warmPathNote: "Serves with our CDO Ruth on a water-sector board.",
+      source: "Board minutes",
+    });
+    expect(parsed.name).toBe("David Hallworth");
+  });
+
+  it("rejects an entry without a name", () => {
+    expect(() => relationshipMapEntryInputSchema.parse({ prospectId: UUID, name: "" })).toThrow();
+  });
+});
+
+describe("fundingInitiativeInputSchema", () => {
+  it("accepts a named initiative with a frame and optional goal/timeline", () => {
+    const parsed = fundingInitiativeInputSchema.parse({
+      name: "Everyone Forever: Bolivia Scale-Up",
+      frame: "tomorrow",
+      goalAmountCents: 320_000_000,
+      timelineStart: "2026-01-01",
+      timelineEnd: "2028-12-31",
+    });
+    expect(parsed.frame).toBe("tomorrow");
+    expect(parsed.goalAmountCents).toBe(320_000_000);
+  });
+
+  it("rejects an unknown frame and a missing name", () => {
+    expect(() => fundingInitiativeInputSchema.parse({ name: "X", frame: "someday" })).toThrow();
+    expect(() => fundingInitiativeInputSchema.parse({ name: "", frame: "today" })).toThrow();
+  });
+});
+
+describe("fundingInitiativeRationaleInputSchema", () => {
+  it("accepts a story rationale for an initiative", () => {
+    const parsed = fundingInitiativeRationaleInputSchema.parse({
+      fundingInitiativeId: UUID,
+      story: "A multi-year commitment to bring a Bolivian region to self-sustaining coverage.",
+    });
+    expect(parsed.story).toContain("Bolivian");
+  });
+
+  it("rejects an empty story", () => {
+    expect(() =>
+      fundingInitiativeRationaleInputSchema.parse({ fundingInitiativeId: UUID, story: "" }),
+    ).toThrow();
+  });
+});
+
+describe("cultivationAssociationInputSchema", () => {
+  it("accepts an initiative + prospect pair", () => {
+    const parsed = cultivationAssociationInputSchema.parse({
+      fundingInitiativeId: UUID,
+      prospectId: UUID_B,
+    });
+    expect(parsed.prospectId).toBe(UUID_B);
+  });
+
+  it("rejects a non-uuid prospect", () => {
+    expect(() =>
+      cultivationAssociationInputSchema.parse({ fundingInitiativeId: UUID, prospectId: "nope" }),
+    ).toThrow();
   });
 });

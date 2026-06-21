@@ -157,7 +157,11 @@ export type TaskType =
   | "draft_outreach"
   | "propose_qpi"
   | "summarize_prospect"
-  | "research_prospect";
+  | "research_prospect"
+  | "draft_strategy"
+  | "propose_relationship_map"
+  | "draft_visit_plan"
+  | "draft_funding_initiative_rationale";
 
 export interface TaskBudget {
   maxIterations: number;
@@ -173,9 +177,20 @@ export interface TaskConfig {
   budget: TaskBudget;
 }
 
-export type ProposalType = "qpi_assessment" | "knowledge_base_update" | "draft";
+export type ProposalType =
+  | "qpi_assessment"
+  | "knowledge_base_update"
+  | "prospect_strategy"
+  | "visit_plan"
+  | "relationship_map_entry"
+  | "funding_initiative_rationale"
+  | "draft";
 export type ProposalStatus = "pending" | "approved" | "edited" | "dismissed";
-export type ProposalSubjectType = "prospect" | "constituent" | "knowledge_base";
+export type ProposalSubjectType =
+  | "prospect"
+  | "constituent"
+  | "knowledge_base"
+  | "funding_initiative";
 
 export interface ProposalInput {
   subjectType: ProposalSubjectType;

@@ -1,8 +1,12 @@
 import { and, desc, eq } from "drizzle-orm";
 import {
   copilotProposals,
+  fundingInitiatives,
   knowledgeBase,
+  prospectStrategy,
   qpiAssessments,
+  relationshipMapEntries,
+  visits,
   withTenant,
   type Database,
   type TenantTransaction,
@@ -155,6 +159,67 @@ async function applyWriteBack(
       .update(knowledgeBase)
       .set({ [payload.field as WritableField]: payload.value })
       .where(eq(knowledgeBase.prospectId, proposal.subjectId))
+      .returning();
+    return updated.length > 0;
+  } else if (proposal.proposalType === "prospect_strategy") {
+    const payload = proposal.payload as { field: string; value: string | null };
+    const writableFields = [
+      "relationshipGoals",
+      "hooks",
+      "objections",
+      "predispositionPlan",
+      "presentationDesign",
+      "actionPlan",
+    ] as const;
+    type StrategyField = (typeof writableFields)[number];
+    if (!writableFields.includes(payload.field as StrategyField)) {
+      throw new Error(`approveProposal: strategy field '${payload.field}' is not writable`);
+    }
+    await tx
+      .insert(prospectStrategy)
+      .values({
+        tenantId: caller.tenantId,
+        prospectId: proposal.subjectId,
+        [payload.field as StrategyField]: payload.value,
+      })
+      .onConflictDoUpdate({
+        target: [prospectStrategy.tenantId, prospectStrategy.prospectId],
+        set: { [payload.field as StrategyField]: payload.value },
+      });
+    return true;
+  } else if (proposal.proposalType === "visit_plan") {
+    const payload = proposal.payload as { goal: string; discoveryQuestions?: string | null };
+    await tx.insert(visits).values({
+      tenantId: caller.tenantId,
+      prospectId: proposal.subjectId,
+      goal: payload.goal,
+      discoveryQuestions: payload.discoveryQuestions ?? null,
+    });
+    return true;
+  } else if (proposal.proposalType === "relationship_map_entry") {
+    const payload = proposal.payload as {
+      name: string;
+      role?: string | null;
+      decisionPower?: string | null;
+      warmPathNote?: string | null;
+      source?: string | null;
+    };
+    await tx.insert(relationshipMapEntries).values({
+      tenantId: caller.tenantId,
+      prospectId: proposal.subjectId,
+      name: payload.name,
+      role: payload.role ?? null,
+      decisionPower: payload.decisionPower ?? null,
+      warmPathNote: payload.warmPathNote ?? null,
+      source: payload.source ?? null,
+    });
+    return true;
+  } else if (proposal.proposalType === "funding_initiative_rationale") {
+    const payload = proposal.payload as { story: string };
+    const updated = await tx
+      .update(fundingInitiatives)
+      .set({ story: payload.story })
+      .where(eq(fundingInitiatives.id, proposal.subjectId))
       .returning();
     return updated.length > 0;
   }

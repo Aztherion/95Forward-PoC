@@ -373,3 +373,108 @@ export const copilotTogglesInputSchema = z.object({
   draft24hFollowups: z.boolean(),
 });
 export type CopilotTogglesInput = z.infer<typeof copilotTogglesInputSchema>;
+
+export const KNOWLEDGE_BASE_FIELD_VALUES = [
+  "capacitySource",
+  "relationshipToCause",
+  "connectorsNote",
+  "giftHistorySummary",
+  "otherPhilanthropy",
+  "timingNote",
+] as const;
+
+export const knowledgeBaseFieldInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  field: z.enum(KNOWLEDGE_BASE_FIELD_VALUES),
+  value: z.string().trim().max(2000).optional(),
+  source: z.string().trim().max(200).optional(),
+});
+export type KnowledgeBaseFieldInput = z.infer<typeof knowledgeBaseFieldInputSchema>;
+
+export const researchGapInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  label: z.string().trim().min(1, "Name the thing worth researching").max(200),
+});
+export type ResearchGapInput = z.infer<typeof researchGapInputSchema>;
+
+export const researchGapResolveInputSchema = z.object({
+  gapId: z.string().uuid(),
+  status: z.enum(["open", "resolved"]),
+});
+export type ResearchGapResolveInput = z.infer<typeof researchGapResolveInputSchema>;
+
+export const PROSPECT_STRATEGY_FIELD_VALUES = [
+  "relationshipGoals",
+  "hooks",
+  "objections",
+  "predispositionPlan",
+  "presentationDesign",
+  "actionPlan",
+] as const;
+
+export const prospectStrategyFieldInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  field: z.enum(PROSPECT_STRATEGY_FIELD_VALUES),
+  value: z.string().trim().max(2000).optional(),
+});
+export type ProspectStrategyFieldInput = z.infer<typeof prospectStrategyFieldInputSchema>;
+
+// A pre-visit plan: the visit is created in a planned state (no occurredAt/outcome — execution
+// lands in a later initiative). Only the goal is required to commit a plan; the rest is optional.
+export const visitPlanInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  goal: z.string().trim().min(1, "Set a goal for the visit").max(1000),
+  discoveryQuestions: z.string().trim().max(2000).optional(),
+  team: z.string().trim().max(300).optional(),
+  locationType: z.string().trim().max(120).optional(),
+  engagementToolNote: z.string().trim().max(1000).optional(),
+});
+export type VisitPlanInput = z.infer<typeof visitPlanInputSchema>;
+
+export const relationshipMapEntryInputSchema = z.object({
+  prospectId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name the decision-maker").max(200),
+  role: z.string().trim().max(160).optional(),
+  decisionPower: z.string().trim().max(160).optional(),
+  warmPathNote: z.string().trim().max(1000).optional(),
+  source: z.string().trim().max(200).optional(),
+});
+export type RelationshipMapEntryInput = z.infer<typeof relationshipMapEntryInputSchema>;
+
+export const relationshipMapEntryRemoveInputSchema = z.object({
+  entryId: z.string().uuid(),
+});
+export type RelationshipMapEntryRemoveInput = z.infer<typeof relationshipMapEntryRemoveInputSchema>;
+
+export const FUNDING_FRAME_VALUES = ["today", "tomorrow", "forever"] as const;
+
+export const fundingInitiativeInputSchema = z.object({
+  name: z.string().trim().min(1, "Name the initiative").max(200),
+  frame: z.enum(FUNDING_FRAME_VALUES),
+  story: z.string().trim().max(4000).optional(),
+  goalAmountCents: z.number().int().min(0).optional(),
+  timelineStart: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+  timelineEnd: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+});
+export type FundingInitiativeInput = z.infer<typeof fundingInitiativeInputSchema>;
+
+// The copilot's funding rationale writes back the initiative's story field (a "human moment" case
+// for support). Field-level write-back mirrors the I7/I8 strategy/KB pattern.
+export const fundingInitiativeRationaleInputSchema = z.object({
+  fundingInitiativeId: z.string().uuid(),
+  story: z.string().trim().min(1).max(4000),
+});
+export type FundingInitiativeRationaleInput = z.infer<typeof fundingInitiativeRationaleInputSchema>;
+
+// The cultivation association is a soft pipeline link — never a frame column on the prospect.
+export const cultivationAssociationInputSchema = z.object({
+  fundingInitiativeId: z.string().uuid(),
+  prospectId: z.string().uuid(),
+});
+export type CultivationAssociationInput = z.infer<typeof cultivationAssociationInputSchema>;

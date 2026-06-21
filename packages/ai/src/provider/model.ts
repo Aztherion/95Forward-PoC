@@ -183,11 +183,13 @@ export interface BuildMockScriptsParams {
   prospectId: string;
   constituentId: string;
   dimension?: string;
+  fundingInitiativeId?: string;
 }
 
 // Emitted tool inputs must stay in lockstep with the real schemas in src/tools/index.ts.
 export function buildMockScripts(params: BuildMockScriptsParams): Record<string, MockScript> {
   const dimension = params.dimension ?? "capacity";
+  const fundingInitiativeId = params.fundingInitiativeId ?? params.prospectId;
   return {
     propose_qpi: [
       toolUseResponse("retrieve", { query: "recent major gifts and relationship history" }),
@@ -212,6 +214,51 @@ export function buildMockScripts(params: BuildMockScriptsParams): Record<string,
         ],
       }),
       textResponse("Drafted an outreach email for your review, grounded in the giving record."),
+    ],
+    draft_strategy: [
+      toolUseResponse("retrieve", { query: "prospect capacity, interests, and timing" }),
+      toolUseResponse("propose_strategy", {
+        prospectId: params.prospectId,
+        field: "relationshipGoals",
+        value:
+          "Move from an institutional contact to a personal relationship with a lead trustee, anchored on the multi-year scale-up.",
+        rationale:
+          "The file shows strong capacity and an open timing window but a still-building relationship — goals should deepen the personal tie.",
+      }),
+      textResponse("Drafted a relationship goal for your review, grounded in the prospect file."),
+    ],
+    draft_visit_plan: [
+      toolUseResponse("retrieve", { query: "what is known and unknown about this prospect" }),
+      toolUseResponse("propose_visit_plan", {
+        prospectId: params.prospectId,
+        goal: "Confirm interest in the multi-year scale-up and surface who else shapes the decision.",
+        discoveryQuestions:
+          "What outcomes matter most to your board this cycle? Who else weighs in on a commitment of this size? What would make this an easy yes?",
+      }),
+      textResponse("Drafted a visit plan for your review, grounded in the prospect file."),
+    ],
+    propose_relationship_map: [
+      toolUseResponse("retrieve", { query: "key decision-makers and board members" }),
+      toolUseResponse("propose_relationship_map_entry", {
+        prospectId: params.prospectId,
+        name: "David Hallworth",
+        role: "Trustee",
+        decisionPower: "High — sits on the grants committee",
+        warmPathNote: "Serves with our CDO Ruth on a water-sector board.",
+        source: "Board minutes",
+      }),
+      textResponse("Proposed a key decision-maker for your review, grounded in the records."),
+    ],
+    draft_funding_initiative_rationale: [
+      toolUseResponse("retrieve", { query: "the initiative's mission, frame, and goal" }),
+      toolUseResponse("propose_funding_initiative_rationale", {
+        fundingInitiativeId,
+        story:
+          "A multi-year commitment to bring an entire region to full, self-sustaining water coverage — Everyone, Forever. Your gift moves a district past the milestone where services last without us.",
+        rationale:
+          "Grounded in the Tomorrow frame and the regional scale-up goal; framed as a concrete, donor-centric case for support.",
+      }),
+      textResponse("Drafted a funding rationale for your review, grounded in the initiative."),
     ],
   };
 }

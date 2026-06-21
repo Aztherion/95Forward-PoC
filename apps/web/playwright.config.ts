@@ -9,6 +9,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // The whole suite shares one `next dev` server, whose on-demand compilation is the bottleneck.
+  // Capping workers keeps the server from being oversaturated (which timed out a random test per
+  // run under the default ~50%-of-cores parallelism), without changing the dev-login auth seam.
+  workers: 2,
   reporter: "list",
   use: {
     baseURL: BASE_URL,

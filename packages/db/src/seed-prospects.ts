@@ -1,7 +1,16 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "./client";
 import { users } from "./schema/users";
-import { knowledgeBase, naturalPartners, prospects, qpiAssessments } from "./schema/prospects";
+import {
+  knowledgeBase,
+  naturalPartners,
+  prospects,
+  prospectStrategy,
+  qpiAssessments,
+  relationshipMapEntries,
+  researchGaps,
+} from "./schema/prospects";
+import { visits } from "./schema/execution";
 import { stableId } from "./seed-records-core";
 
 type ProspectStatus = "research" | "cultivation" | "solicitation" | "stewardship" | "active";
@@ -19,6 +28,32 @@ interface PartnerSpec {
   constituentKey: string;
   role: string;
   warmPathNote: string;
+}
+
+interface StrategySpec {
+  relationshipGoals?: string;
+  hooks?: string;
+  objections?: string;
+  predispositionPlan?: string;
+  presentationDesign?: string;
+  actionPlan?: string;
+}
+
+interface VisitSpec {
+  key: string;
+  goal: string;
+  discoveryQuestions?: string;
+  team?: string;
+  locationType?: string;
+}
+
+interface KdmSpec {
+  key: string;
+  name: string;
+  role: string;
+  decisionPower: string;
+  warmPathNote: string;
+  source: string;
 }
 
 interface ProspectSpec {
@@ -40,6 +75,10 @@ interface ProspectSpec {
     timingNote: string | null;
   };
   partners: PartnerSpec[];
+  gaps?: string[];
+  strategy?: StrategySpec;
+  visits?: VisitSpec[];
+  kdms?: KdmSpec[];
 }
 
 function known(rating: number, rationale: string, source: string): DimSpec {
@@ -103,6 +142,49 @@ const PROSPECTS: ProspectSpec[] = [
         warmPathNote: "Tom Bradley introduces the Hallworth trustees.",
       },
     ],
+    gaps: ["Wealth screen on the trustees", "Spouse / family giving connections"],
+    strategy: {
+      relationshipGoals:
+        "Move from an institutional contact to a personal relationship with David Hallworth, anchored on Everyone Forever: Bolivia Scale-Up.",
+      hooks:
+        "Clean-water access; global health; the multi-year, measurable Everyone Forever model.",
+      objections:
+        "May prefer a single-year grant over a multi-year commitment; will want evidence of sustained local capacity.",
+      predispositionPlan:
+        "Tom Bradley makes the warm introduction; invite a trustee to a Bolivia program briefing before any ask.",
+      presentationDesign:
+        "Lead with the Bolivia Scale-Up as a flagship multi-year commitment with clear coverage milestones.",
+      actionPlan:
+        "Bradley intro this month → trustee briefing → cultivation visit → align on a lead gift to Bolivia.",
+    },
+    visits: [
+      {
+        key: "bolivia-brief",
+        goal: "Confirm trustee interest in the Bolivia Scale-Up and surface who else shapes the decision.",
+        discoveryQuestions:
+          "What outcomes matter most to the board this cycle? Who else weighs in on a multi-year commitment? What would make this an easy yes?",
+        team: "Dana Reese; Ruth Castellanos (CDO)",
+        locationType: "In person — foundation office",
+      },
+    ],
+    kdms: [
+      {
+        key: "david",
+        name: "David Hallworth",
+        role: "Trustee",
+        decisionPower: "High — sits on the grants committee",
+        warmPathNote: "Serves with our CDO Ruth on a water-sector board.",
+        source: "Board minutes",
+      },
+      {
+        key: "program-officer",
+        name: "Program Officer (WASH)",
+        role: "Program officer",
+        decisionPower: "Medium — screens and recommends grants",
+        warmPathNote: "No warm path yet — worth an introduction.",
+        source: "IRS 990-PF · 2024",
+      },
+    ],
   },
   {
     key: "cordova",
@@ -147,6 +229,23 @@ const PROSPECTS: ProspectSpec[] = [
         warmPathNote: "Sofia Lin connects to the Cordova ESG team.",
       },
     ],
+    strategy: {
+      relationshipGoals:
+        "Convert the ESG conversation into a multi-year water-stewardship partnership in an active district.",
+      hooks: "Water-stewardship mandate; measurable coverage outcomes; employee-engagement angle.",
+      actionPlan:
+        "Sofia Lin warms the ESG team → align a corporate grant to a Today district push.",
+    },
+    kdms: [
+      {
+        key: "esg-lead",
+        name: "Head of ESG",
+        role: "ESG lead",
+        decisionPower: "High — owns the water-stewardship budget",
+        warmPathNote: "Reached through Sofia Lin.",
+        source: "Company ESG report",
+      },
+    ],
   },
   {
     key: "osgood",
@@ -177,6 +276,25 @@ const PROSPECTS: ProspectSpec[] = [
       timingNote: "Grant cycle opens next quarter.",
     },
     partners: [],
+    gaps: [
+      "Program officer's giving-committee influence",
+      "Whether the grant cycle allows multi-year asks",
+    ],
+    strategy: {
+      relationshipGoals:
+        "Build a direct line to the program officer ahead of the next grant cycle.",
+      hooks: "WASH district programs; measurable Everyone Forever milestones.",
+    },
+    kdms: [
+      {
+        key: "program-officer",
+        name: "Program Officer",
+        role: "Program officer",
+        decisionPower: "Medium — recommends grants to the committee",
+        warmPathNote: "Priya is in regular contact.",
+        source: "Foundation guidelines",
+      },
+    ],
   },
   {
     key: "vega",
@@ -427,6 +545,77 @@ export async function seedProspects(db: Database, tenantId: string): Promise<voi
           warmPathNote: partner.warmPathNote,
         })
         .onConflictDoNothing({ target: naturalPartners.id });
+    }
+
+    for (const label of p.gaps ?? []) {
+      await db
+        .insert(researchGaps)
+        .values({
+          id: stableId(`gap:${p.key}:${label}`),
+          tenantId,
+          prospectId,
+          label,
+          status: "open",
+        })
+        .onConflictDoNothing({ target: researchGaps.id });
+    }
+
+    if (p.strategy) {
+      await db
+        .insert(prospectStrategy)
+        .values({
+          id: stableId(`strategy:${p.key}`),
+          tenantId,
+          prospectId,
+          relationshipGoals: p.strategy.relationshipGoals ?? null,
+          hooks: p.strategy.hooks ?? null,
+          objections: p.strategy.objections ?? null,
+          predispositionPlan: p.strategy.predispositionPlan ?? null,
+          presentationDesign: p.strategy.presentationDesign ?? null,
+          actionPlan: p.strategy.actionPlan ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [prospectStrategy.tenantId, prospectStrategy.prospectId],
+          set: {
+            relationshipGoals: p.strategy.relationshipGoals ?? null,
+            hooks: p.strategy.hooks ?? null,
+            objections: p.strategy.objections ?? null,
+            predispositionPlan: p.strategy.predispositionPlan ?? null,
+            presentationDesign: p.strategy.presentationDesign ?? null,
+            actionPlan: p.strategy.actionPlan ?? null,
+          },
+        });
+    }
+
+    for (const v of p.visits ?? []) {
+      await db
+        .insert(visits)
+        .values({
+          id: stableId(`visit:${p.key}:${v.key}`),
+          tenantId,
+          prospectId,
+          goal: v.goal,
+          discoveryQuestions: v.discoveryQuestions ?? null,
+          team: v.team ?? null,
+          locationType: v.locationType ?? null,
+        })
+        .onConflictDoNothing({ target: visits.id });
+    }
+
+    for (const k of p.kdms ?? []) {
+      await db
+        .insert(relationshipMapEntries)
+        .values({
+          id: stableId(`kdm:${p.key}:${k.key}`),
+          tenantId,
+          prospectId,
+          name: k.name,
+          role: k.role,
+          decisionPower: k.decisionPower,
+          warmPathNote: k.warmPathNote,
+          source: k.source,
+        })
+        .onConflictDoNothing({ target: relationshipMapEntries.id });
     }
   }
 }

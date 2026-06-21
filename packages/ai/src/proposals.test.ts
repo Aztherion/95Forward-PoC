@@ -1,6 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { constituents, prospects, qpiAssessments, tenants, users, withTenant } from "@95forward/db";
+import {
+  constituents,
+  fundingInitiatives,
+  prospects,
+  prospectStrategy,
+  qpiAssessments,
+  relationshipMapEntries,
+  tenants,
+  users,
+  visits,
+  withTenant,
+} from "@95forward/db";
 import type { CallerContext } from "./types";
 import {
   approveProposal,
@@ -271,5 +282,149 @@ describe("proposals — tenant isolation & optimistic locking (app pool, RLS)", 
         ),
     );
     expect(assessments[0]?.rating).toBe(3);
+  });
+});
+
+describe("I8 proposal write-backs (app pool, RLS)", () => {
+  it("approving a prospect_strategy proposal writes the field; dismiss writes nothing", async () => {
+    if (!app || !fixtures.a.tenantId) return;
+
+    const approveId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "prospect_strategy",
+      title: "Strategy: relationshipGoals",
+      payload: { field: "relationshipGoals", value: "Deepen the trustee relationship." },
+      provenance: [],
+    });
+    const approved = await approveProposal(app.db, caller(fixtures.a), approveId);
+    expect(approved.ok).toBe(true);
+
+    const dismissId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "prospect_strategy",
+      title: "Strategy: hooks",
+      payload: { field: "hooks", value: "Climate + Women lenses." },
+      provenance: [],
+    });
+    await dismissProposal(app.db, caller(fixtures.a), dismissId);
+
+    const rows = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx
+        .select()
+        .from(prospectStrategy)
+        .where(eq(prospectStrategy.prospectId, fixtures.a.prospectId)),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.relationshipGoals).toBe("Deepen the trustee relationship.");
+    expect(rows[0]?.hooks).toBeNull();
+  });
+
+  it("approving a visit_plan proposal creates a planned visit (no outcome)", async () => {
+    if (!app || !fixtures.a.tenantId) return;
+
+    const id = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "visit_plan",
+      title: "Visit plan draft",
+      payload: { goal: "Explore a lead gift.", discoveryQuestions: "Who else decides?" },
+      provenance: [],
+    });
+    const approved = await approveProposal(app.db, caller(fixtures.a), id);
+    expect(approved.ok).toBe(true);
+
+    const rows = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx.select().from(visits).where(eq(visits.prospectId, fixtures.a.prospectId)),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.goal).toBe("Explore a lead gift.");
+    expect(rows[0]?.occurredAt).toBeNull();
+    expect(rows[0]?.outcome).toBeNull();
+  });
+
+  it("approving a relationship_map_entry proposal inserts a KDM; dismiss inserts nothing", async () => {
+    if (!app || !fixtures.a.tenantId) return;
+
+    const approveId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "relationship_map_entry",
+      title: "Decision-maker: David Hallworth",
+      payload: {
+        name: "David Hallworth",
+        role: "Trustee",
+        decisionPower: "High",
+        warmPathNote: "Knows our CDO.",
+        source: "Board minutes",
+      },
+      provenance: [],
+    });
+    await approveProposal(app.db, caller(fixtures.a), approveId);
+
+    const dismissId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "prospect",
+      subjectId: fixtures.a.prospectId,
+      proposalType: "relationship_map_entry",
+      title: "Decision-maker: Jane Doe",
+      payload: { name: "Jane Doe", role: "Officer" },
+      provenance: [],
+    });
+    await dismissProposal(app.db, caller(fixtures.a), dismissId);
+
+    const rows = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx
+        .select()
+        .from(relationshipMapEntries)
+        .where(eq(relationshipMapEntries.prospectId, fixtures.a.prospectId)),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.name).toBe("David Hallworth");
+  });
+
+  it("approving a funding_initiative_rationale proposal writes the story; dismiss writes nothing", async () => {
+    if (!app || !owner || !fixtures.a.tenantId) return;
+
+    const initiativeRows = await owner.db
+      .insert(fundingInitiatives)
+      .values({ tenantId: fixtures.a.tenantId, name: "Bolivia Scale-Up", frame: "tomorrow" })
+      .returning();
+    const initiativeId = initiativeRows[0]!.id;
+
+    const approveId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "funding_initiative",
+      subjectId: initiativeId,
+      proposalType: "funding_initiative_rationale",
+      title: "Funding rationale draft",
+      payload: { story: "Bring a region to self-sustaining coverage — Everyone, Forever." },
+      provenance: [],
+    });
+    const approved = await approveProposal(app.db, caller(fixtures.a), approveId);
+    expect(approved.ok).toBe(true);
+
+    const afterApprove = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx.select().from(fundingInitiatives).where(eq(fundingInitiatives.id, initiativeId)),
+    );
+    expect(afterApprove[0]?.story).toBe(
+      "Bring a region to self-sustaining coverage — Everyone, Forever.",
+    );
+
+    const dismissId = await createProposal(app.db, caller(fixtures.a), {
+      subjectType: "funding_initiative",
+      subjectId: initiativeId,
+      proposalType: "funding_initiative_rationale",
+      title: "Funding rationale draft",
+      payload: { story: "A different, dismissed story." },
+      provenance: [],
+    });
+    await dismissProposal(app.db, caller(fixtures.a), dismissId);
+
+    const afterDismiss = await withTenant(app.db, fixtures.a.tenantId, (tx) =>
+      tx.select().from(fundingInitiatives).where(eq(fundingInitiatives.id, initiativeId)),
+    );
+    expect(afterDismiss[0]?.story).toBe(
+      "Bring a region to self-sustaining coverage — Everyone, Forever.",
+    );
   });
 });

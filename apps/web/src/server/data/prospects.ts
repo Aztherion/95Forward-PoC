@@ -6,8 +6,11 @@ import {
   knowledgeBase,
   naturalPartners,
   prospects,
+  relationshipMapEntries,
+  researchGaps,
   tenantSettings,
   users,
+  visits,
   withTenant,
 } from "@95forward/db";
 import {
@@ -230,6 +233,30 @@ export interface ProspectDetail {
     role: string | null;
     warmPathNote: string | null;
   }[];
+  researchGaps: { id: string; label: string; status: string | null }[];
+  strategy: {
+    relationshipGoals: string | null;
+    hooks: string | null;
+    objections: string | null;
+    predispositionPlan: string | null;
+    presentationDesign: string | null;
+    actionPlan: string | null;
+  } | null;
+  relationshipMap: {
+    id: string;
+    name: string;
+    role: string | null;
+    decisionPower: string | null;
+    warmPathNote: string | null;
+    source: string | null;
+  }[];
+  plannedVisits: {
+    id: string;
+    goal: string | null;
+    discoveryQuestions: string | null;
+    team: string | null;
+    locationType: string | null;
+  }[];
   activity: ProspectActivity[];
 }
 
@@ -268,6 +295,42 @@ export async function getProspectDetail(
             giftHistorySummary: true,
             otherPhilanthropy: true,
             timingNote: true,
+          },
+        },
+        researchGaps: {
+          orderBy: [asc(researchGaps.createdAt)],
+          columns: { id: true, label: true, status: true },
+        },
+        strategy: {
+          columns: {
+            relationshipGoals: true,
+            hooks: true,
+            objections: true,
+            predispositionPlan: true,
+            presentationDesign: true,
+            actionPlan: true,
+          },
+        },
+        relationshipMapEntries: {
+          orderBy: [asc(relationshipMapEntries.createdAt)],
+          columns: {
+            id: true,
+            name: true,
+            role: true,
+            decisionPower: true,
+            warmPathNote: true,
+            source: true,
+          },
+        },
+        visits: {
+          orderBy: [asc(visits.createdAt)],
+          columns: {
+            id: true,
+            goal: true,
+            discoveryQuestions: true,
+            team: true,
+            locationType: true,
+            occurredAt: true,
           },
         },
       },
@@ -312,6 +375,29 @@ export async function getProspectDetail(
         role: partner.role,
         warmPathNote: partner.warmPathNote,
       })),
+      researchGaps: record.researchGaps.map((g) => ({
+        id: g.id,
+        label: g.label,
+        status: g.status,
+      })),
+      strategy: record.strategy ?? null,
+      relationshipMap: record.relationshipMapEntries.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        role: entry.role,
+        decisionPower: entry.decisionPower,
+        warmPathNote: entry.warmPathNote,
+        source: entry.source,
+      })),
+      plannedVisits: record.visits
+        .filter((v) => v.occurredAt === null)
+        .map((v) => ({
+          id: v.id,
+          goal: v.goal,
+          discoveryQuestions: v.discoveryQuestions,
+          team: v.team,
+          locationType: v.locationType,
+        })),
       activity: activityRows,
     };
   });

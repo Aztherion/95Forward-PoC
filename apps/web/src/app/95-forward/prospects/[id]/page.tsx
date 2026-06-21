@@ -1,17 +1,7 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen, CalendarCheck, Compass, MapPin, PhoneCall } from "lucide-react";
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  QpiScore,
-  RoleChip,
-  SourceTag,
-  Tabs,
-} from "@/components/ds";
+import { ArrowLeft, PhoneCall } from "lucide-react";
+import { Badge, Button, Card, QpiScore, RoleChip, SourceTag, Tabs } from "@/components/ds";
 import type { TabItem } from "@/components/ds";
 import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -25,14 +15,22 @@ import { listProspectProposals } from "@/server/data/prospect-copilot";
 import { AdjustScore } from "./AdjustScore";
 import { CopilotSuggestions } from "./CopilotSuggestions";
 import { RelationshipTeam } from "./RelationshipTeam";
+import { KnowledgeBaseTab } from "./KnowledgeBaseTab";
+import { StrategyTab } from "./StrategyTab";
+import { VisitPlanTab } from "./VisitPlanTab";
+import { RelationshipMapTab } from "./RelationshipMapTab";
 
 export const dynamic = "force-dynamic";
 
-const TAB_IDS = ["overview", "knowledge", "strategy", "visits"] as const;
+const TAB_IDS = ["overview", "knowledge", "strategy", "relationship", "visits"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 function resolveTab(value: string | undefined): TabId {
   return (TAB_IDS as readonly string[]).includes(value ?? "") ? (value as TabId) : "overview";
+}
+
+function isOrg(type: ProspectDetail["type"]): boolean {
+  return type === "foundation" || type === "organization";
 }
 
 function typeTone(type: ProspectDetail["type"]): "info" | "success" | "neutral" {
@@ -81,15 +79,32 @@ export default async function ProspectDetailPage({
   const detail = await getProspectDetail(user.tenantId, id);
   if (!detail) notFound();
 
+  const proposalTypeByTab = {
+    overview: "qpi_assessment",
+    knowledge: "knowledge_base_update",
+    strategy: "prospect_strategy",
+    relationship: "relationship_map_entry",
+    visits: "visit_plan",
+  } as const;
+
   const [rmUsers, proposals] = await Promise.all([
     listRmUsers(user.tenantId),
-    listProspectProposals(user.tenantId, user, id),
+    listProspectProposals(user.tenantId, user, id, proposalTypeByTab[activeTab]),
   ]);
 
   const tabs: TabItem[] = [
     { id: "overview", label: "Overview", href: `/95-forward/prospects/${id}?tab=overview` },
     { id: "knowledge", label: "Knowledge Base", href: `/95-forward/prospects/${id}?tab=knowledge` },
     { id: "strategy", label: "Strategy", href: `/95-forward/prospects/${id}?tab=strategy` },
+    ...(isOrg(detail.type)
+      ? [
+          {
+            id: "relationship",
+            label: "Relationship Map",
+            href: `/95-forward/prospects/${id}?tab=relationship`,
+          },
+        ]
+      : []),
     { id: "visits", label: "Visits & Asks", href: `/95-forward/prospects/${id}?tab=visits` },
   ];
 
@@ -108,26 +123,13 @@ export default async function ProspectDetailPage({
             <OverviewTab detail={detail} rmUsers={rmUsers} proposals={proposals} />
           ) : null}
           {activeTab === "knowledge" ? (
-            <StubTab
-              icon={<BookOpen size={20} strokeWidth={1.8} />}
-              title="No research yet — the copilot can help"
-              line="The full research worksheet — capacity, connectors, gift history, timing, and the gaps worth chasing — lands in a later initiative."
-            />
+            <KnowledgeBaseTab detail={detail} proposals={proposals} />
           ) : null}
-          {activeTab === "strategy" ? (
-            <StubTab
-              icon={<Compass size={20} strokeWidth={1.8} />}
-              title="Strategy comes next"
-              line="Relationship goals, hooks, likely objections, and the action plan — built in a later initiative. The copilot will draft each as a suggestion."
-            />
+          {activeTab === "strategy" ? <StrategyTab detail={detail} proposals={proposals} /> : null}
+          {activeTab === "relationship" && isOrg(detail.type) ? (
+            <RelationshipMapTab detail={detail} proposals={proposals} />
           ) : null}
-          {activeTab === "visits" ? (
-            <StubTab
-              icon={<CalendarCheck size={20} strokeWidth={1.8} />}
-              title="No visits or asks logged yet"
-              line="The execution history — planned and completed visits, asks, and the 24-hour follow-up loop — is built in a later initiative."
-            />
-          ) : null}
+          {activeTab === "visits" ? <VisitPlanTab detail={detail} proposals={proposals} /> : null}
         </Tabs>
       </div>
     </>
@@ -202,9 +204,17 @@ function KnowledgeSummary({ detail }: { detail: ProspectDetail }) {
   return (
     <Card>
       <div className="f95-stack">
-        <div className="f95-stack f95-stack--sm">
-          <h2 className="f95-section-title">What we know</h2>
-          <span className="f95-deflist__desc--empty">Gaps are invitations, not errors.</span>
+        <div className="f95-cluster">
+          <div className="f95-stack f95-stack--sm">
+            <h2 className="f95-section-title">What we know so far</h2>
+            <span className="f95-deflist__desc--empty">Gaps are invitations, not errors.</span>
+          </div>
+          <span className="f95-recordbar__spacer" />
+          <Link href={`/95-forward/prospects/${detail.id}?tab=knowledge`}>
+            <Button variant="ghost" size="sm">
+              Open the Knowledge Base
+            </Button>
+          </Link>
         </div>
         <div className="f95-deflist">
           {fields.map((field) => (
@@ -297,17 +307,6 @@ function OverviewTab({
           />
         </Card>
       </aside>
-    </div>
-  );
-}
-
-function StubTab({ icon, title, line }: { icon: ReactNode; title: string; line: string }) {
-  return (
-    <div className="f95-stack">
-      <EmptyState icon={icon} title={title} line={line} />
-      <p className="f95-deflist__desc--empty f95-cluster">
-        <MapPin size={14} strokeWidth={1.8} /> Built in a later initiative.
-      </p>
     </div>
   );
 }

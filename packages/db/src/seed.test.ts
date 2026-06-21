@@ -14,7 +14,17 @@ import { tenants } from "./schema/tenants";
 import { users } from "./schema/users";
 import { tenantSettings } from "./schema/config";
 import { constituents } from "./schema/constituents";
-import { knowledgeBase, naturalPartners, prospects, qpiAssessments } from "./schema/prospects";
+import {
+  knowledgeBase,
+  naturalPartners,
+  prospects,
+  prospectStrategy,
+  qpiAssessments,
+  relationshipMapEntries,
+  researchGaps,
+} from "./schema/prospects";
+import { visits } from "./schema/execution";
+import { fundingInitiatives, prospectFundingInitiatives } from "./schema/funding";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import { opportunities, proposals } from "./schema/pipeline";
 import {
@@ -638,6 +648,36 @@ describe("seed: prospects & QPI (the 95 Forward grounding set)", () => {
     expect(kb?.capacitySource).toContain("$180M");
   });
 
+  it("seeds I8 strategize data: Hallworth gaps, strategy, a planned visit, and trustees", async () => {
+    if (!handle) {
+      return;
+    }
+    const hallworthId = stableId("prospect:hallworth");
+
+    const gaps = await db.query.researchGaps.findMany({
+      where: eq(researchGaps.prospectId, hallworthId),
+    });
+    expect(gaps.length).toBeGreaterThanOrEqual(2);
+    expect(gaps.some((g) => g.label.toLowerCase().includes("wealth screen"))).toBe(true);
+    expect(gaps.every((g) => g.status === "open")).toBe(true);
+
+    const strategy = await db.query.prospectStrategy.findFirst({
+      where: eq(prospectStrategy.prospectId, hallworthId),
+    });
+    expect(strategy?.relationshipGoals).toContain("David Hallworth");
+
+    const plannedVisits = await db.query.visits.findMany({
+      where: eq(visits.prospectId, hallworthId),
+    });
+    expect(plannedVisits.length).toBeGreaterThanOrEqual(1);
+    expect(plannedVisits.every((v) => v.occurredAt === null && v.outcome === null)).toBe(true);
+
+    const kdms = await db.query.relationshipMapEntries.findMany({
+      where: eq(relationshipMapEntries.prospectId, hallworthId),
+    });
+    expect(kdms.some((k) => k.name === "David Hallworth" && k.role === "Trustee")).toBe(true);
+  });
+
   it("is idempotent — re-seeding leaves prospect/QPI counts stable", async () => {
     if (!handle) {
       return;
@@ -651,10 +691,66 @@ describe("seed: prospects & QPI (the 95 Forward grounding set)", () => {
       partners: (
         await db.query.naturalPartners.findMany({ where: eq(naturalPartners.tenantId, tenantId) })
       ).length,
+      gaps: (await db.query.researchGaps.findMany({ where: eq(researchGaps.tenantId, tenantId) }))
+        .length,
+      strategy: (
+        await db.query.prospectStrategy.findMany({ where: eq(prospectStrategy.tenantId, tenantId) })
+      ).length,
+      visits: (await db.query.visits.findMany({ where: eq(visits.tenantId, tenantId) })).length,
+      kdms: (
+        await db.query.relationshipMapEntries.findMany({
+          where: eq(relationshipMapEntries.tenantId, tenantId),
+        })
+      ).length,
+      initiatives: (
+        await db.query.fundingInitiatives.findMany({
+          where: eq(fundingInitiatives.tenantId, tenantId),
+        })
+      ).length,
+      associations: (
+        await db.query.prospectFundingInitiatives.findMany({
+          where: eq(prospectFundingInitiatives.tenantId, tenantId),
+        })
+      ).length,
     });
     const before = await counts();
     await seed(db);
     const after = await counts();
     expect(after).toEqual(before);
+  });
+});
+
+describe("seed: funding initiatives (I9)", () => {
+  it("seeds the three grounded Water For People initiatives, one per frame", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.fundingInitiatives.findMany({
+      where: eq(fundingInitiatives.tenantId, tenantId),
+    });
+    expect(rows).toHaveLength(3);
+    const byFrame = Object.fromEntries(rows.map((r) => [r.frame, r]));
+    expect(byFrame.today?.name).toContain("Kamuli");
+    expect(byFrame.tomorrow?.name).toContain("Bolivia");
+    expect(byFrame.tomorrow?.goalAmountCents).toBe(320_000_000);
+    expect(byFrame.forever?.name).toContain("Forever Promise");
+    expect(rows.every((r) => (r.story ?? "").length > 0)).toBe(true);
+  });
+
+  it("seeds cultivation associations (Hallworth -> Bolivia) without a frame column on prospects", async () => {
+    if (!handle) {
+      return;
+    }
+    const associations = await db.query.prospectFundingInitiatives.findMany({
+      where: eq(prospectFundingInitiatives.tenantId, tenantId),
+    });
+    expect(associations.length).toBeGreaterThanOrEqual(8);
+
+    const hallworthToBolivia = associations.find(
+      (a) =>
+        a.prospectId === stableId("prospect:hallworth") &&
+        a.fundingInitiativeId === stableId("initiative:bolivia"),
+    );
+    expect(hallworthToBolivia).toBeDefined();
   });
 });

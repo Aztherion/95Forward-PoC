@@ -64,6 +64,13 @@
       "when": 1782004380941,
       "tag": "0008_nebulous_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782075030980,
+      "tag": "0009_foamy_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

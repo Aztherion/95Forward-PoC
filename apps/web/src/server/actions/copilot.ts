@@ -120,6 +120,18 @@ export async function runCopilotAction(_formData: FormData): Promise<void> {
   }
 }
 
+function revalidateProposalViews(formData: FormData): void {
+  revalidatePath(LAB_PATH);
+  const prospectId = formData.get("prospectId");
+  if (typeof prospectId === "string" && prospectId.length > 0) {
+    revalidatePath(`/95-forward/prospects/${prospectId}`);
+  }
+  const fundingInitiativeId = formData.get("fundingInitiativeId");
+  if (typeof fundingInitiativeId === "string" && fundingInitiativeId.length > 0) {
+    revalidatePath(`/95-forward/initiatives/${fundingInitiativeId}`);
+  }
+}
+
 export async function approveProposalAction(formData: FormData): Promise<void> {
   try {
     const user = await getCurrentUser();
@@ -130,7 +142,7 @@ export async function approveProposalAction(formData: FormData): Promise<void> {
   } catch (error) {
     console.error("[copilot-lab] approveProposalAction failed", error);
   } finally {
-    revalidatePath(LAB_PATH);
+    revalidateProposalViews(formData);
   }
 }
 
@@ -144,6 +156,6 @@ export async function dismissProposalAction(formData: FormData): Promise<void> {
   } catch (error) {
     console.error("[copilot-lab] dismissProposalAction failed", error);
   } finally {
-    revalidatePath(LAB_PATH);
+    revalidateProposalViews(formData);
   }
 }

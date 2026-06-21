@@ -169,7 +169,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await expect(qpiTotal(page)).toHaveText("75");
     await page.reload();
     await expect(qpiTotal(page)).toHaveText("75");
-    await expect(copilot.locator(".f95-prov")).toHaveCount(0);
+    await expect(copilot.locator(".f95-prov")).toHaveCount(0, { timeout: 15000 });
   });
 
   test("dismissing an AI QPI suggestion applies nothing", async ({ page }) => {
@@ -186,7 +186,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await expect(qpiTotal(page)).toHaveText("48");
     await page.reload();
     await expect(qpiTotal(page)).toHaveText("48");
-    await expect(copilot.locator(".f95-prov")).toHaveCount(0);
+    await expect(copilot.locator(".f95-prov")).toHaveCount(0, { timeout: 15000 });
   });
 
   test("assigns a relationship manager and persists the change", async ({ page }) => {
@@ -240,19 +240,19 @@ test.describe.serial("95 Forward — prospect overview", () => {
     ).toBeVisible();
   });
 
-  test("offers Knowledge Base, Strategy, and Visits tabs as stubs", async ({ page }) => {
+  test("offers Knowledge Base, Strategy, and Visits tabs as realized screens", async ({ page }) => {
     await openProspectByName(page, HALLWORTH);
 
     await page.getByRole("tab", { name: "Knowledge Base" }).click();
     await page.waitForURL(/tab=knowledge/);
-    await expect(page.getByRole("tabpanel")).toContainText("later initiative");
+    await expect(page.getByRole("tabpanel")).toContainText("What we know");
 
     await page.getByRole("tab", { name: "Strategy" }).click();
     await page.waitForURL(/tab=strategy/);
-    await expect(page.getByRole("tabpanel")).toContainText("later initiative");
+    await expect(page.getByRole("tabpanel")).toContainText("Strategy");
 
     await page.getByRole("tab", { name: "Visits & Asks" }).click();
     await page.waitForURL(/tab=visits/);
-    await expect(page.getByRole("tabpanel")).toContainText("later initiative");
+    await expect(page.getByRole("tabpanel")).toContainText("Visit plan");
   });
 });
