@@ -16,6 +16,15 @@ test.describe("styleguide", () => {
     await expect(page.locator(".f95-horizon").first()).toBeVisible();
   });
 
+  test("renders the provisional suggestion primitive", async ({ page }) => {
+    const card = page.locator(".f95-card--ai.f95-card--accent .f95-prov__acts").first();
+    await expect(card).toBeVisible();
+    const actions = card.locator("xpath=..");
+    await expect(actions.getByRole("button", { name: "Approve" })).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Edit" })).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Dismiss" })).toBeVisible();
+  });
+
   test("includes both host and 95-forward register sections", async ({ page }) => {
     await expect(page.locator('[data-register="host"]')).toHaveCount(1);
     await expect(page.locator('[data-register="95-forward"]')).toHaveCount(1);

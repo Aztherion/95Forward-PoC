@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnv } from "./env";
+import { parseEnv, resolveEmbeddingMode } from "./env";
 
 const VALID = {
   DATABASE_URL: "postgres://app:secret@localhost:5432/forward",
@@ -55,5 +55,38 @@ describe("parseEnv", () => {
 
   it("rejects an unknown NODE_ENV", () => {
     expect(() => parseEnv({ ...VALID, NODE_ENV: "staging" })).toThrowError(/NODE_ENV/);
+  });
+
+  it("defaults AI to mock mode and does not require API keys", () => {
+    const env = parseEnv(VALID);
+    expect(env.AI_MODE).toBe("mock");
+    expect(env.RESEARCH_MODE).toBe("demo");
+    expect(env.EMBEDDINGS_MODEL).toBe("text-embedding-3-small");
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+  });
+
+  it("requires ANTHROPIC_API_KEY only when AI_MODE=live", () => {
+    expect(() => parseEnv({ ...VALID, AI_MODE: "live" })).toThrowError(/ANTHROPIC_API_KEY/);
+    const env = parseEnv({
+      ...VALID,
+      AI_MODE: "live",
+      ANTHROPIC_API_KEY: "sk-x",
+      OPENAI_API_KEY: "sk-y",
+    });
+    expect(env.AI_MODE).toBe("live");
+  });
+
+  it("requires OPENAI_API_KEY when embeddings run live (via AI_MODE or EMBEDDING_MODE)", () => {
+    expect(() => parseEnv({ ...VALID, AI_MODE: "mock", EMBEDDING_MODE: "live" })).toThrowError(
+      /OPENAI_API_KEY/,
+    );
+    const env = parseEnv({ ...VALID, EMBEDDING_MODE: "live", OPENAI_API_KEY: "sk-y" });
+    expect(resolveEmbeddingMode(env)).toBe("live");
+  });
+
+  it("resolves embedding mode from AI_MODE when EMBEDDING_MODE is unset", () => {
+    expect(resolveEmbeddingMode({ AI_MODE: "mock", EMBEDDING_MODE: undefined })).toBe("mock");
+    expect(resolveEmbeddingMode({ AI_MODE: "live", EMBEDDING_MODE: undefined })).toBe("live");
+    expect(resolveEmbeddingMode({ AI_MODE: "live", EMBEDDING_MODE: "mock" })).toBe("mock");
   });
 });

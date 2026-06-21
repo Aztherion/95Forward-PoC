@@ -198,6 +198,38 @@ shell's user chip shows the real signed-in user.
 `POST /api/test-login` mints a session cookie for a seeded email. This is how local dev and the
 Playwright suite authenticate deterministically; it is disabled in production.
 
+## AI Foundation (Initiative 6)
+
+The AI substrate lives in **`packages/ai`** (`@95forward/ai`), consumed by `apps/web` (and ready for the
+worker). It is built on one principle — **the copilot proposes, the human disposes**: every AI output is
+provisional, evidence-tagged, and applied only on explicit approval. The substrate has five parts:
+
+- **Model router** — a data-driven task registry (`taskType → { model, maxTokens, system, allowedTools,
+budget }`) tiering **Haiku** (cheap extraction), **Sonnet** (drafting/QPI), **Opus** (hard reasoning).
+  A thin agentic tool-use loop (Anthropic SDK directly) caps iterations and token budget.
+- **Provider seams** — `ModelProvider`, `EmbeddingProvider`, `ResearchProvider`, each with a deterministic
+  **mock** and a **live** implementation, selected by env. CI/local run on mocks → **no API keys, no paid
+  calls.** (`RESEARCH_MODE=demo` is seeded OSINT; the live web-search provider lands in I11.)
+- **Permission-scoped tool layer** — the tool layer is the **only** interface between the model and the
+  system. Every tool runs in an explicit caller context `{ tenantId, userId, role }`, enforces tenant
+  scoping via `withTenant`, and checks role; the model never receives raw DB access or credentials.
+- **Embeddings + hybrid retrieval** — pgvector embedding columns (HNSW, cosine) on constituents,
+  knowledge-base entries, and interactions, plus a retrieval function combining deterministic SQL facts
+  with vector search. Every grounded fact carries **provenance**, and **"unknown" is a first-class answer.**
+- **Generic propose → dispose → write-back** — AI suggestions are stored as pending `copilot_proposals`
+  with provenance; a human approves/edits/dismisses; approval writes back through the tenant-scoped layer.
+  Nothing is applied without approval. The reusable iris-bordered `ProvisionalSuggestion` primitive
+  (approve/edit/dismiss) is in the design system; a dev harness at **`/95-forward/copilot-lab`** (non-prod
+  only) exercises the full loop on the mock provider.
+
+**Injection-resistance** is built in: all retrieved/ingested/observed content is treated as untrusted data
+(delimited, kept out of system/developer instructions), never as instructions.
+
+Embed the seed once after migrate+seed: `pnpm --filter @95forward/ai embed` (mock by default; add
+`-- --force` to re-embed). Set `AI_MODE=live` (with `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`) for real
+providers; `EMBEDDING_MODE` can be set independently to backfill live embeddings while keeping the model
+on mock.
+
 ## Testing
 
 - **Unit (Vitest):** `pnpm test`. Covers the Zod env + form-validation schemas, the register helper,
@@ -221,9 +253,12 @@ See `.env.example`. **Required:** `DATABASE_URL` (owner role — migrate/seed/au
 **`APP_DATABASE_URL`** (the `app_user` role used by all RLS-scoped feature data access), and the
 Auth0 vars (`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`).
 Also used: `NODE_ENV`, `APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `AUTH_DEV_LOGIN` (dev/test only), and the
-`NEXT_PUBLIC_*` web vars. `DATABASE_URL`/Auth0 are validated in `packages/shared/src/env.ts`;
-`APP_DATABASE_URL` is read directly by the web app's data layer. Placeholders for later initiatives
-(AI in I6, jobs in I11) remain documented in `.env.example`.
+`NEXT_PUBLIC_*` web vars. **AI (Initiative 6):** `AI_MODE` (`mock` default | `live`), `EMBEDDING_MODE`
+(defaults to `AI_MODE`), `RESEARCH_MODE` (`demo` default | `live`), `EMBEDDINGS_MODEL`
+(`text-embedding-3-small`), and `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` — **optional in mock, required only
+in live mode** (enforced by the env schema, mirroring `AUTH_DEV_LOGIN`). `DATABASE_URL`/Auth0/AI vars are
+validated in `packages/shared/src/env.ts`; `APP_DATABASE_URL` is read directly by the web app's data
+layer. The remaining placeholder (jobs in I11) stays documented in `.env.example`.
 
 ## Deployment (DigitalOcean App Platform)
 

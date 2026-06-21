@@ -11,6 +11,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
+    "@95forward/ai": "workspace:*",
     "@95forward/db": "workspace:*",
     "@95forward/shared": "workspace:*",
     "@nestjs/common": "^11.0.1",

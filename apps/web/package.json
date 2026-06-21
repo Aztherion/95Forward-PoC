@@ -12,6 +12,7 @@
     "clean": "rm -rf .next .turbo coverage playwright-report test-results *.tsbuildinfo"
   },
   "dependencies": {
+    "@95forward/ai": "workspace:*",
     "@95forward/db": "workspace:*",
     "@95forward/shared": "workspace:*",
     "@auth0/nextjs-auth0": "^4.0.0",

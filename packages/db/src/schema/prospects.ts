@@ -1,5 +1,5 @@
 import { boolean, index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
-import { primaryId, tenantScoped, timestamps } from "./columns";
+import { embeddingColumns, primaryId, tenantScoped, timestamps } from "./columns";
 import { prospectStatusEnum, qpiDimensionEnum } from "./enums";
 import { constituents } from "./constituents";
 import { users } from "./users";
@@ -94,6 +94,7 @@ export const knowledgeBase = pgTable(
     giftHistorySummary: text("gift_history_summary"),
     otherPhilanthropy: text("other_philanthropy"),
     timingNote: text("timing_note"),
+    ...embeddingColumns,
     ...timestamps,
   },
   (table) => [

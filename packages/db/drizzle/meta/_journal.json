@@ -57,6 +57,13 @@
       "when": 1781999426441,
       "tag": "0007_aberrant_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782004380941,
+      "tag": "0008_nebulous_jimmy_woo",
+      "breakpoints": true
     }
   ]
 }

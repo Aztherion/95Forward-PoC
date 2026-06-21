@@ -38,3 +38,8 @@ export { Textarea } from "./Textarea";
 export type { TextareaProps } from "./Textarea";
 export { FieldGroup, FormRow } from "./FieldGroup";
 export type { FieldGroupProps, FormRowProps } from "./FieldGroup";
+export { ProvisionalSuggestion } from "./ProvisionalSuggestion";
+export type {
+  ProvisionalSuggestionProps,
+  ProvisionalSuggestionState,
+} from "./ProvisionalSuggestion";

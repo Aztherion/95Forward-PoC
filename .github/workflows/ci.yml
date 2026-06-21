@@ -26,6 +26,8 @@ jobs:
       AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       APP_BASE_URL: http://localhost:3100
       AUTH_DEV_LOGIN: "true"
+      # AI runs in deterministic mock mode in CI — no ANTHROPIC/OPENAI keys, no paid calls.
+      AI_MODE: mock
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -64,11 +66,12 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Database setup (migrate + seed)
+      - name: Database setup (migrate + seed + embed)
         run: |
           pnpm db:wait
           pnpm db:migrate
           pnpm --filter @95forward/db seed
+          pnpm --filter @95forward/ai embed
 
       - name: Unit tests
         run: pnpm test

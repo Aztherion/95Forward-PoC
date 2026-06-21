@@ -8,6 +8,7 @@ import { seedRecordsCore } from "./seed-records-core";
 import { seedMajorGiving } from "./seed-major-giving";
 import { seedEngagement } from "./seed-engagement";
 import { seedVolunteersAndMemberships } from "./seed-volunteers-memberships";
+import { seedProspects } from "./seed-prospects";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -68,6 +69,7 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
   await seedMajorGiving(db, tenantId);
   await seedEngagement(db, tenantId);
   await seedVolunteersAndMemberships(db, tenantId);
+  await seedProspects(db, tenantId);
 
   return { tenantId };
 }

@@ -11,4 +11,5 @@ export * from "./execution";
 export * from "./discovery";
 export * from "./config";
 export * from "./lists";
+export * from "./ai";
 export * from "./relations";

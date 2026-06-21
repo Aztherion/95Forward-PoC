@@ -1,5 +1,5 @@
 {
-  "name": "@95forward/db",
+  "name": "@95forward/ai",
   "version": "0.0.0",
   "private": true,
   "main": "./dist/index.js",
@@ -12,30 +12,28 @@
     }
   },
   "files": [
-    "dist",
-    "drizzle"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "generate": "drizzle-kit generate",
-    "migrate": "tsx src/migrate.ts",
-    "seed": "tsx src/seed.ts",
-    "wait": "tsx src/wait.ts",
-    "studio": "drizzle-kit studio",
+    "embed": "tsx src/scripts/backfill.ts",
     "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "dependencies": {
+    "@95forward/db": "workspace:*",
     "@95forward/shared": "workspace:*",
+    "@anthropic-ai/sdk": "^0.105.0",
     "drizzle-orm": "^0.38.3",
-    "pg": "^8.13.1"
+    "openai": "^6.44.0",
+    "zod": "^3.24.1",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "@types/pg": "^8.11.10",
-    "drizzle-kit": "^0.30.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"

@@ -28,6 +28,7 @@ import { asks, followUpTasks, referrals, visits } from "./execution";
 import { candidates, discoveryTasks } from "./discovery";
 import { powerQuestions, tenantSettings } from "./config";
 import { savedLists } from "./lists";
+import { copilotProposals } from "./ai";
 
 export const tenantsRelations = relations(tenants, ({ many, one }) => ({
   users: many(users),
@@ -366,4 +367,18 @@ export const powerQuestionsRelations = relations(powerQuestions, ({ one }) => ({
 export const savedListsRelations = relations(savedLists, ({ one }) => ({
   tenant: one(tenants, { fields: [savedLists.tenantId], references: [tenants.id] }),
   owner: one(users, { fields: [savedLists.ownerUserId], references: [users.id] }),
+}));
+
+export const copilotProposalsRelations = relations(copilotProposals, ({ one }) => ({
+  tenant: one(tenants, { fields: [copilotProposals.tenantId], references: [tenants.id] }),
+  createdBy: one(users, {
+    fields: [copilotProposals.createdByUserId],
+    references: [users.id],
+    relationName: "copilot_proposal_created_by",
+  }),
+  decidedBy: one(users, {
+    fields: [copilotProposals.decidedByUserId],
+    references: [users.id],
+    relationName: "copilot_proposal_decided_by",
+  }),
 }));

@@ -8,7 +8,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { primaryId, tenantScoped, timestamps } from "./columns";
+import { embeddingColumns, primaryId, tenantScoped, timestamps } from "./columns";
 import { constituentProspectStatusEnum, constituentTypeEnum } from "./enums";
 import { users } from "./users";
 
@@ -41,6 +41,7 @@ export const constituents = pgTable(
     // transparent QPI answers it later.
     hostLikelihood: integer("host_likelihood"),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...embeddingColumns,
     ...timestamps,
   },
   (table) => [
@@ -121,6 +122,7 @@ export const interactions = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     summary: text("summary"),
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "set null" }),
+    ...embeddingColumns,
     ...timestamps,
   },
   (table) => [

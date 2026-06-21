@@ -8,6 +8,7 @@ import {
   Heartbeat,
   HorizonTag,
   Input,
+  ProvisionalSuggestion,
   RoleChip,
   SourceTag,
   Tag,
@@ -100,6 +101,18 @@ function Gallery() {
 
       <Group label="Heartbeat">
         <Heartbeat label="Follow up by tomorrow · 18h left" />
+      </Group>
+
+      <Group label="Provisional suggestions">
+        <ProvisionalSuggestion source="IRS 990-PF · 2024" from="$50,000" to="$250,000">
+          Capacity looks higher than recorded — the foundation gave $1M+ to peers last year.
+        </ProvisionalSuggestion>
+        <ProvisionalSuggestion>
+          A board member may know this donor — worth a warm introduction before you reach out.
+        </ProvisionalSuggestion>
+        <ProvisionalSuggestion state="approved">
+          Capacity looks higher than recorded — the foundation gave $1M+ to peers last year.
+        </ProvisionalSuggestion>
       </Group>
     </>
   );
