@@ -1,8 +1,8 @@
 # DigitalOcean App Platform spec for 95 Forward.
 # Operator setup before `doctl apps create --spec .do/app.yaml`:
-#   - set the database `cluster_name` to your existing vector-enabled managed PG cluster
+#   - the database `cluster_name` is set to the existing vector-enabled managed PG cluster
 #     (the spec attaches that cluster; it does not provision a throwaway dev database)
-#   - set region and instance sizes
+#   - set instance sizes as desired
 #   - ensure the managed PG vector extension is allowed (the PRE_DEPLOY migrate
 #     job runs CREATE EXTENSION IF NOT EXISTS vector)
 #   - supply real values for every REPLACE_ME (Auth0 client id/secret; the
@@ -21,7 +21,7 @@
 # safe here only because the reset still refuses unless RESEARCH_MODE!=live AND --confirm is passed;
 # never set it on a database holding real data.
 name: ninety-five-forward
-region: nyc
+region: ams
 
 envs:
   - key: ALLOW_DESTRUCTIVE_RESET
@@ -30,7 +30,7 @@ envs:
 databases:
   - name: forward-db # keep this logical name — bindings use ${forward-db.DATABASE_URL}
     engine: PG
-    cluster_name: REPLACE_ME_CLUSTER_NAME # operator: the actual managed cluster's name
+    cluster_name: db-pgsql-95fwd-poc # the managed PG cluster (region ams3)
     production: true
 
 jobs:
