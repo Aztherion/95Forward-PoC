@@ -61,6 +61,7 @@ describe("nav configuration", () => {
       expect(group.children.map((c) => [c.label, c.href])).toEqual([
         ["Today", "/95-forward/today"],
         ["Prospects", "/95-forward/prospects"],
+        ["Candidates", "/95-forward/prospects/candidates"],
         ["Green Sheet", "/95-forward/green-sheet"],
         ["Initiatives", "/95-forward/initiatives"],
       ]);

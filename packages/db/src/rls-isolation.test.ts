@@ -1,7 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { Database } from "./client";
-import { constituents, gifts, prospects, researchJobs, tenants } from "./schema";
+import {
+  candidates,
+  constituents,
+  discoveryTasks,
+  fundingInitiatives,
+  gifts,
+  prospects,
+  researchJobs,
+  tenants,
+} from "./schema";
 import { withTenant } from "./tenancy";
 import { connectAppTestDb, connectTestDb, uniqueSuffix, type TestDb } from "./test-support";
 
@@ -44,6 +53,33 @@ async function seedTenant(db: Database, tenantId: string, name: string): Promise
   await db
     .insert(researchJobs)
     .values({ tenantId, prospectId: prospect.id, status: "ready", originKey: `test:${tenantId}` });
+
+  const initiativeRows = await db
+    .insert(fundingInitiatives)
+    .values({ tenantId, name: `Init ${name}`, frame: "today" })
+    .returning();
+  const initiative = initiativeRows[0];
+  if (!initiative) throw new Error("seedTenant: funding initiative insert returned no row");
+  const taskRows = await db
+    .insert(discoveryTasks)
+    .values({
+      tenantId,
+      connectorConstituentId: constituent.id,
+      fundingInitiativeId: initiative.id,
+      status: "ready",
+      originKey: `disc:${tenantId}`,
+    })
+    .returning();
+  const task = taskRows[0];
+  if (!task) throw new Error("seedTenant: discovery task insert returned no row");
+  await db.insert(candidates).values({
+    tenantId,
+    discoveryTaskId: task.id,
+    name: `Candidate ${name}`,
+    confidence: "medium",
+    status: "suggested",
+    originKey: `disc:${tenantId}:0`,
+  });
 }
 
 beforeAll(async () => {
@@ -131,6 +167,25 @@ describe("RLS tenant isolation (app_user, enforced by Postgres)", () => {
   it("an unscoped research_jobs query on app_user returns zero rows (Initiative 11)", async () => {
     if (!app) return;
     const rows = await app.db.query.researchJobs.findMany();
+    expect(rows).toHaveLength(0);
+  });
+
+  it("discovery_tasks + candidates in tenant A's context never see tenant B's rows (Initiative 12)", async () => {
+    if (!app) return;
+    const tasks = await withTenant(app.db, tenantAId, (tx) => tx.query.discoveryTasks.findMany());
+    expect(tasks.length).toBeGreaterThan(0);
+    expect(tasks.every((t) => t.tenantId === tenantAId)).toBe(true);
+    expect(tasks.every((t) => t.originKey === `disc:${tenantAId}`)).toBe(true);
+
+    const cands = await withTenant(app.db, tenantAId, (tx) => tx.query.candidates.findMany());
+    expect(cands.length).toBeGreaterThan(0);
+    expect(cands.every((c) => c.tenantId === tenantAId)).toBe(true);
+    expect(cands.every((c) => c.name === "Candidate A-person")).toBe(true);
+  });
+
+  it("an unscoped candidates query on app_user returns zero rows (Initiative 12)", async () => {
+    if (!app) return;
+    const rows = await app.db.query.candidates.findMany();
     expect(rows).toHaveLength(0);
   });
 

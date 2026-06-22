@@ -60,3 +60,16 @@ export async function enqueueFollowUpDraft(
     { jobKey: `follow-up-draft-${prospectId}`, maxAttempts: 3 },
   );
 }
+
+export async function enqueueDiscovery(
+  tenantId: string,
+  userId: string,
+  discoveryTaskId: string,
+): Promise<void> {
+  const utils = await getWorkerUtils();
+  await utils.addJob(
+    JOB_NAMES.discovery,
+    { tenantId, userId, discoveryTaskId },
+    { jobKey: `discovery-${discoveryTaskId}`, maxAttempts: 3 },
+  );
+}

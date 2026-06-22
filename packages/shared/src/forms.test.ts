@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   askInputSchema,
+  candidateDecisionInputSchema,
   communicationInputSchema,
   constituentInputSchema,
+  findIntroductionsInputSchema,
+  promoteCandidateInputSchema,
   copilotTogglesInputSchema,
   cultivationAssociationInputSchema,
   followUpDoneInputSchema,
@@ -638,5 +641,50 @@ describe("promoteReferralInputSchema", () => {
       "individual",
     );
     expect(() => promoteReferralInputSchema.parse({ referralId: UUID, displayName: "" })).toThrow();
+  });
+});
+
+describe("findIntroductionsInputSchema", () => {
+  it("accepts a connector constituent", () => {
+    const parsed = findIntroductionsInputSchema.parse({
+      fundingInitiativeId: UUID,
+      connectorConstituentId: UUID,
+    });
+    expect(parsed.connectorConstituentId).toBe(UUID);
+  });
+
+  it("accepts an external connector name", () => {
+    const parsed = findIntroductionsInputSchema.parse({
+      fundingInitiativeId: UUID,
+      connectorExternalName: "Sandra Kim",
+    });
+    expect(parsed.connectorExternalName).toBe("Sandra Kim");
+  });
+
+  it("rejects when neither a connector constituent nor an external name is given", () => {
+    expect(() => findIntroductionsInputSchema.parse({ fundingInitiativeId: UUID })).toThrow();
+  });
+});
+
+describe("candidateDecisionInputSchema", () => {
+  it("accepts the three non-promotion decisions", () => {
+    for (const decision of ["endorsed", "intro_requested", "dismissed"] as const) {
+      expect(candidateDecisionInputSchema.parse({ candidateId: UUID, decision }).decision).toBe(
+        decision,
+      );
+    }
+  });
+
+  it("rejects 'promoted' (promotion is its own mutation)", () => {
+    expect(() =>
+      candidateDecisionInputSchema.parse({ candidateId: UUID, decision: "promoted" }),
+    ).toThrow();
+  });
+});
+
+describe("promoteCandidateInputSchema", () => {
+  it("requires a candidate uuid", () => {
+    expect(promoteCandidateInputSchema.parse({ candidateId: UUID }).candidateId).toBe(UUID);
+    expect(() => promoteCandidateInputSchema.parse({ candidateId: "nope" })).toThrow();
   });
 });

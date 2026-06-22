@@ -11,11 +11,13 @@ import {
   type InitiativeProspect,
 } from "@/server/data/initiatives";
 import { getProspectRefs } from "@/server/data/prospects";
+import { getConnectorOptions } from "@/server/data/discovery";
 import { listInitiativeProposals } from "@/server/data/funding-copilot";
 import { runInitiativeRationaleAction } from "@/server/actions/funding-copilot";
 import { detachProspectAction } from "@/server/actions/initiatives";
 import { CopilotDraftPanel } from "../../prospects/[id]/CopilotDraftPanel";
 import { AttachProspect } from "./AttachProspect";
+import { FindIntroductions } from "../../prospects/candidates/FindIntroductions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,9 +71,10 @@ export default async function InitiativeDetailPage({
   const detail = await getInitiativeDetail(user.tenantId, id);
   if (!detail) notFound();
 
-  const [allProspects, proposals] = await Promise.all([
+  const [allProspects, proposals, connectors] = await Promise.all([
     getProspectRefs(user.tenantId),
     listInitiativeProposals(user.tenantId, user, id),
+    getConnectorOptions(user.tenantId),
   ]);
 
   const attachedIds = new Set(detail.prospects.map((p) => p.id));
@@ -133,6 +136,11 @@ export default async function InitiativeDetailPage({
                     </span>
                   </div>
                   <span className="f95-recordbar__spacer" />
+                  <FindIntroductions
+                    connectors={connectors}
+                    fixedInitiativeId={detail.id}
+                    label="Find introductions"
+                  />
                   <AttachProspect fundingInitiativeId={detail.id} options={attachable} />
                 </div>
 

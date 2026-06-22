@@ -11,6 +11,7 @@ import {
 } from "@95forward/db";
 import { connectAppTestDb, connectTestDb, uniqueSuffix, type TestDb } from "../test-support";
 import { ADVERSARIAL_INJECTION_SNIPPET, SeededResearchProvider } from "../provider/research";
+import { SeededDiscoveryProvider } from "../provider/discovery";
 import { MockEmbeddingProvider } from "../provider/embedding";
 import { MockModelProvider } from "../provider/model";
 import type { Providers } from "../types";
@@ -20,6 +21,7 @@ const providers: Providers = {
   model: MockModelProvider.scripted({}),
   embedding: new MockEmbeddingProvider(),
   research: new SeededResearchProvider(),
+  discovery: new SeededDiscoveryProvider(),
 };
 
 let owner: TestDb | null = null;

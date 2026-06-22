@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAppDb } from "@/server/db";
 import { getProspectsList, type ProspectListRow } from "@/server/data/prospects";
 import { getJobTrayState } from "@/server/data/research-jobs";
+import { getDiscoveryTrayState } from "@/server/data/discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function TodayPage({
   const pendingCount = pendingProposals.length;
 
   const jobTray = await getJobTrayState(user.tenantId);
+  const discoveryTray = await getDiscoveryTrayState(user.tenantId);
 
   const scopeNote = scope === "me" ? "Your prospects" : "Your team's prospects";
 
@@ -213,6 +215,41 @@ export default async function TodayPage({
                 {jobTray.readyCount > 0 ? (
                   <div className="f95-itemrow__actions">
                     <Badge tone="ai">{jobTray.readyCount} ready</Badge>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            {discoveryTray.researching.length > 0 || discoveryTray.readyCount > 0 ? (
+              <div
+                className="f95-itemrow"
+                data-testid="today-discovery-jobs"
+                style={{ marginTop: 12 }}
+              >
+                <span className="f95-empty__icon" style={{ marginTop: 2 }}>
+                  <Compass size={20} strokeWidth={1.8} />
+                </span>
+                <div className="f95-itemrow__body">
+                  <div className="f95-itemrow__title">
+                    {discoveryTray.readyCount > 0
+                      ? `${discoveryTray.readyCount} candidate ${discoveryTray.readyCount === 1 ? "batch" : "batches"} ready to review`
+                      : "Finding introductions"}
+                  </div>
+                  <div className="f95-itemrow__meta">
+                    {discoveryTray.researching.length > 0 ? (
+                      <span>
+                        Searching {discoveryTray.researching.map((d) => d.connectorName).join(", ")}
+                        &rsquo;s network for people to introduce you to.
+                      </span>
+                    ) : (
+                      <span>Open Candidates to review who your copilot surfaced.</span>
+                    )}
+                  </div>
+                </div>
+                {discoveryTray.readyCount > 0 ? (
+                  <div className="f95-itemrow__actions">
+                    <Link href="/95-forward/prospects/candidates">
+                      <Badge tone="ai">{discoveryTray.readyCount} ready</Badge>
+                    </Link>
                   </div>
                 ) : null}
               </div>

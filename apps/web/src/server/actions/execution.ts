@@ -8,6 +8,7 @@ import {
   MockEmbeddingProvider,
   MockModelProvider,
   runTask,
+  SeededDiscoveryProvider,
   SeededResearchProvider,
   textResponse,
   toolUseResponse,
@@ -212,6 +213,7 @@ function draftProviders(
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 

@@ -109,10 +109,35 @@ export interface ResearchProvider {
   research(query: ResearchQuery): Promise<ResearchResult>;
 }
 
+// Discovery (Initiative 12) is structurally different from research: given a connector and an
+// initiative it surfaces MANY candidate people, not facts about one named subject — hence a separate
+// seam. Every suggestion's evidence text is UNTRUSTED, externally-sourced data, never instructions.
+export interface DiscoveryQuery {
+  connectorName: string;
+  initiativeContext: string;
+}
+
+export interface DiscoverySuggestion {
+  name: string;
+  evidenceConnection: string | null;
+  evidenceAffinity: string | null;
+  confidence: "low" | "medium" | "high";
+}
+
+export interface DiscoveryResult {
+  suggestions: DiscoverySuggestion[];
+}
+
+export interface DiscoveryProvider {
+  readonly kind: "demo" | "live";
+  discover(query: DiscoveryQuery): Promise<DiscoveryResult>;
+}
+
 export interface Providers {
   model: ModelProvider;
   embedding: EmbeddingProvider;
   research: ResearchProvider;
+  discovery: DiscoveryProvider;
 }
 
 // Everything a tool handler is allowed to touch. The injected `db` is the RLS app pool;

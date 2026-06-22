@@ -38,6 +38,7 @@ import {
   volunteerOpportunities,
 } from "./schema/engagement";
 import { researchJobs } from "./schema/jobs";
+import { candidates, discoveryTasks } from "./schema/discovery";
 import { copilotProposals } from "./schema/ai";
 
 let handle: TestDb | null = null;
@@ -846,5 +847,36 @@ describe("seed: research jobs (I11)", () => {
       where: and(eq(researchJobs.tenantId, tenantId), eq(researchJobs.status, "researching")),
     });
     expect(researching.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("seed: discovery batches (I12)", () => {
+  it("seeds a ready discovery batch (Sandra Kim) with fictional candidates", async () => {
+    if (!handle) return;
+    const ready = await db.query.discoveryTasks.findMany({
+      where: and(eq(discoveryTasks.tenantId, tenantId), eq(discoveryTasks.status, "ready")),
+    });
+    const sandra = ready.find((t) => t.originKey === "seed:discovery:sandra-bolivia");
+    expect(sandra).toBeDefined();
+    expect(sandra?.completedAt).not.toBeNull();
+  });
+
+  it("attaches suggested candidates to the ready batch", async () => {
+    if (!handle) return;
+    const rows = await db.query.candidates.findMany({
+      where: eq(candidates.tenantId, tenantId),
+    });
+    const seeded = rows.filter((c) => c.originKey?.startsWith("seed:discovery:sandra-bolivia:"));
+    expect(seeded.length).toBeGreaterThanOrEqual(1);
+    expect(seeded.every((c) => c.status === "suggested")).toBe(true);
+    expect(seeded.every((c) => c.promotedProspectId === null)).toBe(true);
+  });
+
+  it("seeds a researching discovery batch (Tom Bradley) for the in-progress pattern", async () => {
+    if (!handle) return;
+    const researching = await db.query.discoveryTasks.findMany({
+      where: and(eq(discoveryTasks.tenantId, tenantId), eq(discoveryTasks.status, "researching")),
+    });
+    expect(researching.some((t) => t.originKey === "seed:discovery:bradley-forever")).toBe(true);
   });
 });

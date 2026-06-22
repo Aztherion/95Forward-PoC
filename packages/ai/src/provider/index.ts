@@ -3,10 +3,12 @@ import type { Providers } from "../types";
 import { LiveEmbeddingProvider, MockEmbeddingProvider } from "./embedding";
 import { LiveModelProvider, MockModelProvider, MOCK_SCRIPTS } from "./model";
 import { LiveResearchProvider, SeededResearchProvider } from "./research";
+import { LiveDiscoveryProvider, SeededDiscoveryProvider } from "./discovery";
 
 export * from "./model";
 export * from "./embedding";
 export * from "./research";
+export * from "./discovery";
 
 type ProviderEnv = Pick<
   Env,
@@ -23,6 +25,7 @@ export function createProviders(env: ProviderEnv): Providers {
     model: createModelProvider(env),
     embedding: createEmbeddingProvider(env),
     research: createResearchProvider(env),
+    discovery: createDiscoveryProvider(env),
   };
 }
 
@@ -54,4 +57,14 @@ function createResearchProvider(env: ProviderEnv): Providers["research"] {
     return new LiveResearchProvider({ apiKey: env.ANTHROPIC_API_KEY });
   }
   return new SeededResearchProvider();
+}
+
+function createDiscoveryProvider(env: ProviderEnv): Providers["discovery"] {
+  if (env.RESEARCH_MODE === "live") {
+    if (!env.ANTHROPIC_API_KEY) {
+      throw new Error("createProviders: ANTHROPIC_API_KEY is required when RESEARCH_MODE=live");
+    }
+    return new LiveDiscoveryProvider({ apiKey: env.ANTHROPIC_API_KEY });
+  }
+  return new SeededDiscoveryProvider();
 }

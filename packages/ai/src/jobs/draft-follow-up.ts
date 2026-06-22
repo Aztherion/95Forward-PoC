@@ -5,6 +5,7 @@ import { runTask } from "../loop";
 import { MockEmbeddingProvider } from "../provider/embedding";
 import { MockModelProvider, textResponse, toolUseResponse } from "../provider/model";
 import { SeededResearchProvider } from "../provider/research";
+import { SeededDiscoveryProvider } from "../provider/discovery";
 import type { CallerContext, Providers } from "../types";
 
 export interface FollowUpDraftPayload {
@@ -39,6 +40,7 @@ function scriptedProviders(constituentId: string): Providers {
     }),
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 

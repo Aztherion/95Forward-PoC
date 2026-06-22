@@ -564,3 +564,32 @@ export const promoteReferralInputSchema = z.object({
   type: z.enum(CONSTITUENT_TYPES).default("individual"),
 });
 export type PromoteReferralInput = z.infer<typeof promoteReferralInputSchema>;
+
+// Initiative 12 — connector-based discovery. A discovery task is keyed on connector × initiative;
+// the connector is an existing constituent OR a lightweight external name (the known contact often
+// isn't a prospect themselves), so exactly one of the two must be supplied.
+export const findIntroductionsInputSchema = z
+  .object({
+    fundingInitiativeId: z.string().uuid(),
+    connectorConstituentId: z.string().uuid().optional(),
+    connectorExternalName: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => Boolean(v.connectorConstituentId || v.connectorExternalName), {
+    message: "Pick a connector constituent or name an external connector",
+    path: ["connectorConstituentId"],
+  });
+export type FindIntroductionsInput = z.infer<typeof findIntroductionsInputSchema>;
+
+// The non-promotion candidate decisions. Promotion is a separate, heavier mutation (it creates a
+// constituent + prospect + Natural Partner), so it has its own schema below.
+export const CANDIDATE_DECISIONS = ["endorsed", "intro_requested", "dismissed"] as const;
+export const candidateDecisionInputSchema = z.object({
+  candidateId: z.string().uuid(),
+  decision: z.enum(CANDIDATE_DECISIONS),
+});
+export type CandidateDecisionInput = z.infer<typeof candidateDecisionInputSchema>;
+
+export const promoteCandidateInputSchema = z.object({
+  candidateId: z.string().uuid(),
+});
+export type PromoteCandidateInput = z.infer<typeof promoteCandidateInputSchema>;

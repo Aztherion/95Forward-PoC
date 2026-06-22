@@ -9,6 +9,7 @@ import {
   ChartLine,
   ChevronRight,
   CircleDollarSign,
+  Compass,
   FileText,
   Gift,
   HandHeart,
@@ -51,6 +52,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   "file-text": FileText,
   briefcase: Briefcase,
   radio: Radio,
+  compass: Compass,
 };
 
 function isActive(pathname: string, href: string): boolean {

@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
 import { candidateConfidenceEnum, candidateStatusEnum, discoveryStatusEnum } from "./enums";
 import { constituents } from "./constituents";
@@ -24,6 +24,11 @@ export const discoveryTasks = pgTable(
     }),
     requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    // Initiative 11/12 jobs pattern: checkpoint persists provider results so a crashed/retried
+    // handler resumes without re-running discovery; origin_key gives seed/enqueue idempotency.
+    checkpoint: jsonb("checkpoint"),
+    error: text("error"),
+    originKey: text("origin_key"),
     ...timestamps,
   },
   (table) => [
@@ -50,6 +55,9 @@ export const candidates = pgTable(
     promotedProspectId: uuid("promoted_prospect_id").references(() => prospects.id, {
       onDelete: "set null",
     }),
+    // Stable key (discovery:{taskId}:{i}) so a retried discovery handler re-inserts via
+    // ON CONFLICT DO NOTHING instead of duplicating candidates. Partial unique index in migration.
+    originKey: text("origin_key"),
     ...timestamps,
   },
   (table) => [

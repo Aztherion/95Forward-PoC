@@ -10,6 +10,7 @@ import {
   MockEmbeddingProvider,
   MockModelProvider,
   runTask,
+  SeededDiscoveryProvider,
   SeededResearchProvider,
   textResponse,
   toolUseResponse,
@@ -56,6 +57,7 @@ function qpiProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
@@ -82,6 +84,7 @@ function draftProviders(constituentId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 

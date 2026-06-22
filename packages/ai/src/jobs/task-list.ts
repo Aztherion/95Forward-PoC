@@ -3,11 +3,13 @@ import type { Providers } from "../types";
 import { runResearchProspectJob, type ResearchJobPayload } from "./research-prospect";
 import { runEmbedContentJob, type EmbedJobPayload } from "./embed-content";
 import { runFollowUpDraftJob, type FollowUpDraftPayload } from "./draft-follow-up";
+import { runDiscoveryJob, type DiscoveryJobPayload } from "./discovery-prospects";
 
 export const JOB_NAMES = {
   research: "research-prospect",
   embed: "embed-content",
   followUpDraft: "draft-follow-up",
+  discovery: "discovery-prospects",
   embedSweep: "embed-sweep",
 } as const;
 
@@ -44,6 +46,12 @@ export function buildTaskList(runtime: JobRuntime): Record<string, JobHandler> {
       await runFollowUpDraftJob(payload as FollowUpDraftPayload, {
         db: runtime.db,
         liveProviders: runtime.liveFollowUpProviders,
+      });
+    },
+    [JOB_NAMES.discovery]: async (payload) => {
+      await runDiscoveryJob(payload as DiscoveryJobPayload, {
+        db: runtime.db,
+        providers: runtime.providers,
       });
     },
     [JOB_NAMES.embedSweep]: async () => {

@@ -7,6 +7,7 @@ import {
   MockEmbeddingProvider,
   MockModelProvider,
   runTask,
+  SeededDiscoveryProvider,
   SeededResearchProvider,
   textResponse,
   toolUseResponse,
@@ -40,6 +41,7 @@ function rationaleProviders(fundingInitiativeId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 

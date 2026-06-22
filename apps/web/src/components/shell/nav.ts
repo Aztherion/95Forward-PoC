@@ -18,7 +18,8 @@ export type NavIcon =
   | "target"
   | "file-text"
   | "briefcase"
-  | "radio";
+  | "radio"
+  | "compass";
 
 export interface NavLeaf {
   kind: "leaf";
@@ -128,6 +129,13 @@ export const NAV_SECTIONS: NavSection[] = [
             label: "Prospects",
             href: "/95-forward/prospects",
             icon: "list-ordered",
+          },
+          {
+            kind: "leaf",
+            id: "candidates",
+            label: "Candidates",
+            href: "/95-forward/prospects/candidates",
+            icon: "compass",
           },
           {
             kind: "leaf",

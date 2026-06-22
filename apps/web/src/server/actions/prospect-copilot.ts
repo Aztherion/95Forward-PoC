@@ -7,6 +7,7 @@ import {
   MockEmbeddingProvider,
   MockModelProvider,
   runTask,
+  SeededDiscoveryProvider,
   SeededResearchProvider,
   textResponse,
   toolUseResponse,
@@ -46,6 +47,7 @@ function qpiProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
@@ -100,6 +102,7 @@ function knowledgeProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
@@ -122,6 +125,7 @@ function strategyProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
@@ -142,6 +146,7 @@ function visitPlanProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
@@ -164,6 +169,7 @@ function relationshipMapProviders(prospectId: string): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 

@@ -4,6 +4,7 @@ import { runAgentLoop } from "./loop";
 import { MockModelProvider, textResponse, toolUseResponse } from "./provider/model";
 import { MockEmbeddingProvider } from "./provider/embedding";
 import { SeededResearchProvider } from "./provider/research";
+import { SeededDiscoveryProvider } from "./provider/discovery";
 import type { AnyTool, CallerContext, Providers, TaskConfig } from "./types";
 import type { Database } from "@95forward/db";
 
@@ -15,6 +16,7 @@ function providersWith(model: MockModelProvider): Providers {
     model,
     embedding: new MockEmbeddingProvider(),
     research: new SeededResearchProvider(),
+    discovery: new SeededDiscoveryProvider(),
   };
 }
 
