@@ -15,7 +15,12 @@ export function Topbar({ title, subtitle }: TopbarProps) {
       </div>
       <label className="shell-search">
         <Search size={16} strokeWidth={1.8} className="shell-search__icon" />
-        <input className="shell-search__input" placeholder="Search Keystone" />
+        <input
+          className="shell-search__input"
+          type="search"
+          placeholder="Search Keystone"
+          aria-label="Search Keystone"
+        />
       </label>
       <Button variant="secondary" size="sm" iconLeft={<Plus size={16} strokeWidth={1.8} />}>
         Add

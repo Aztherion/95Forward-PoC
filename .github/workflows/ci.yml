@@ -25,7 +25,7 @@ jobs:
       AUTH0_CLIENT_SECRET: test-client-secret
       AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       APP_BASE_URL: http://localhost:3100
-      AUTH_DEV_LOGIN: "true"
+      E2E_TEST_MODE: "true"
       # AI runs in deterministic mock mode in CI — no ANTHROPIC/OPENAI keys, no paid calls.
       AI_MODE: mock
       # Background jobs (Initiative 11): demo research provider + the worker's own queue schema.

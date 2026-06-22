@@ -68,9 +68,35 @@ Seed is **never** in the pipeline. Three deliberate operations:
 
 - **Initial seed** — once, at setup (step 5).
 - **Refresh** — re-run the idempotent `seed` (+ `embed`) to update the canonical demo rows. **Safe**: it upserts/reconciles, so no duplicates. Does **not** remove data created ad hoc through the UI.
-- **Reset to pristine demo** — wipe + reseed. A managed DB can't be `down -v`'d, so this is a **truncate-and-reseed** operation. This is the **I13 seed/reset mechanism**, which must be **environment-aware and guarded**: runnable against DO, but unable to fire by accident (e.g. requires an explicit confirm/flag and refuses on a DB not tagged as a demo).
+- **Reset to pristine demo** — wipe + reseed. A managed DB can't be `down -v`'d, so this is a **truncate-and-reseed** operation (`packages/db/src/reset.ts`). It is **guarded by three independent conditions that must ALL hold**, so it is impossible to fire by accident:
+  1. `ALLOW_DESTRUCTIVE_RESET=true` in the environment (set app-level in `.do/app.yaml` for the demo app; never set it on a database holding real data),
+  2. `RESEARCH_MODE` is **not** `live` (live mode implies real OSINT data — the reset refuses), and
+  3. the process is invoked with an explicit `--confirm` flag.
+
+  Run it locally or from a DO Console shell (web or worker component, which already carries the env):
+
+  ```bash
+  ALLOW_DESTRUCTIVE_RESET=true RESEARCH_MODE=demo \
+    pnpm --filter @95forward/db reset --confirm
+  ```
+
+  It truncates every tenant-scoped table (the set is derived dynamically from the live DB, so a new table can never be silently missed), clears the Graphile job queue, and re-runs the idempotent seed — restoring the pristine Water For People demo. After a reset, re-run `embed` if you need live/mock embeddings repopulated.
 
 Refresh updates canonical rows and leaves ad-hoc data; reset gives a clean slate.
+
+---
+
+## Demo AI configuration
+
+The deployed demo runs **`AI_MODE=live` + `EMBEDDING_MODE=live` + `RESEARCH_MODE=demo`** (set on both the web and worker components in `.do/app.yaml`):
+
+- **`AI_MODE=live`** — real model reasoning (copilot drafts, QPI rationale). Requires `ANTHROPIC_API_KEY`.
+- **`EMBEDDING_MODE=live`** — real embeddings for hybrid retrieval. Requires `OPENAI_API_KEY`. Run `embed` once after the first seed to populate the vector columns.
+- **`RESEARCH_MODE=demo`** — research/discovery operate on **seeded** data only. This is a deliberate **responsible-AI guardrail**: live OSINT on real individuals is forbidden in the demo. Keep this `demo` even in production; do not flip it to `live`.
+
+CI and the Playwright suite stay **key-free** — they run entirely on `mock`/`demo` providers (no paid calls, no secrets). Only the deployed demo uses live keys.
+
+`databases.production: false` in `.do/app.yaml` is **intentional**: the demo database is disposable (reproducible from seed), keeping it on the dev tier avoids managed-DB cost/locks and is what makes the guarded reset safe to offer.
 
 ---
 
@@ -101,6 +127,18 @@ Concrete options, simplest first:
 
 ---
 
+## Known cosmetic deferrals (intentionally left)
+
+These are non-blocking polish items knowingly deferred after I13; none affect the demo click-path or correctness:
+
+- **"Overdue by 1h" follow-up label** — relative-time copy is coarse near the boundary; acceptable for the demo.
+- **`completedOnTime` metric naming** — internal field name reads awkwardly in code; the UI label is fine.
+- **`bigint` cents annotation** — amounts are stored/handled as integer cents; no precision risk at demo scale.
+- **`Avatar` `<img>`** — uses a plain `<img>` (one ESLint `next/image` warning, 0 errors); intentional for the tiny static avatars.
+- **Webpack "Critical dependency" build warnings** — emitted by `graphile-worker` / `auth0` dynamic requires; benign and upstream.
+
+---
+
 ## Gotchas
 
 - **`app_user` must exist before migrations.** One-time bootstrap per environment (you don't want a prod password baked into a committed migration).
@@ -112,12 +150,12 @@ Concrete options, simplest first:
 
 ## Local ↔ DO parity
 
-| Operation        | Local                                                                   | DigitalOcean                                   |
-| ---------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
-| Apply app schema | `pnpm db:migrate`                                                       | `PRE_DEPLOY` migrate job (automatic on deploy) |
-| Graphile schema  | `worker migrate:jobs` / on boot                                         | worker migrates on boot                        |
-| Seed + embed     | `pnpm --filter @95forward/db seed && pnpm --filter @95forward/ai embed` | manual (machine→prod, Console, or Job)         |
-| Reset to clean   | `docker compose down -v` → migrate → seed → embed                       | I13 reset tool (truncate + reseed), guarded    |
+| Operation        | Local                                                                    | DigitalOcean                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Apply app schema | `pnpm db:migrate`                                                        | `PRE_DEPLOY` migrate job (automatic on deploy)                                                                         |
+| Graphile schema  | `worker migrate:jobs` / on boot                                          | worker migrates on boot                                                                                                |
+| Seed + embed     | `pnpm --filter @95forward/db seed && pnpm --filter @95forward/ai embed`  | manual (machine→prod, Console, or Job)                                                                                 |
+| Reset to clean   | `docker compose down -v` → migrate → seed → embed (or the guarded reset) | guarded reset: `ALLOW_DESTRUCTIVE_RESET=true RESEARCH_MODE=demo pnpm --filter @95forward/db reset --confirm` (Console) |
 
 ---
 
@@ -134,10 +172,29 @@ On DO the first two lines become the pre-deploy job + worker-boot migrate; the s
 
 ---
 
+## Live AI smoke (operator — run once with real keys)
+
+CI and the test suites never touch live providers, so the **operator** verifies live AI once, after supplying the keys. Run from a machine pointed at the demo DB (or a DO Console shell):
+
+1. **Live embeddings (OpenAI).** Re-embed the seed against the live provider and confirm it completes without error:
+   ```bash
+   AI_MODE=live EMBEDDING_MODE=live \
+   OPENAI_API_KEY='<key>' ANTHROPIC_API_KEY='<key>' \
+   DATABASE_URL='<prod-owner-uri>' \
+     pnpm --filter @95forward/ai embed -- --force
+   ```
+   A clean run means the live embedding provider authenticated and wrote vectors for every seeded constituent / KB entry / interaction.
+2. **Live reasoning (Anthropic).** With `AI_MODE=live` on the deployed web app, open **`/95-forward/copilot-lab`** (non-prod harness) or ask the copilot to draft a KB/strategy field on a prospect, and confirm a real grounded suggestion returns. If the model key is missing or wrong, the env schema rejects boot (live mode requires the key), so a green deploy already proves the key is present and valid.
+
+If keys are not yet available, the demo still runs on `mock`/`demo` — but the live smoke must be completed before presenting the live-AI configuration.
+
+---
+
 ## Pre-demo checklist (night-before sanity)
 
 - Deploy is green and the **pre-deploy migrate job succeeded** (latest migrations applied on DO).
 - **`RESEARCH_MODE=demo`** on the deployed app (not `live`) — the demo uses **fictional seeded candidates only** (the I12 responsible-AI guardrail).
-- Demo data present / refreshed — run the reset tool if you want a pristine slate.
+- **Live AI smoke done** (above) — embeddings re-embed cleanly with `EMBEDDING_MODE=live`; the copilot returns a real suggestion with `AI_MODE=live`.
+- Demo data present / refreshed — run the guarded reset if you want a pristine slate (`ALLOW_DESTRUCTIVE_RESET=true RESEARCH_MODE=demo pnpm --filter @95forward/db reset --confirm`).
 - **Auth0 callback / logout URLs** include the deployed domain.
 - A smoke pass of the full demo click-path against the deployed URL.

@@ -97,7 +97,7 @@ pnpm --filter @95forward/db seed    # Water For People tenant + the three users
 pnpm dev
 ```
 
-For local development without a live Auth0 tenant, set `AUTH_DEV_LOGIN=true` in `.env` and use the
+For local development without a live Auth0 tenant, set `E2E_TEST_MODE=true` in `.env` and use the
 gated dev-login seam (see Authentication below). Production requires real Auth0 credentials.
 
 Open <http://localhost:3000> for the app and <http://localhost:3000/styleguide> for the design
@@ -194,7 +194,7 @@ shell's user chip shows the real signed-in user.
 - Put `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`
   (`openssl rand -hex 32`), and `APP_BASE_URL` in `.env` (see `.env.example`).
 
-**Dev/test login (no live Auth0 needed).** When `AUTH_DEV_LOGIN=true` and `NODE_ENV != production`,
+**Dev/test login (no live Auth0 needed).** When `E2E_TEST_MODE=true` and `NODE_ENV != production`,
 `POST /api/test-login` mints a session cookie for a seeded email. This is how local dev and the
 Playwright suite authenticate deterministically; it is disabled in production.
 
@@ -252,11 +252,11 @@ unit tests → Playwright E2E (against a Postgres service; auth uses the dev-log
 See `.env.example`. **Required:** `DATABASE_URL` (owner role — migrate/seed/auth),
 **`APP_DATABASE_URL`** (the `app_user` role used by all RLS-scoped feature data access), and the
 Auth0 vars (`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, `APP_BASE_URL`).
-Also used: `NODE_ENV`, `APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `AUTH_DEV_LOGIN` (dev/test only), and the
+Also used: `NODE_ENV`, `APP_ENV`, `LOG_LEVEL`, `WORKER_PORT`, `E2E_TEST_MODE` (test/dev only), and the
 `NEXT_PUBLIC_*` web vars. **AI (Initiative 6):** `AI_MODE` (`mock` default | `live`), `EMBEDDING_MODE`
 (defaults to `AI_MODE`), `RESEARCH_MODE` (`demo` default | `live`), `EMBEDDINGS_MODEL`
 (`text-embedding-3-small`), and `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` — **optional in mock, required only
-in live mode** (enforced by the env schema, mirroring `AUTH_DEV_LOGIN`). `DATABASE_URL`/Auth0/AI vars are
+in live mode** (enforced by the env schema). `DATABASE_URL`/Auth0/AI vars are
 validated in `packages/shared/src/env.ts`; `APP_DATABASE_URL` is read directly by the web app's data
 layer. The remaining placeholder (jobs in I11) stays documented in `.env.example`.
 
@@ -272,3 +272,20 @@ doctl apps create --spec .do/app.yaml
 
 `DATABASE_URL` is wired from the managed database (`${forward-db.DATABASE_URL}`); the pre-deploy job
 runs the pgvector migration before each release.
+
+**Demo configuration.** The deployed demo runs **`AI_MODE=live` + `EMBEDDING_MODE=live` +
+`RESEARCH_MODE=demo`** (live reasoning and embeddings; research/discovery stay on seeded data — a
+responsible-AI guardrail forbidding live OSINT on real individuals). Supply `ANTHROPIC_API_KEY` and
+`OPENAI_API_KEY` as secrets. CI and the Playwright suite stay **key-free** on `mock`/`demo`.
+
+**Guarded reset.** To restore the pristine demo on a disposable database (locally or from a DO
+Console), use the three-condition-guarded truncate-and-reseed — it refuses unless
+`ALLOW_DESTRUCTIVE_RESET=true`, `RESEARCH_MODE` is not `live`, and `--confirm` is passed:
+
+```bash
+ALLOW_DESTRUCTIVE_RESET=true RESEARCH_MODE=demo pnpm --filter @95forward/db reset --confirm
+```
+
+The `E2E_TEST_MODE` dev-login and job-drain seams are **never** enabled in production (gated off by
+`NODE_ENV=production`). See `docs/deployment-and-ops-runbook.md` for the full operator runbook
+(first deploy, seed/embed, live AI smoke, reset paths).

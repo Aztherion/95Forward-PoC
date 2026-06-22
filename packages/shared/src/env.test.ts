@@ -23,7 +23,7 @@ describe("parseEnv", () => {
     expect(env.APP_ENV).toBe("local");
     expect(env.LOG_LEVEL).toBe("info");
     expect(env.WORKER_PORT).toBe(3001);
-    expect(env.AUTH_DEV_LOGIN).toBe(false);
+    expect(env.E2E_TEST_MODE).toBe(false);
     expect(env.AUTH0_DOMAIN).toBe(VALID.AUTH0_DOMAIN);
   });
 
@@ -49,9 +49,9 @@ describe("parseEnv", () => {
     expect(parseEnv({ ...VALID, WORKER_PORT: "4010" }).WORKER_PORT).toBe(4010);
   });
 
-  it("parses AUTH_DEV_LOGIN into a boolean", () => {
-    expect(parseEnv({ ...VALID, AUTH_DEV_LOGIN: "true" }).AUTH_DEV_LOGIN).toBe(true);
-    expect(parseEnv({ ...VALID, AUTH_DEV_LOGIN: "false" }).AUTH_DEV_LOGIN).toBe(false);
+  it("parses E2E_TEST_MODE into a boolean", () => {
+    expect(parseEnv({ ...VALID, E2E_TEST_MODE: "true" }).E2E_TEST_MODE).toBe(true);
+    expect(parseEnv({ ...VALID, E2E_TEST_MODE: "false" }).E2E_TEST_MODE).toBe(false);
   });
 
   it("rejects an out-of-range WORKER_PORT", () => {

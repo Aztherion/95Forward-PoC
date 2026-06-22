@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
+import { isTestSeamEnabled } from "@/lib/test-seam";
 
 function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/auth")) return true;
   if (pathname === "/login") return true;
-  if (pathname === "/api/test-login") {
-    return process.env.NODE_ENV !== "production" && process.env.AUTH_DEV_LOGIN === "true";
+  if (pathname === "/api/test-login" || pathname === "/api/test-drain-jobs") {
+    return isTestSeamEnabled();
   }
   return false;
 }

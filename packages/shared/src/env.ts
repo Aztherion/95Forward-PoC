@@ -62,9 +62,11 @@ export const webEnvSchema = z
     AUTH0_CLIENT_SECRET: z.string().min(1, "AUTH0_CLIENT_SECRET is required"),
     AUTH0_SECRET: z.string().min(1, "AUTH0_SECRET is required"),
     APP_BASE_URL: z.string().url("APP_BASE_URL must be a valid URL"),
-    // Security gate: enables a deterministic dev/test login route (Playwright/CI) that mints a
-    // session cookie without a live Auth0 tenant. Never honored when NODE_ENV=production.
-    AUTH_DEV_LOGIN: z
+    // Single flag gating the e2e test seams (the dev-login route + the job-drain route). Default off;
+    // the seams additionally hard-refuse when NODE_ENV=production, so they are unreachable in the
+    // deployed app even if this were ever set there. Documented here for the type; the seams read
+    // raw process.env so the gate holds even if env parsing fails.
+    E2E_TEST_MODE: z
       .enum(["true", "false"])
       .default("false")
       .transform((value) => value === "true"),

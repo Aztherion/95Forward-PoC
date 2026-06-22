@@ -7,8 +7,21 @@
 #     AUTH0_SECRET is a 32-byte hex from `openssl rand -hex 32`)
 # The worker runs with its own minimal env (getWorkerEnv): no Auth0 vars; it needs
 # APP_DATABASE_URL for RLS-scoped job handlers.
+#
+# Demo AI config (Initiative 13): AI_MODE=live + EMBEDDING_MODE=live give real reasoning and
+# embeddings, while RESEARCH_MODE=demo keeps OSINT on seeded data only (the responsible-AI
+# guardrail forbids live research on real individuals). Supply ANTHROPIC_API_KEY + OPENAI_API_KEY.
+#
+# ALLOW_DESTRUCTIVE_RESET=true (app-level) lets the operator run the guarded truncate-and-reseed
+# against THIS demo database from a Console shell (see docs/deployment-and-ops-runbook.md). It is
+# safe here only because the reset still refuses unless RESEARCH_MODE!=live AND --confirm is passed;
+# never set it on a database holding real data.
 name: ninety-five-forward
 region: nyc
+
+envs:
+  - key: ALLOW_DESTRUCTIVE_RESET
+    value: "true"
 
 databases:
   - name: forward-db
@@ -80,6 +93,20 @@ services:
       - key: APP_BASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${APP_URL}
+      - key: AI_MODE
+        value: live
+      - key: EMBEDDING_MODE
+        value: live
+      - key: RESEARCH_MODE
+        value: demo
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: OPENAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
 
   - name: worker
     github:
@@ -113,6 +140,16 @@ services:
       - key: JOBS_SCHEMA
         value: graphile_worker
       - key: AI_MODE
-        value: mock
+        value: live
+      - key: EMBEDDING_MODE
+        value: live
       - key: RESEARCH_MODE
         value: demo
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: OPENAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME

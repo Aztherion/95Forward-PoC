@@ -4,6 +4,30 @@
   background: var(--bg-app);
 }
 
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -100px;
+  z-index: 100;
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink-strong);
+  text-decoration: none;
+  transition: top var(--motion-fast, 120ms) ease;
+}
+
+.skip-link:focus {
+  top: var(--space-3);
+  outline: 2px solid var(--reg-accent, var(--role-manager));
+  outline-offset: 2px;
+}
+
+.shell-content:focus {
+  outline: none;
+}
+
 .shell-sidebar {
   width: var(--sidebar-w);
   flex: none;

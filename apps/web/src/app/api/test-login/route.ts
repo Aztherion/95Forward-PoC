@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { generateSessionCookie } from "@auth0/nextjs-auth0/testing";
+import { isTestSeamEnabled } from "@/lib/test-seam";
 
 const DEFAULT_EMAIL = "dana.reese@waterforpeople.org";
 
 function isEnabled(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.AUTH_DEV_LOGIN === "true";
+  return isTestSeamEnabled();
 }
 
 function deriveName(email: string): string {

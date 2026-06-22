@@ -133,6 +133,9 @@ export function AppShell({ register, user, children }: AppShellProps) {
   const pathname = usePathname();
   return (
     <div className="shell" data-register={register}>
+      <a href="#shell-content" className="skip-link">
+        Skip to main content
+      </a>
       <aside className="shell-sidebar">
         <Link href="/" className="shell-brand">
           <span className="shell-brand__name">{HOST_BRAND.name}</span>
@@ -188,7 +191,9 @@ export function AppShell({ register, user, children }: AppShellProps) {
       </aside>
 
       <div className="shell-main">
-        <main className="shell-content">{children}</main>
+        <main id="shell-content" className="shell-content" tabIndex={-1}>
+          {children}
+        </main>
         {register === "95-forward" ? <JobTray /> : null}
       </div>
     </div>

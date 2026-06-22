@@ -26,8 +26,11 @@ function outcomeLabel(o: AskRow["outcome"]): string {
 }
 
 function askAmount(a: AskRow): string {
-  if (a.outcome === "commitment" && a.commitmentAmountCents != null) {
-    return `${formatCurrencyFromCents(a.commitmentAmountCents)} committed`;
+  if (a.outcome === "commitment") {
+    if (a.commitmentAmountCents != null && a.commitmentAmountCents > 0) {
+      return `${formatCurrencyFromCents(a.commitmentAmountCents)} committed`;
+    }
+    return "Committed — amount TBD";
   }
   if (
     a.amountMinCents != null &&

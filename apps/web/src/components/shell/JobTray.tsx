@@ -42,6 +42,7 @@ export function JobTray() {
 
   useEffect(() => {
     let active = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
     const poll = async (): Promise<void> => {
       try {
         const res = await fetch("/api/jobs/status", { cache: "no-store" });
@@ -52,11 +53,25 @@ export function JobTray() {
         // Polling is best-effort; a transient failure just retries on the next tick.
       }
     };
-    void poll();
-    const timer = setInterval(() => void poll(), POLL_MS);
+    const start = (): void => {
+      if (timer) return;
+      void poll();
+      timer = setInterval(() => void poll(), POLL_MS);
+    };
+    const stop = (): void => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const onVisibility = (): void => {
+      if (document.hidden) stop();
+      else start();
+    };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       active = false;
-      clearInterval(timer);
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

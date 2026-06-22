@@ -4,11 +4,12 @@ import { buildTaskList, createProviders, type JobHandler } from "@95forward/ai";
 import { tenants } from "@95forward/db";
 import { getEnv } from "@95forward/shared";
 import { getAppDb, getDb } from "@/server/db";
+import { isTestSeamEnabled } from "@/lib/test-seam";
 
 export const dynamic = "force-dynamic";
 
 function isEnabled(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.AUTH_DEV_LOGIN === "true";
+  return isTestSeamEnabled();
 }
 
 // Test-only synchronous queue drain (Initiative 11). Gated exactly like the dev-login seam. runOnce
