@@ -215,6 +215,32 @@ export function buildMockScripts(params: BuildMockScriptsParams): Record<string,
       }),
       textResponse("Drafted an outreach email for your review, grounded in the giving record."),
     ],
+    draft_call_memo: [
+      toolUseResponse("retrieve", { query: "the visit notes and outcome" }),
+      toolUseResponse("draft_text", {
+        kind: "call_memo",
+        constituentId: params.constituentId,
+        points: [
+          "Discussed the multi-year Bolivia scale-up; strong interest from the trustees.",
+          "Outcome: roadmap — board reviews multi-year commitments next quarter.",
+          "Next step: send the Bolivia program briefing and propose a trustee visit.",
+        ],
+      }),
+      textResponse("Drafted a call memo from your notes for you to edit and save."),
+    ],
+    draft_follow_up: [
+      toolUseResponse("retrieve", { query: "what was discussed and the agreed next step" }),
+      toolUseResponse("draft_text", {
+        kind: "follow_up",
+        constituentId: params.constituentId,
+        points: [
+          "Thank them for the time and the candid conversation about Bolivia.",
+          "Reflect their interest in a measurable, multi-year commitment.",
+          "Confirm the next step: the briefing materials are on the way this week.",
+        ],
+      }),
+      textResponse("Drafted a 24-hour follow-up for you to edit and send."),
+    ],
     draft_strategy: [
       toolUseResponse("retrieve", { query: "prospect capacity, interests, and timing" }),
       toolUseResponse("propose_strategy", {

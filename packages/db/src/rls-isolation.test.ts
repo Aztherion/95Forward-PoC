@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { Database } from "./client";
-import { constituents, gifts, tenants } from "./schema";
+import { constituents, gifts, prospects, researchJobs, tenants } from "./schema";
 import { withTenant } from "./tenancy";
 import { connectAppTestDb, connectTestDb, uniqueSuffix, type TestDb } from "./test-support";
 
@@ -35,6 +35,15 @@ async function seedTenant(db: Database, tenantId: string, name: string): Promise
     giftDate: "2026-01-01",
     giftType: "one_time",
   });
+  const prospectRows = await db
+    .insert(prospects)
+    .values({ tenantId, constituentId: constituent.id })
+    .returning();
+  const prospect = prospectRows[0];
+  if (!prospect) throw new Error("seedTenant: prospect insert returned no row");
+  await db
+    .insert(researchJobs)
+    .values({ tenantId, prospectId: prospect.id, status: "ready", originKey: `test:${tenantId}` });
 }
 
 beforeAll(async () => {
@@ -109,6 +118,20 @@ describe("RLS tenant isolation (app_user, enforced by Postgres)", () => {
       .from(constituents)
       .where(eq(constituents.id, bId as string));
     expect(check[0]?.name).toBe("B-person");
+  });
+
+  it("research_jobs in tenant A's context never sees tenant B's jobs (Initiative 11)", async () => {
+    if (!app) return;
+    const aRows = await withTenant(app.db, tenantAId, (tx) => tx.query.researchJobs.findMany());
+    expect(aRows.length).toBeGreaterThan(0);
+    expect(aRows.every((j) => j.tenantId === tenantAId)).toBe(true);
+    expect(aRows.every((j) => j.originKey === `test:${tenantAId}`)).toBe(true);
+  });
+
+  it("an unscoped research_jobs query on app_user returns zero rows (Initiative 11)", async () => {
+    if (!app) return;
+    const rows = await app.db.query.researchJobs.findMany();
+    expect(rows).toHaveLength(0);
   });
 
   it("every table with a tenant_id column has RLS enabled (guard against drift)", async () => {

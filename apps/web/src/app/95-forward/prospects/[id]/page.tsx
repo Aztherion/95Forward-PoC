@@ -11,14 +11,16 @@ import {
   type ProspectActivity,
   type ProspectDetail,
 } from "@/server/data/prospects";
-import { listProspectProposals } from "@/server/data/prospect-copilot";
+import { listConstituentDrafts, listProspectProposals } from "@/server/data/prospect-copilot";
+import { getConstituentIdForProspect, getProspectExecution } from "@/server/data/execution-data";
+import { listInitiativeRefs } from "@/server/data/initiatives";
 import { AdjustScore } from "./AdjustScore";
 import { CopilotSuggestions } from "./CopilotSuggestions";
 import { RelationshipTeam } from "./RelationshipTeam";
 import { KnowledgeBaseTab } from "./KnowledgeBaseTab";
 import { StrategyTab } from "./StrategyTab";
-import { VisitPlanTab } from "./VisitPlanTab";
 import { RelationshipMapTab } from "./RelationshipMapTab";
+import { VisitsAsksTab } from "./VisitsAsksTab";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +94,21 @@ export default async function ProspectDetailPage({
     listProspectProposals(user.tenantId, user, id, proposalTypeByTab[activeTab]),
   ]);
 
+  const visitsTab =
+    activeTab === "visits"
+      ? await (async () => {
+          const constituentId = await getConstituentIdForProspect(user.tenantId, id);
+          const [execution, initiatives, drafts] = await Promise.all([
+            getProspectExecution(user.tenantId, id),
+            listInitiativeRefs(user.tenantId),
+            constituentId
+              ? listConstituentDrafts(user.tenantId, user, constituentId)
+              : Promise.resolve([]),
+          ]);
+          return { execution, initiatives, drafts };
+        })()
+      : null;
+
   const tabs: TabItem[] = [
     { id: "overview", label: "Overview", href: `/95-forward/prospects/${id}?tab=overview` },
     { id: "knowledge", label: "Knowledge Base", href: `/95-forward/prospects/${id}?tab=knowledge` },
@@ -129,7 +146,14 @@ export default async function ProspectDetailPage({
           {activeTab === "relationship" && isOrg(detail.type) ? (
             <RelationshipMapTab detail={detail} proposals={proposals} />
           ) : null}
-          {activeTab === "visits" ? <VisitPlanTab detail={detail} proposals={proposals} /> : null}
+          {activeTab === "visits" && visitsTab ? (
+            <VisitsAsksTab
+              detail={detail}
+              execution={visitsTab.execution}
+              initiatives={visitsTab.initiatives}
+              drafts={visitsTab.drafts}
+            />
+          ) : null}
         </Tabs>
       </div>
     </>

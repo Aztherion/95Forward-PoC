@@ -48,7 +48,10 @@ function createEmbeddingProvider(env: ProviderEnv): Providers["embedding"] {
 
 function createResearchProvider(env: ProviderEnv): Providers["research"] {
   if (env.RESEARCH_MODE === "live") {
-    return new LiveResearchProvider();
+    if (!env.ANTHROPIC_API_KEY) {
+      throw new Error("createProviders: ANTHROPIC_API_KEY is required when RESEARCH_MODE=live");
+    }
+    return new LiveResearchProvider({ apiKey: env.ANTHROPIC_API_KEY });
   }
   return new SeededResearchProvider();
 }

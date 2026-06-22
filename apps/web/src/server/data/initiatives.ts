@@ -1,6 +1,12 @@
 import "server-only";
-import { asc, eq } from "drizzle-orm";
-import { fundingInitiatives, prospectFundingInitiatives, withTenant } from "@95forward/db";
+import { and, asc, eq, sql } from "drizzle-orm";
+import {
+  asks,
+  fundingInitiatives,
+  prospectFundingInitiatives,
+  withTenant,
+  type TenantTransaction,
+} from "@95forward/db";
 import { computeQpi, type QpiResult, type QpiWeights } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
 import { getTenantWeights } from "@/server/data/prospects";
@@ -44,12 +50,28 @@ export interface InitiativeDetail {
   prospects: InitiativeProspect[];
 }
 
-// Progress is the committed/raised amount toward the goal. Commitments come from asks, which arrive
-// in I10 — so until then committed is honestly 0 and pct is 0. The shape is ready for I10 to populate.
-function deriveProgress(goalCents: number | null): InitiativeProgress {
-  const committedCents = 0;
-  const pct = goalCents && goalCents > 0 ? Math.round((committedCents / goalCents) * 100) : 0;
+// Progress is the committed/raised amount toward the goal, derived from asks whose outcome is a
+// commitment (I10). pct is clamped to 100 so an over-goal initiative reads as full, not >100%.
+function deriveProgress(goalCents: number | null, committedCents: number): InitiativeProgress {
+  const pct =
+    goalCents && goalCents > 0 ? Math.min(100, Math.round((committedCents / goalCents) * 100)) : 0;
   return { goalCents, committedCents, pct };
+}
+
+// SUM(commitment) per initiative across all asks with a commitment outcome — the I9 progress slot.
+async function committedByInitiative(
+  tx: TenantTransaction,
+  tenantId: string,
+): Promise<Map<string, number>> {
+  const rows = await tx
+    .select({
+      initiativeId: asks.fundingInitiativeId,
+      total: sql<number>`coalesce(sum(${asks.commitmentAmountCents}), 0)::bigint`,
+    })
+    .from(asks)
+    .where(and(eq(asks.tenantId, tenantId), eq(asks.outcome, "commitment")))
+    .groupBy(asks.fundingInitiativeId);
+  return new Map(rows.map((r) => [r.initiativeId, Number(r.total)]));
 }
 
 function qpiOf(
@@ -72,6 +94,7 @@ export async function getInitiativesList(tenantId: string): Promise<InitiativeLi
       orderBy: [asc(fundingInitiatives.name)],
       with: { prospectAssociations: { columns: { id: true } } },
     });
+    const committed = await committedByInitiative(tx, tenantId);
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -79,7 +102,7 @@ export async function getInitiativesList(tenantId: string): Promise<InitiativeLi
       goalCents: row.goalAmountCents,
       timelineStart: row.timelineStart,
       timelineEnd: row.timelineEnd,
-      progress: deriveProgress(row.goalAmountCents),
+      progress: deriveProgress(row.goalAmountCents, committed.get(row.id) ?? 0),
       prospectCount: row.prospectAssociations.length,
     }));
   });
@@ -112,6 +135,8 @@ export async function getInitiativeDetail(
     });
     if (!row) return null;
 
+    const committed = await committedByInitiative(tx, tenantId);
+
     const prospects = row.prospectAssociations.map((assoc) => ({
       id: assoc.prospect.id,
       name: assoc.prospect.constituent.displayName,
@@ -129,7 +154,7 @@ export async function getInitiativeDetail(
       goalCents: row.goalAmountCents,
       timelineStart: row.timelineStart,
       timelineEnd: row.timelineEnd,
-      progress: deriveProgress(row.goalAmountCents),
+      progress: deriveProgress(row.goalAmountCents, committed.get(row.id) ?? 0),
       prospects,
     };
   });

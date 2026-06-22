@@ -15,6 +15,7 @@ const HALLWORTH_ID = "4d5139c5-467f-52a6-91c7-494e51d79f43";
 const BELLO_ID = "f1beba00-7e04-5496-abab-ce8d2786d36c";
 
 const SEEDED_VISIT_ID = "33afa5c5-5fb0-5bf4-9821-5a2a03f99cea";
+const SEEDED_EXEC_VISIT_ID = "aa920ae5-c3d5-507a-b9d0-c5d64a5c2fbd";
 const SEEDED_VISIT_GOAL =
   "Confirm trustee interest in the Bolivia Scale-Up and surface who else shapes the decision.";
 const SEEDED_RELATIONSHIP_GOALS =
@@ -32,9 +33,9 @@ async function restoreHallworthToSeed(): Promise<void> {
   const client = new Client({ connectionString: DB_URL });
   await client.connect();
   try {
-    await client.query("delete from visits where prospect_id = $1 and id <> $2", [
+    await client.query("delete from visits where prospect_id = $1 and id <> all($2::uuid[])", [
       HALLWORTH_ID,
-      SEEDED_VISIT_ID,
+      [SEEDED_VISIT_ID, SEEDED_EXEC_VISIT_ID],
     ]);
     await client.query("update visits set goal = $1 where id = $2", [
       SEEDED_VISIT_GOAL,
@@ -269,10 +270,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     const before = await page.locator('[data-testid="planned-visit"]').count();
     const goal = `Confirm trustee appetite for a lead gift — e2e ${Date.now()}.`;
 
-    await page
-      .locator('[data-testid="visit-plans"]')
-      .getByRole("button", { name: "Plan a visit" })
-      .click();
+    await page.getByRole("button", { name: "Plan a visit" }).click();
     const form = page.locator('[data-testid="visit-plan-form"]');
     await form.locator("textarea[name=goal]").fill(goal);
     await form.getByRole("button", { name: "Save the plan" }).click();
@@ -285,24 +283,15 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await expect(created.getByText("Planned")).toBeVisible();
   });
 
-  test("approving a copilot visit draft creates a planned visit", async ({ page }) => {
+  test("the realized Visits & Asks tab offers visit mode and the copilot draft surface", async ({
+    page,
+  }) => {
     await gotoTab(page, HALLWORTH_ID, "visits");
 
-    const before = await page.locator('[data-testid="planned-visit"]').count();
-
-    const { suggestion } = await askCopilot(
-      page,
-      "visit-copilot",
-      "Ask the copilot to draft a plan",
-    );
-    const draftedGoal = (await suggestion.locator(".f95-prov__body").innerText()).trim();
-
-    await submitServerAction(page, suggestion.getByRole("button", { name: "Approve" }));
-    await page.reload();
-
-    const planned = page.locator('[data-testid="planned-visit"]');
-    await expect(planned).toHaveCount(before + 1);
-    await expect(planned.filter({ hasText: draftedGoal })).toBeVisible();
+    await expect(page.locator('[data-testid="visits-list"]')).toBeVisible();
+    await expect(page.locator('[data-testid="asks-list"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "Enter visit mode" })).toBeVisible();
+    await expect(page.locator('[data-testid="execution-copilot"]')).toBeVisible();
   });
 
   test("the Relationship Map is available for a foundation and lists a seeded trustee", async ({

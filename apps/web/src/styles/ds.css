@@ -590,6 +590,36 @@
   font: var(--text-label);
   color: var(--gold-700);
 }
+.f95-heartbeat--on-track {
+  background: var(--sage-50);
+  border-color: var(--sage-300);
+}
+.f95-heartbeat--on-track .f95-heartbeat__pulse {
+  background: var(--sage-600);
+}
+.f95-heartbeat--on-track .f95-heartbeat__label {
+  color: var(--sage-700);
+}
+.f95-heartbeat--due-soon {
+  background: var(--gold-50);
+  border-color: var(--gold-300);
+}
+.f95-heartbeat--due-soon .f95-heartbeat__pulse {
+  background: var(--gold-600);
+}
+.f95-heartbeat--due-soon .f95-heartbeat__label {
+  color: var(--gold-700);
+}
+.f95-heartbeat--overdue {
+  background: var(--brick-100);
+  border-color: var(--brick-600);
+}
+.f95-heartbeat--overdue .f95-heartbeat__pulse {
+  background: var(--brick-600);
+}
+.f95-heartbeat--overdue .f95-heartbeat__label {
+  color: var(--brick-600);
+}
 
 /* Provisional suggestion — "the copilot proposes, you decide", on an AI card */
 .f95-prov__top {

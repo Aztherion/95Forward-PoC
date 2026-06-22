@@ -6,6 +6,12 @@ const SUMMARIZE_SYSTEM =
 const DRAFT_SYSTEM =
   "Draft personal, donor-centric outreach for a gift officer to review and send. Ground every specific in the constituent's record or retrieved facts, and cite it. Match the officer's voice: warm, concrete, never boilerplate. Produce a draft only — you never send.";
 
+const CALL_MEMO_SYSTEM =
+  "Draft a concise call memo from a gift officer's visit notes — what was discussed, the outcome, and the next step — for the officer to edit and save to the visit record. Ground it in the notes and record; stay factual and brief. Produce a draft only; the officer saves it.";
+
+const FOLLOW_UP_SYSTEM =
+  "Draft a warm, specific 24-hour follow-up note a gift officer can edit and send after a visit: thank them, reflect one concrete thing discussed, and confirm the agreed next step. Match the officer's voice; never boilerplate. Produce a draft only — the officer sends it.";
+
 const QPI_SYSTEM =
   "Propose a QPI (Qualified Prospect Indicator) assessment across capacity, relationship, timing, gift history, and philanthropy. Base each dimension on retrieved gift and relationship records, and cite them. Surface a proposal for the officer to approve, edit, or dismiss — never a decision.";
 
@@ -40,6 +46,22 @@ export const TASK_REGISTRY: Record<TaskType, TaskConfig> = {
     temperature: 0.4,
     system: DRAFT_SYSTEM,
     allowedTools: ["read_constituent", "retrieve", "draft_text"],
+    budget: { maxIterations: 7, maxTokens: 30000 },
+  },
+  draft_call_memo: {
+    model: "claude-sonnet-4-6",
+    maxTokens: 2048,
+    temperature: 0.3,
+    system: CALL_MEMO_SYSTEM,
+    allowedTools: ["read_constituent", "read_prospect", "retrieve", "draft_text"],
+    budget: { maxIterations: 7, maxTokens: 30000 },
+  },
+  draft_follow_up: {
+    model: "claude-sonnet-4-6",
+    maxTokens: 2048,
+    temperature: 0.4,
+    system: FOLLOW_UP_SYSTEM,
+    allowedTools: ["read_constituent", "read_prospect", "retrieve", "draft_text"],
     budget: { maxIterations: 7, maxTokens: 30000 },
   },
   propose_qpi: {

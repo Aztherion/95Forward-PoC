@@ -26,6 +26,7 @@ import {
 } from "./prospects";
 import { asks, followUpTasks, referrals, visits } from "./execution";
 import { candidates, discoveryTasks } from "./discovery";
+import { researchJobs } from "./jobs";
 import { powerQuestions, tenantSettings } from "./config";
 import { savedLists } from "./lists";
 import { copilotProposals } from "./ai";
@@ -400,5 +401,18 @@ export const copilotProposalsRelations = relations(copilotProposals, ({ one }) =
     fields: [copilotProposals.decidedByUserId],
     references: [users.id],
     relationName: "copilot_proposal_decided_by",
+  }),
+}));
+
+export const researchJobsRelations = relations(researchJobs, ({ one }) => ({
+  tenant: one(tenants, { fields: [researchJobs.tenantId], references: [tenants.id] }),
+  prospect: one(prospects, { fields: [researchJobs.prospectId], references: [prospects.id] }),
+  researchGap: one(researchGaps, {
+    fields: [researchJobs.researchGapId],
+    references: [researchGaps.id],
+  }),
+  requestedBy: one(users, {
+    fields: [researchJobs.requestedByUserId],
+    references: [users.id],
   }),
 }));

@@ -3,6 +3,7 @@ import type { ProposalRow } from "@95forward/ai";
 import { Button, Card, EmptyState, SourceTag } from "@/components/ds";
 import { runProspectKnowledgeAction } from "@/server/actions/prospect-copilot";
 import { resolveResearchGapAction } from "@/server/actions/strategize";
+import { enqueueResearchJobAction } from "@/server/actions/research";
 import type { ProspectDetail } from "@/server/data/prospects";
 import { CopilotDraftPanel } from "./CopilotDraftPanel";
 import { KnowledgeFieldEditor, AddResearchGap } from "./KnowledgeBaseEditor";
@@ -88,6 +89,18 @@ export function KnowledgeBaseTab({
                     </span>
                   </div>
                   <div className="f95-itemrow__actions">
+                    <form action={enqueueResearchJobAction}>
+                      <input type="hidden" name="prospectId" value={detail.id} />
+                      <input type="hidden" name="researchGapId" value={gap.id} />
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        size="sm"
+                        data-testid="research-this"
+                      >
+                        Research this
+                      </Button>
+                    </form>
                     <form action={resolveResearchGapAction}>
                       <input type="hidden" name="gapId" value={gap.id} />
                       <input type="hidden" name="prospectId" value={detail.id} />

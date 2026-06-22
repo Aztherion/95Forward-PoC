@@ -17,7 +17,7 @@ export type { HorizonTagProps, Horizon } from "./HorizonTag";
 export { SourceTag } from "./SourceTag";
 export type { SourceTagProps } from "./SourceTag";
 export { Heartbeat } from "./Heartbeat";
-export type { HeartbeatProps } from "./Heartbeat";
+export type { HeartbeatProps, HeartbeatStatus } from "./Heartbeat";
 export { Mark } from "./Mark";
 export type { MarkProps } from "./Mark";
 export { DataTable } from "./DataTable";

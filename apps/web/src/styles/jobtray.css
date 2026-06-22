@@ -1,0 +1,62 @@
+.f95-jobtray {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 380px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--ai-surface);
+  border: 1px solid var(--iris-300);
+  box-shadow: var(--elevation-sm, 0 2px 8px rgba(20, 30, 50, 0.1));
+  font: var(--text-label);
+  color: var(--ai-ink);
+}
+
+.f95-jobtray__mark {
+  color: var(--iris-600);
+  flex: none;
+}
+
+.f95-jobtray__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.f95-jobtray__pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--iris-500);
+  flex: none;
+  animation: f95-heartbeat var(--beat-period) var(--ease-in-out) infinite;
+}
+
+.f95-jobtray__ready {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ai-tint);
+  border: 1px solid var(--iris-300);
+  color: var(--iris-700);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.f95-jobtray__ready:hover {
+  background: var(--iris-100);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f95-jobtray__pulse {
+    animation: none;
+  }
+}

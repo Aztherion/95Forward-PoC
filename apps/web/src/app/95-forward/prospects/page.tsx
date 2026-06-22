@@ -3,6 +3,7 @@ import { Plus, Search, Users } from "lucide-react";
 import { Avatar, Button, Card, EmptyState, QpiScore, RoleChip } from "@/components/ds";
 import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
+import { followUpLabel } from "@/lib/follow-up";
 import {
   getProspectsList,
   listRmUsers,
@@ -67,14 +68,39 @@ function hasRecentContact(cadence: string): boolean {
   return cadence === "Last contact today" || cadence === "Last contact 1d ago";
 }
 
-// The "next right move" always resolves to one action for a non-empty portfolio — it is the signature
-// guided surface, not a feed. Priority ladder, evaluated against the QPI-ranked list: (1) a go-band
-// prospect with no contact is the clearest first move; (2) otherwise the top-QPI prospect that is stale
-// or uncontacted needs reconnecting/advancing; (3) otherwise the top-ranked prospect gets a default step.
-// TODO(I10): once visits/asks/follow-ups exist, prepend higher rungs ("follow-up due", "time to ask")
-// so the move becomes cycle-aware rather than QPI+contact only.
-function pickNextMove(rows: readonly ProspectListRow[]): NextMove | null {
+// The "next right move" always resolves to one action for a non-empty portfolio — the signature
+// guided surface, not a feed. The ladder is now cycle-aware (I10), evaluated against the QPI-ranked
+// list, highest rung first: (1) a follow-up due/overdue is the SLA the product cares about most;
+// (2) a visited high-QPI prospect with no ask yet is ready to ask; then the I7 rungs — (3) a go-band
+// prospect with no contact for a first move; (4) the top-QPI stale/uncontacted prospect to reconnect;
+// (5) the top-ranked prospect as a default.
+function pickNextMove(rows: readonly ProspectListRow[], now: Date = new Date()): NextMove | null {
   if (rows.length === 0) return null;
+
+  const withFollowUp = rows
+    .filter((row) => row.openFollowUpDueAt !== null)
+    .sort((a, b) => a.openFollowUpDueAt!.getTime() - b.openFollowUpDueAt!.getTime());
+  const followUp = withFollowUp[0];
+  if (followUp) {
+    return {
+      row: followUp,
+      eyebrow: "Your next right move",
+      why: `Follow up — ${followUpLabel(followUp.openFollowUpDueAt!, now).toLowerCase()}.`,
+      cta: "Follow up now",
+    };
+  }
+
+  const readyToAsk = rows.find(
+    (row) => row.visited && !row.hasAsk && (row.qpi.band === "go" || row.qpi.band === "strong"),
+  );
+  if (readyToAsk) {
+    return {
+      row: readyToAsk,
+      eyebrow: "Your next right move",
+      why: `QPI ${readyToAsk.qpi.total} — visited, no ask yet. Time to ask.`,
+      cta: "Enter visit mode",
+    };
+  }
 
   const firstContact = rows.find(
     (row) => row.qpi.band === "go" && row.cadence === "No contact yet",

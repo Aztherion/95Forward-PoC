@@ -23,7 +23,7 @@ import {
   relationshipMapEntries,
   researchGaps,
 } from "./schema/prospects";
-import { visits } from "./schema/execution";
+import { asks, followUpTasks, referrals, visits } from "./schema/execution";
 import { fundingInitiatives, prospectFundingInitiatives } from "./schema/funding";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import { opportunities, proposals } from "./schema/pipeline";
@@ -37,6 +37,8 @@ import {
   volunteerHours,
   volunteerOpportunities,
 } from "./schema/engagement";
+import { researchJobs } from "./schema/jobs";
+import { copilotProposals } from "./schema/ai";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -666,11 +668,12 @@ describe("seed: prospects & QPI (the 95 Forward grounding set)", () => {
     });
     expect(strategy?.relationshipGoals).toContain("David Hallworth");
 
-    const plannedVisits = await db.query.visits.findMany({
+    const allVisits = await db.query.visits.findMany({
       where: eq(visits.prospectId, hallworthId),
     });
+    const plannedVisits = allVisits.filter((v) => v.occurredAt === null);
     expect(plannedVisits.length).toBeGreaterThanOrEqual(1);
-    expect(plannedVisits.every((v) => v.occurredAt === null && v.outcome === null)).toBe(true);
+    expect(plannedVisits.every((v) => v.outcome === null)).toBe(true);
 
     const kdms = await db.query.relationshipMapEntries.findMany({
       where: eq(relationshipMapEntries.prospectId, hallworthId),
@@ -752,5 +755,96 @@ describe("seed: funding initiatives (I9)", () => {
         a.fundingInitiativeId === stableId("initiative:bolivia"),
     );
     expect(hallworthToBolivia).toBeDefined();
+  });
+});
+
+describe("seed: execution set (I10)", () => {
+  it("seeds executed visits, asks across outcomes, follow-ups, and a referral", async () => {
+    if (!handle) {
+      return;
+    }
+    const executedVisits = await db.query.visits.findMany({
+      where: eq(visits.tenantId, tenantId),
+    });
+    expect(executedVisits.some((v) => v.occurredAt !== null)).toBe(true);
+
+    const askRows = await db.query.asks.findMany({ where: eq(asks.tenantId, tenantId) });
+    expect(askRows.length).toBeGreaterThanOrEqual(3);
+    expect(
+      askRows.some((a) => a.outcome === "commitment" && a.commitmentAmountCents !== null),
+    ).toBe(true);
+    expect(askRows.some((a) => a.outcome === "roadmap" && a.roadmapNextSteps !== null)).toBe(true);
+    expect(askRows.some((a) => a.outcome === "decline")).toBe(true);
+
+    const followUps = await db.query.followUpTasks.findMany({
+      where: eq(followUpTasks.tenantId, tenantId),
+    });
+    expect(followUps.some((f) => f.status === "open")).toBe(true);
+    expect(followUps.some((f) => f.status === "done")).toBe(true);
+
+    const refRows = await db.query.referrals.findMany({ where: eq(referrals.tenantId, tenantId) });
+    expect(refRows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ties Hallworth to a Bolivia roadmap ask with numbers on the table and an open follow-up", async () => {
+    if (!handle) {
+      return;
+    }
+    const hallworthAsk = await db.query.asks.findFirst({
+      where: eq(asks.id, stableId("ask:hallworth-bolivia")),
+    });
+    expect(hallworthAsk?.outcome).toBe("roadmap");
+    expect(hallworthAsk?.numbersOnTable).toBe(true);
+    expect(hallworthAsk?.fundingInitiativeId).toBe(stableId("initiative:bolivia"));
+
+    const hallworthFollowUp = await db.query.followUpTasks.findFirst({
+      where: eq(followUpTasks.id, stableId("followup:hallworth-bolivia")),
+    });
+    expect(hallworthFollowUp?.status).toBe("open");
+  });
+
+  it("lands at least one commitment that lights an initiative's progress", async () => {
+    if (!handle) {
+      return;
+    }
+    const committed = await db.query.asks.findMany({ where: eq(asks.tenantId, tenantId) });
+    const total = committed
+      .filter((a) => a.outcome === "commitment")
+      .reduce((sum, a) => sum + (a.commitmentAmountCents ?? 0), 0);
+    expect(total).toBeGreaterThan(0);
+  });
+});
+
+describe("seed: research jobs (I11)", () => {
+  it("seeds at least one ready research job for a grounded prospect", async () => {
+    if (!handle) return;
+    const ready = await db.query.researchJobs.findMany({
+      where: and(eq(researchJobs.tenantId, tenantId), eq(researchJobs.status, "ready")),
+    });
+    expect(ready.length).toBeGreaterThanOrEqual(1);
+    const hallworth = ready.find((j) => j.originKey === "seed:research:hallworth");
+    expect(hallworth).toBeDefined();
+    expect(hallworth?.completedAt).not.toBeNull();
+  });
+
+  it("attaches pending knowledge-base proposals to the ready job", async () => {
+    if (!handle) return;
+    const proposals = await db.query.copilotProposals.findMany({
+      where: and(
+        eq(copilotProposals.tenantId, tenantId),
+        eq(copilotProposals.proposalType, "knowledge_base_update"),
+      ),
+    });
+    const seeded = proposals.filter((p) => p.originKey?.startsWith("seed:research:hallworth:"));
+    expect(seeded.length).toBeGreaterThanOrEqual(1);
+    expect(seeded.every((p) => p.status === "pending")).toBe(true);
+  });
+
+  it("seeds a researching job for the in-progress pattern", async () => {
+    if (!handle) return;
+    const researching = await db.query.researchJobs.findMany({
+      where: and(eq(researchJobs.tenantId, tenantId), eq(researchJobs.status, "researching")),
+    });
+    expect(researching.length).toBeGreaterThanOrEqual(1);
   });
 });

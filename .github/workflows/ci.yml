@@ -28,6 +28,10 @@ jobs:
       AUTH_DEV_LOGIN: "true"
       # AI runs in deterministic mock mode in CI — no ANTHROPIC/OPENAI keys, no paid calls.
       AI_MODE: mock
+      # Background jobs (Initiative 11): demo research provider + the worker's own queue schema.
+      RESEARCH_MODE: demo
+      JOBS_SCHEMA: graphile_worker
+      JOBS_CONCURRENCY: "3"
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -66,10 +70,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Database setup (migrate + seed + embed)
+      - name: Database setup (migrate + jobs schema + seed + embed)
         run: |
           pnpm db:wait
           pnpm db:migrate
+          pnpm --filter @95forward/worker migrate:jobs
           pnpm --filter @95forward/db seed
           pnpm --filter @95forward/ai embed
 

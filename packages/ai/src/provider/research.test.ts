@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ADVERSARIAL_INJECTION_SNIPPET,
   LiveResearchProvider,
   SeededResearchProvider,
 } from "./research";
+
+const createMessage = vi.fn();
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class {
+    messages = { create: createMessage };
+  },
+}));
 
 describe("SeededResearchProvider", () => {
   const provider = new SeededResearchProvider();
@@ -15,6 +23,12 @@ describe("SeededResearchProvider", () => {
   it("returns canned findings for a known seeded prospect", async () => {
     const result = await provider.research({ subjectName: "Morgan Ellsworth" });
     expect(result.findings.length).toBeGreaterThan(0);
+  });
+
+  it("is deterministic — the same query yields the same findings", async () => {
+    const a = await provider.research({ subjectName: "Morgan Ellsworth" });
+    const b = await provider.research({ subjectName: "Morgan Ellsworth" });
+    expect(a).toEqual(b);
   });
 
   it("includes an adversarial injection snippet so tests can prove it is treated as data", async () => {
@@ -33,11 +47,43 @@ describe("SeededResearchProvider", () => {
 });
 
 describe("LiveResearchProvider", () => {
-  it("reports live kind and defers to a later initiative", async () => {
-    const provider = new LiveResearchProvider();
+  it("reports live kind", () => {
+    const provider = new LiveResearchProvider({ apiKey: "sk-test" });
     expect(provider.kind).toBe("live");
-    await expect(provider.research({ subjectName: "Anyone" })).rejects.toThrow(
-      /live research arrives in Initiative 11/,
-    );
+  });
+
+  it("maps web_search_tool_result blocks into findings (untrusted content passes through as data)", async () => {
+    createMessage.mockResolvedValueOnce({
+      content: [
+        { type: "text", text: "Here is what I found." },
+        {
+          type: "web_search_tool_result",
+          content: [
+            { title: "Foundation 990 filing", url: "https://example.org/990", page_age: "2024" },
+            { title: "Blog post", url: "https://example.org/blog" },
+          ],
+        },
+      ],
+    });
+    const provider = new LiveResearchProvider({ apiKey: "sk-test" });
+    const result = await provider.research({ subjectName: "Anyone", context: "a foundation" });
+    expect(result.findings).toHaveLength(2);
+    expect(result.findings[0]?.source).toBe("https://example.org/990");
+    expect(result.findings[0]?.snippet).toContain("2024");
+    expect(result.findings[1]?.source).toBe("https://example.org/blog");
+  });
+
+  it("ignores malformed result items without a title or url", async () => {
+    createMessage.mockResolvedValueOnce({
+      content: [
+        {
+          type: "web_search_tool_result",
+          content: [{ title: "No url here" }, { url: "https://example.org/no-title" }, {}],
+        },
+      ],
+    });
+    const provider = new LiveResearchProvider({ apiKey: "sk-test" });
+    const result = await provider.research({ subjectName: "Anyone" });
+    expect(result.findings).toEqual([]);
   });
 });

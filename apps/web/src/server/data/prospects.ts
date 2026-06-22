@@ -1,7 +1,9 @@
 import "server-only";
-import { asc, desc, eq, ilike, or } from "drizzle-orm";
+import { asc, desc, eq, ilike, isNotNull, or } from "drizzle-orm";
 import {
+  asks,
   constituents,
+  followUpTasks,
   interactions,
   knowledgeBase,
   naturalPartners,
@@ -60,6 +62,10 @@ export interface ProspectListRow {
   status: ProspectStatus;
   cadence: string;
   top33: boolean;
+  // Execution signals (I10) that feed the cycle-aware next-right-move rungs.
+  openFollowUpDueAt: Date | null;
+  visited: boolean;
+  hasAsk: boolean;
 }
 
 export interface ProspectRef {
@@ -155,6 +161,9 @@ export async function getProspectsList(
 
     const constituentIds = records.map((record) => record.constituent.id);
     const lastContactByConstituent = await loadLastContact(tx, constituentIds);
+    const openFollowUpByProspect = await loadOpenFollowUps(tx);
+    const visitedProspects = await loadExecutedVisitProspects(tx);
+    const askProspects = await loadAskProspects(tx);
 
     const rows = records.map((record) => {
       const qpi = computeQpi(toDimensionInputs(record.qpiAssessments), weights);
@@ -173,6 +182,9 @@ export async function getProspectsList(
         status,
         cadence: deriveCadence(status, lastContactAt),
         top33: record.top33,
+        openFollowUpDueAt: openFollowUpByProspect.get(record.id) ?? null,
+        visited: visitedProspects.has(record.id),
+        hasAsk: askProspects.has(record.id),
         rmUserId: record.rm?.id ?? null,
         lastContactAt,
       };
@@ -521,4 +533,32 @@ async function loadLastContact(tx: Tx, constituentIds: string[]): Promise<Map<st
     if (!map.has(row.constituentId)) map.set(row.constituentId, row.occurredAt);
   }
   return map;
+}
+
+// Earliest open follow-up per prospect (joined through visits) — drives the top banner rung.
+async function loadOpenFollowUps(tx: Tx): Promise<Map<string, Date>> {
+  const map = new Map<string, Date>();
+  const rows = await tx
+    .select({ prospectId: visits.prospectId, dueAt: followUpTasks.dueAt })
+    .from(followUpTasks)
+    .innerJoin(visits, eq(visits.id, followUpTasks.visitId))
+    .where(eq(followUpTasks.status, "open"))
+    .orderBy(asc(visits.prospectId), asc(followUpTasks.dueAt));
+  for (const row of rows) {
+    if (!map.has(row.prospectId)) map.set(row.prospectId, row.dueAt);
+  }
+  return map;
+}
+
+async function loadExecutedVisitProspects(tx: Tx): Promise<Set<string>> {
+  const rows = await tx
+    .selectDistinct({ prospectId: visits.prospectId })
+    .from(visits)
+    .where(isNotNull(visits.occurredAt));
+  return new Set(rows.map((r) => r.prospectId));
+}
+
+async function loadAskProspects(tx: Tx): Promise<Set<string>> {
+  const rows = await tx.selectDistinct({ prospectId: asks.prospectId }).from(asks);
+  return new Set(rows.map((r) => r.prospectId));
 }

@@ -6,6 +6,7 @@ import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppDb } from "@/server/db";
 import { getProspectsList, type ProspectListRow } from "@/server/data/prospects";
+import { getJobTrayState } from "@/server/data/research-jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,8 @@ export default async function TodayPage({
     { status: "pending" },
   );
   const pendingCount = pendingProposals.length;
+
+  const jobTray = await getJobTrayState(user.tenantId);
 
   const scopeNote = scope === "me" ? "Your prospects" : "Your team's prospects";
 
@@ -181,6 +184,39 @@ export default async function TodayPage({
                 </Link>
               </div>
             </div>
+            {jobTray.researching.length > 0 || jobTray.readyCount > 0 ? (
+              <div
+                className="f95-itemrow"
+                data-testid="today-research-jobs"
+                style={{ marginTop: 12 }}
+              >
+                <span className="f95-empty__icon" style={{ marginTop: 2 }}>
+                  <Compass size={20} strokeWidth={1.8} />
+                </span>
+                <div className="f95-itemrow__body">
+                  <div className="f95-itemrow__title">
+                    {jobTray.readyCount > 0
+                      ? `${jobTray.readyCount} research ${jobTray.readyCount === 1 ? "result" : "results"} ready to review`
+                      : "Research in progress"}
+                  </div>
+                  <div className="f95-itemrow__meta">
+                    {jobTray.researching.length > 0 ? (
+                      <span>
+                        Researching {jobTray.researching.map((j) => j.prospectName).join(", ")} —
+                        your copilot will surface proposed knowledge updates when it is done.
+                      </span>
+                    ) : (
+                      <span>Open a prospect to review the proposed knowledge updates.</span>
+                    )}
+                  </div>
+                </div>
+                {jobTray.readyCount > 0 ? (
+                  <div className="f95-itemrow__actions">
+                    <Badge tone="ai">{jobTray.readyCount} ready</Badge>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </Card>
         </section>
 

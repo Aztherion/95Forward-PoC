@@ -1,6 +1,6 @@
 import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
-import { askOutcomeEnum, followUpStatusEnum, fundingFrameEnum, visitOutcomeEnum } from "./enums";
+import { askOutcomeEnum, followUpStatusEnum, visitOutcomeEnum } from "./enums";
 import { prospects } from "./prospects";
 import { fundingInitiatives } from "./funding";
 import { users } from "./users";
@@ -51,7 +51,6 @@ export const asks = pgTable(
     fundingInitiativeId: uuid("funding_initiative_id")
       .notNull()
       .references(() => fundingInitiatives.id, { onDelete: "cascade" }),
-    frame: fundingFrameEnum("frame").notNull(),
     askType: text("ask_type"),
     numbersOnTable: boolean("numbers_on_table").notNull().default(false),
     outcome: askOutcomeEnum("outcome"),

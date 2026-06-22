@@ -478,3 +478,89 @@ export const cultivationAssociationInputSchema = z.object({
   prospectId: z.string().uuid(),
 });
 export type CultivationAssociationInput = z.infer<typeof cultivationAssociationInputSchema>;
+
+export const ASK_OUTCOME_VALUES = ["commitment", "decline", "roadmap"] as const;
+export const VISIT_OUTCOME_VALUES = ["commitment", "decline", "roadmap"] as const;
+
+// An ask logged in the debrief or standalone. The frame is NOT here — it is derived from the linked
+// initiative on read. The dialogue continues until one of the three outcomes; each carries its own
+// detail: a commitment needs an amount, a roadmap needs next steps.
+export const askInputSchema = z
+  .object({
+    prospectId: z.string().uuid(),
+    visitId: z.string().uuid().optional(),
+    fundingInitiativeId: z.string().uuid(),
+    amountMinCents: z.number().int().min(0).optional(),
+    amountMaxCents: z.number().int().min(0).optional(),
+    askType: z.string().trim().max(120).optional(),
+    numbersOnTable: z.boolean().default(false),
+    outcome: z.enum(ASK_OUTCOME_VALUES).optional(),
+    commitmentAmountCents: z.number().int().min(0).optional(),
+    commitmentSchedule: z.string().trim().max(500).optional(),
+    roadmapNextSteps: z.string().trim().max(2000).optional(),
+  })
+  .refine(
+    (v) =>
+      v.amountMaxCents == null || v.amountMinCents == null || v.amountMaxCents >= v.amountMinCents,
+    {
+      message: "The ask range maximum must be at least the minimum",
+      path: ["amountMaxCents"],
+    },
+  )
+  .refine((v) => v.outcome !== "commitment" || v.commitmentAmountCents != null, {
+    message: "A commitment needs a committed amount",
+    path: ["commitmentAmountCents"],
+  })
+  .refine((v) => v.outcome !== "roadmap" || Boolean(v.roadmapNextSteps), {
+    message: "A roadmap needs the next steps",
+    path: ["roadmapNextSteps"],
+  });
+export type AskInput = z.infer<typeof askInputSchema>;
+
+// Debriefing a planned visit: sets the outcome + memo + next step, which transitions the visit from
+// planned to executed (occurred_at is stamped server-side) and triggers the 24-hour follow-up.
+export const visitDebriefInputSchema = z.object({
+  visitId: z.string().uuid(),
+  prospectId: z.string().uuid(),
+  outcome: z.enum(VISIT_OUTCOME_VALUES).optional(),
+  callMemo: z.string().trim().max(4000).optional(),
+  nextStep: z.string().trim().max(1000).optional(),
+});
+export type VisitDebriefInput = z.infer<typeof visitDebriefInputSchema>;
+
+export const followUpDoneInputSchema = z.object({
+  followUpTaskId: z.string().uuid(),
+});
+export type FollowUpDoneInput = z.infer<typeof followUpDoneInputSchema>;
+
+export const draftRequestSchema = z.object({
+  prospectId: z.string().uuid(),
+});
+export type DraftRequestInput = z.infer<typeof draftRequestSchema>;
+
+// Saving a user-edited copilot call-memo draft onto its visit. The memo length mirrors the
+// visit debrief memo cap; visitId is UUID-validated like every other execution write.
+export const saveCallMemoInputSchema = z.object({
+  visitId: z.string().uuid(),
+  callMemo: z.string().trim().max(4000),
+});
+export type SaveCallMemoInput = z.infer<typeof saveCallMemoInputSchema>;
+
+export const referralInputSchema = z.object({
+  sourceProspectId: z.string().uuid(),
+  sourceVisitId: z.string().uuid().optional(),
+  referredName: z.string().trim().min(1, "Name the person referred").max(200),
+  mayUseName: z.boolean().default(false),
+  willSendNote: z.boolean().default(false),
+  relationshipNote: z.string().trim().max(1000).optional(),
+});
+export type ReferralInput = z.infer<typeof referralInputSchema>;
+
+// Promote a captured referral into a real constituent + prospect, linking promoted_prospect_id back
+// to the referral. The warm path is already known (the referent), so it carries over.
+export const promoteReferralInputSchema = z.object({
+  referralId: z.string().uuid(),
+  displayName: z.string().trim().min(1, "Name the new prospect").max(200),
+  type: z.enum(CONSTITUENT_TYPES).default("individual"),
+});
+export type PromoteReferralInput = z.infer<typeof promoteReferralInputSchema>;

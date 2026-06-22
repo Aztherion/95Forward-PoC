@@ -13,6 +13,7 @@ const requireFromDb = createRequire(require.resolve("@95forward/db"));
 const { Client } = requireFromDb("pg") as { Client: PgClientCtor };
 
 const BOLIVIA_ID = "c99ee93a-5984-5d81-9e30-8db4267e29f1";
+const KAMULI_ID = "fe80caf5-8071-5921-acc0-d51fa9993605";
 const BELLO_ID = "f1beba00-7e04-5496-abab-ce8d2786d36c";
 
 const SEEDED_BOLIVIA_STORY =
@@ -127,13 +128,21 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     await expect(boliviaCard.locator(".f95-deflist__desc--empty")).toContainText("→");
   });
 
-  test("progress reads an honest 0% on a card because asks land in a later initiative", async ({
+  test("a card with a committed ask reads a non-zero pct, while one with none stays an honest 0%", async ({
     page,
   }) => {
     await page.goto("/95-forward/initiatives");
-    await expect(
-      page.locator('[data-testid="initiative-card"]').filter({ hasText: "0%" }).first(),
-    ).toBeVisible();
+
+    const kamuli = page
+      .locator('[data-testid="initiative-card"]')
+      .filter({ hasText: "Everyone in Kamuli" });
+    await expect(kamuli).not.toContainText("0%");
+    await expect(kamuli).toContainText("67%");
+
+    const forever = page
+      .locator('[data-testid="initiative-card"]')
+      .filter({ hasText: "Forever Promise" });
+    await expect(forever).toContainText("0%");
   });
 
   test("the Bolivia detail renders its frame, goal, and timeline", async ({ page }) => {
@@ -167,7 +176,18 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     ).toBeVisible();
   });
 
-  test("the Progress rail is honest — 0% committed with the later-initiative note", async ({
+  test("the Progress rail reflects a committed ask on Kamuli", async ({ page }) => {
+    await page.goto(`/95-forward/initiatives/${KAMULI_ID}`);
+    await expect(page.locator('[data-testid="initiative-detail"]')).toBeVisible();
+
+    const rail = page.locator(".f95-overview__rail");
+    await expect(rail.locator(".f95-goalmeta")).toContainText("committed");
+    await expect(rail.locator(".f95-goalmeta__pct")).not.toHaveText("0%");
+    await expect(rail.locator(".f95-goalmeta__pct")).toHaveText("67%");
+    await expect(rail.locator(".f95-goalmeta")).toContainText("$300,000 committed");
+  });
+
+  test("the Progress rail is an honest 0% for an initiative with no committed asks", async ({
     page,
   }) => {
     await gotoBolivia(page);
@@ -175,7 +195,6 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     const rail = page.locator(".f95-overview__rail");
     await expect(rail.locator(".f95-goalmeta")).toContainText("committed");
     await expect(rail.locator(".f95-goalmeta__pct")).toHaveText("0%");
-    await expect(rail).toContainText("logging asks lands in a later initiative");
   });
 
   test("attaching a new prospect adds it to the cultivation pipeline", async ({ page }) => {

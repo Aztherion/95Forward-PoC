@@ -7,3 +7,8 @@ export * from "./tools";
 export * from "./retrieval";
 export * from "./proposals";
 export * from "./embeddings";
+export * from "./jobs/state";
+export * from "./jobs/research-prospect";
+export * from "./jobs/embed-content";
+export * from "./jobs/draft-follow-up";
+export * from "./jobs/task-list";

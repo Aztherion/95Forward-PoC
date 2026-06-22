@@ -30,6 +30,7 @@ import type { CurrentUser, Register } from "@95forward/shared";
 import { HOST_BRAND, ROLE_LABELS } from "@95forward/shared";
 import { Avatar, Mark } from "@/components/ds";
 import { NAV_SECTIONS, type NavGroup, type NavIcon, type NavLeaf } from "./nav";
+import { JobTray } from "./JobTray";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
   home: Home,
@@ -186,6 +187,7 @@ export function AppShell({ register, user, children }: AppShellProps) {
 
       <div className="shell-main">
         <main className="shell-content">{children}</main>
+        {register === "95-forward" ? <JobTray /> : null}
       </div>
     </div>
   );

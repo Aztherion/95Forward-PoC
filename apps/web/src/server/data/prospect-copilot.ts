@@ -23,3 +23,21 @@ export async function listProspectProposals(
     },
   );
 }
+
+// Call-memo / follow-up drafts are generic `draft` proposals scoped to the prospect's constituent
+// (the I6 draft mechanism). They are surfaced for the user to edit and save/send, not auto-applied.
+export async function listConstituentDrafts(
+  tenantId: string,
+  caller: Caller,
+  constituentId: string,
+): Promise<ProposalRow[]> {
+  return listProposals(
+    getAppDb(),
+    { id: caller.id, tenantId, role: caller.role },
+    {
+      subjectId: constituentId,
+      proposalType: "draft",
+      status: "pending",
+    },
+  );
+}

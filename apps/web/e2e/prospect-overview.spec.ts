@@ -253,6 +253,9 @@ test.describe.serial("95 Forward — prospect overview", () => {
 
     await page.getByRole("tab", { name: "Visits & Asks" }).click();
     await page.waitForURL(/tab=visits/);
-    await expect(page.getByRole("tabpanel")).toContainText("Visit plan");
+    const visitsPanel = page.getByRole("tabpanel");
+    await expect(visitsPanel).toContainText("Execution");
+    await expect(visitsPanel.locator('[data-testid="visits-list"]')).toBeVisible();
+    await expect(visitsPanel.locator('[data-testid="asks-list"]')).toBeVisible();
   });
 });

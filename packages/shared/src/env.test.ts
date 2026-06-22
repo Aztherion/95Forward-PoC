@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnv, resolveEmbeddingMode } from "./env";
+import { parseEnv, parseWorkerEnv, resolveEmbeddingMode } from "./env";
 
 const VALID = {
   DATABASE_URL: "postgres://app:secret@localhost:5432/forward",
@@ -8,6 +8,11 @@ const VALID = {
   AUTH0_CLIENT_SECRET: "client-secret",
   AUTH0_SECRET: "0".repeat(64),
   APP_BASE_URL: "http://localhost:3000",
+};
+
+const VALID_WORKER = {
+  DATABASE_URL: "postgres://forward:secret@localhost:5432/forward",
+  APP_DATABASE_URL: "postgres://app_user:secret@localhost:5432/forward",
 };
 
 describe("parseEnv", () => {
@@ -65,6 +70,14 @@ describe("parseEnv", () => {
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
   });
 
+  it("requires ANTHROPIC_API_KEY when RESEARCH_MODE=live even if AI_MODE=mock", () => {
+    expect(() => parseEnv({ ...VALID, AI_MODE: "mock", RESEARCH_MODE: "live" })).toThrowError(
+      /ANTHROPIC_API_KEY/,
+    );
+    const env = parseEnv({ ...VALID, RESEARCH_MODE: "live", ANTHROPIC_API_KEY: "sk-x" });
+    expect(env.RESEARCH_MODE).toBe("live");
+  });
+
   it("requires ANTHROPIC_API_KEY only when AI_MODE=live", () => {
     expect(() => parseEnv({ ...VALID, AI_MODE: "live" })).toThrowError(/ANTHROPIC_API_KEY/);
     const env = parseEnv({
@@ -88,5 +101,37 @@ describe("parseEnv", () => {
     expect(resolveEmbeddingMode({ AI_MODE: "mock", EMBEDDING_MODE: undefined })).toBe("mock");
     expect(resolveEmbeddingMode({ AI_MODE: "live", EMBEDDING_MODE: undefined })).toBe("live");
     expect(resolveEmbeddingMode({ AI_MODE: "live", EMBEDDING_MODE: "mock" })).toBe("mock");
+  });
+});
+
+describe("parseWorkerEnv", () => {
+  it("accepts a worker environment without any Auth0 variables", () => {
+    const env = parseWorkerEnv(VALID_WORKER);
+    expect(env.DATABASE_URL).toBe(VALID_WORKER.DATABASE_URL);
+    expect(env.APP_DATABASE_URL).toBe(VALID_WORKER.APP_DATABASE_URL);
+    expect(env.AI_MODE).toBe("mock");
+    expect(env.RESEARCH_MODE).toBe("demo");
+    expect(env.JOBS_CONCURRENCY).toBe(3);
+    expect(env.JOBS_SCHEMA).toBe("graphile_worker");
+  });
+
+  it("requires APP_DATABASE_URL", () => {
+    const { APP_DATABASE_URL: _omitted, ...rest } = VALID_WORKER;
+    expect(() => parseWorkerEnv(rest)).toThrowError(/APP_DATABASE_URL/);
+  });
+
+  it("coerces JOBS_CONCURRENCY from a string", () => {
+    expect(parseWorkerEnv({ ...VALID_WORKER, JOBS_CONCURRENCY: "8" }).JOBS_CONCURRENCY).toBe(8);
+  });
+
+  it("still enforces the live AI key refinement", () => {
+    expect(() => parseWorkerEnv({ ...VALID_WORKER, AI_MODE: "live" })).toThrowError(
+      /ANTHROPIC_API_KEY/,
+    );
+  });
+
+  it("does not require Auth0 vars that the web schema requires", () => {
+    expect(() => parseEnv(VALID_WORKER)).toThrowError(/AUTH0_DOMAIN/);
+    expect(() => parseWorkerEnv(VALID_WORKER)).not.toThrow();
   });
 });

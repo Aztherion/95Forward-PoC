@@ -10,6 +10,8 @@ import { seedEngagement } from "./seed-engagement";
 import { seedVolunteersAndMemberships } from "./seed-volunteers-memberships";
 import { seedProspects } from "./seed-prospects";
 import { seedFundingInitiatives } from "./seed-funding-initiatives";
+import { seedExecution } from "./seed-execution";
+import { seedJobs } from "./seed-jobs";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -72,6 +74,8 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
   await seedVolunteersAndMemberships(db, tenantId);
   await seedProspects(db, tenantId);
   await seedFundingInitiatives(db, tenantId);
+  await seedExecution(db, tenantId);
+  await seedJobs(db, tenantId);
 
   return { tenantId };
 }

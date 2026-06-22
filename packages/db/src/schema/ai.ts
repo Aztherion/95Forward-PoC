@@ -31,6 +31,10 @@ export const copilotProposals = pgTable(
     confidence: smallint("confidence"),
     taskType: text("task_type"),
     origin: text("origin").notNull().default("copilot"),
+    // Stable idempotency key for background-job-emitted proposals (Initiative 11), e.g.
+    // "research:{researchJobId}:{field}". A partial unique index (origin_key IS NOT NULL, in the
+    // migration) lets a retried handler INSERT ... ON CONFLICT DO NOTHING without duplicating.
+    originKey: text("origin_key"),
     createdByUserId: uuid("created_by_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

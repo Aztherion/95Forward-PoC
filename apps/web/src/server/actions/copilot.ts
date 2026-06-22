@@ -6,6 +6,7 @@ import {
   buildToolset,
   createProviders,
   dismissProposal,
+  reviewResearchJobForProposal,
   MockEmbeddingProvider,
   MockModelProvider,
   runTask,
@@ -26,6 +27,13 @@ type Caller = Pick<CurrentUser, "id" | "tenantId" | "role">;
 
 function callerOf(user: CurrentUser): Caller {
   return { id: user.id, tenantId: user.tenantId, role: user.role };
+}
+
+// After a research-originated proposal is decided, advance its research job to reviewed once none of
+// its proposals remain pending. The job is derived from the proposal's origin_key, so non-research
+// proposals are a no-op and the shared I6 approve/dismiss path stays unchanged.
+async function maybeReviewResearchJob(caller: Caller, proposalId: string): Promise<void> {
+  await reviewResearchJobForProposal(getAppDb(), caller, proposalId);
 }
 
 function qpiProviders(prospectId: string): Providers {
@@ -138,7 +146,9 @@ export async function approveProposalAction(formData: FormData): Promise<void> {
     if (!user) return;
     const id = formData.get("id");
     if (typeof id !== "string" || id.length === 0) return;
-    await approveProposal(getAppDb(), callerOf(user), id);
+    const caller = callerOf(user);
+    await approveProposal(getAppDb(), caller, id);
+    await maybeReviewResearchJob(caller, id);
   } catch (error) {
     console.error("[copilot-lab] approveProposalAction failed", error);
   } finally {
@@ -152,7 +162,9 @@ export async function dismissProposalAction(formData: FormData): Promise<void> {
     if (!user) return;
     const id = formData.get("id");
     if (typeof id !== "string" || id.length === 0) return;
-    await dismissProposal(getAppDb(), callerOf(user), id);
+    const caller = callerOf(user);
+    await dismissProposal(getAppDb(), caller, id);
+    await maybeReviewResearchJob(caller, id);
   } catch (error) {
     console.error("[copilot-lab] dismissProposalAction failed", error);
   } finally {

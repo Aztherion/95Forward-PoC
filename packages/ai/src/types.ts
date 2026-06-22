@@ -161,7 +161,9 @@ export type TaskType =
   | "draft_strategy"
   | "propose_relationship_map"
   | "draft_visit_plan"
-  | "draft_funding_initiative_rationale";
+  | "draft_funding_initiative_rationale"
+  | "draft_call_memo"
+  | "draft_follow_up";
 
 export interface TaskBudget {
   maxIterations: number;

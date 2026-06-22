@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  askInputSchema,
   communicationInputSchema,
   constituentInputSchema,
   copilotTogglesInputSchema,
   cultivationAssociationInputSchema,
+  followUpDoneInputSchema,
   fundingInitiativeInputSchema,
   fundingInitiativeRationaleInputSchema,
+  promoteReferralInputSchema,
+  referralInputSchema,
+  visitDebriefInputSchema,
   eventInputSchema,
   giftInputSchema,
   interactionInputSchema,
@@ -520,5 +525,118 @@ describe("cultivationAssociationInputSchema", () => {
     expect(() =>
       cultivationAssociationInputSchema.parse({ fundingInitiativeId: UUID, prospectId: "nope" }),
     ).toThrow();
+  });
+});
+
+describe("askInputSchema", () => {
+  it("accepts an ask with a range and a commitment amount", () => {
+    const parsed = askInputSchema.parse({
+      prospectId: UUID,
+      fundingInitiativeId: UUID_B,
+      amountMinCents: 200_000_000,
+      amountMaxCents: 320_000_000,
+      askType: "multi-year grant",
+      numbersOnTable: true,
+      outcome: "commitment",
+      commitmentAmountCents: 250_000_000,
+      commitmentSchedule: "3 annual installments",
+    });
+    expect(parsed.outcome).toBe("commitment");
+    expect(parsed).not.toHaveProperty("frame");
+  });
+
+  it("requires a committed amount when the outcome is a commitment", () => {
+    expect(() =>
+      askInputSchema.parse({
+        prospectId: UUID,
+        fundingInitiativeId: UUID_B,
+        outcome: "commitment",
+      }),
+    ).toThrow();
+  });
+
+  it("requires next steps when the outcome is a roadmap", () => {
+    expect(() =>
+      askInputSchema.parse({ prospectId: UUID, fundingInitiativeId: UUID_B, outcome: "roadmap" }),
+    ).toThrow();
+    const ok = askInputSchema.parse({
+      prospectId: UUID,
+      fundingInitiativeId: UUID_B,
+      outcome: "roadmap",
+      roadmapNextSteps: "Board briefing in Q3, then a formal proposal.",
+    });
+    expect(ok.roadmapNextSteps).toContain("Board");
+  });
+
+  it("rejects a range whose max is below its min", () => {
+    expect(() =>
+      askInputSchema.parse({
+        prospectId: UUID,
+        fundingInitiativeId: UUID_B,
+        amountMinCents: 300,
+        amountMaxCents: 100,
+      }),
+    ).toThrow();
+  });
+});
+
+describe("visitDebriefInputSchema", () => {
+  it("accepts a debrief with outcome, memo, and next step", () => {
+    const parsed = visitDebriefInputSchema.parse({
+      visitId: UUID,
+      prospectId: UUID_B,
+      outcome: "roadmap",
+      callMemo: "Strong interest; needs board sign-off.",
+      nextStep: "Send the Bolivia briefing deck.",
+    });
+    expect(parsed.outcome).toBe("roadmap");
+  });
+
+  it("rejects an unknown outcome", () => {
+    expect(() =>
+      visitDebriefInputSchema.parse({ visitId: UUID, prospectId: UUID_B, outcome: "maybe" }),
+    ).toThrow();
+  });
+});
+
+describe("followUpDoneInputSchema", () => {
+  it("accepts a follow-up task id", () => {
+    expect(followUpDoneInputSchema.parse({ followUpTaskId: UUID }).followUpTaskId).toBe(UUID);
+  });
+});
+
+describe("referralInputSchema", () => {
+  it("accepts a referral with consent flags", () => {
+    const parsed = referralInputSchema.parse({
+      sourceProspectId: UUID,
+      referredName: "Maria Okonkwo",
+      mayUseName: true,
+      willSendNote: false,
+      relationshipNote: "Former board colleague.",
+    });
+    expect(parsed.referredName).toBe("Maria Okonkwo");
+    expect(parsed.mayUseName).toBe(true);
+  });
+
+  it("rejects a referral without a name", () => {
+    expect(() => referralInputSchema.parse({ sourceProspectId: UUID, referredName: "" })).toThrow();
+  });
+});
+
+describe("promoteReferralInputSchema", () => {
+  it("accepts a promotion with a name and type", () => {
+    const parsed = promoteReferralInputSchema.parse({
+      referralId: UUID,
+      displayName: "Maria Okonkwo",
+      type: "individual",
+    });
+    expect(parsed.type).toBe("individual");
+  });
+
+  it("defaults type to individual and rejects an empty name", () => {
+    expect(promoteReferralInputSchema.parse({ referralId: UUID, displayName: "X" }).type).toBe(
+      "individual",
+    );
+    expect(() => promoteReferralInputSchema.parse({ referralId: UUID, displayName: "" })).toThrow();
   });
 });

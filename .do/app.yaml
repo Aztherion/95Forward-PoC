@@ -5,7 +5,8 @@
 #     job runs CREATE EXTENSION IF NOT EXISTS vector)
 #   - supply real values for every REPLACE_ME (Auth0 client id/secret; the
 #     AUTH0_SECRET is a 32-byte hex from `openssl rand -hex 32`)
-# Worker carries Auth0 vars because the shared Zod env schema requires them.
+# The worker runs with its own minimal env (getWorkerEnv): no Auth0 vars; it needs
+# APP_DATABASE_URL for RLS-scoped job handlers.
 name: ninety-five-forward
 region: nyc
 
@@ -103,15 +104,15 @@ services:
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${forward-db.DATABASE_URL}
-      - key: AUTH0_DOMAIN
-        value: your-tenant.us.auth0.com
-      - key: AUTH0_CLIENT_ID
-        value: REPLACE_ME
-      - key: AUTH0_CLIENT_SECRET
+      - key: APP_DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
         type: SECRET
         value: REPLACE_ME
-      - key: AUTH0_SECRET
-        type: SECRET
-        value: REPLACE_ME
-      - key: APP_BASE_URL
-        value: ${APP_URL}
+      - key: JOBS_CONCURRENCY
+        value: "3"
+      - key: JOBS_SCHEMA
+        value: graphile_worker
+      - key: AI_MODE
+        value: mock
+      - key: RESEARCH_MODE
+        value: demo
