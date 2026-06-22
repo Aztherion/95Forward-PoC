@@ -1,12 +1,16 @@
 # DigitalOcean App Platform spec for 95 Forward.
 # Operator setup before `doctl apps create --spec .do/app.yaml`:
-#   - set github.repo, region, and instance sizes
+#   - set the database `cluster_name` to your existing vector-enabled managed PG cluster
+#     (the spec attaches that cluster; it does not provision a throwaway dev database)
+#   - set region and instance sizes
 #   - ensure the managed PG vector extension is allowed (the PRE_DEPLOY migrate
 #     job runs CREATE EXTENSION IF NOT EXISTS vector)
 #   - supply real values for every REPLACE_ME (Auth0 client id/secret; the
 #     AUTH0_SECRET is a 32-byte hex from `openssl rand -hex 32`)
-# The worker runs with its own minimal env (getWorkerEnv): no Auth0 vars; it needs
-# APP_DATABASE_URL for RLS-scoped job handlers.
+# The worker is a background `workers:` component (non-routable): the web app enqueues jobs via the
+# database, not via HTTP, so the worker serves no public traffic and declares no port/route. It runs
+# with its own minimal env (getWorkerEnv): no Auth0 vars; it needs APP_DATABASE_URL for RLS-scoped
+# job handlers (its NestJS server binds internally on WORKER_PORT).
 #
 # Demo AI config (Initiative 13): AI_MODE=live + EMBEDDING_MODE=live give real reasoning and
 # embeddings, while RESEARCH_MODE=demo keeps OSINT on seeded data only (the responsible-AI
@@ -24,16 +28,16 @@ envs:
     value: "true"
 
 databases:
-  - name: forward-db
+  - name: forward-db # keep this logical name — bindings use ${forward-db.DATABASE_URL}
     engine: PG
-    version: "16"
-    production: false
+    cluster_name: REPLACE_ME_CLUSTER_NAME # operator: the actual managed cluster's name
+    production: true
 
 jobs:
   - name: migrate
     kind: PRE_DEPLOY
     github:
-      repo: your-org/95forward-poc
+      repo: Aztherion/95Forward-PoC
       branch: main
     source_dir: /
     instance_size_slug: basic-xxs
@@ -47,7 +51,7 @@ jobs:
 services:
   - name: web
     github:
-      repo: your-org/95forward-poc
+      repo: Aztherion/95Forward-PoC
       branch: main
       deploy_on_push: true
     source_dir: /
@@ -108,17 +112,15 @@ services:
         type: SECRET
         value: REPLACE_ME
 
+workers:
   - name: worker
     github:
-      repo: your-org/95forward-poc
+      repo: Aztherion/95Forward-PoC
       branch: main
       deploy_on_push: true
     source_dir: /
     instance_size_slug: basic-xxs
     instance_count: 1
-    http_port: 8080
-    health_check:
-      http_path: /health
     build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/worker build
     run_command: pnpm --filter @95forward/worker start
     envs:
