@@ -41,9 +41,14 @@ jobs:
       branch: main
     source_dir: /
     instance_size_slug: basic-xxs
-    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @95forward/db build
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/db build
     run_command: pnpm --filter @95forward/db migrate
     envs:
+      # The buildpack prunes devDependencies (tsc/tsx) when NODE_ENV=production; this BUILD_TIME flag
+      # skips that prune so the build (and the migrate job's tsx runtime) keep their toolchain.
+      - key: PNPM_SKIP_PRUNING
+        scope: BUILD_TIME
+        value: "true"
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${forward-db.DATABASE_URL}
@@ -60,9 +65,13 @@ services:
     http_port: 8080
     health_check:
       http_path: /
-    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/web build
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/web build
     run_command: pnpm --filter @95forward/web exec next start --hostname 0.0.0.0 --port ${PORT}
     envs:
+      # BUILD_TIME-only: keep devDependencies (tsc) for the build; runtime stays NODE_ENV=production.
+      - key: PNPM_SKIP_PRUNING
+        scope: BUILD_TIME
+        value: "true"
       - key: NODE_ENV
         value: production
       - key: APP_ENV
@@ -121,9 +130,13 @@ workers:
     source_dir: /
     instance_size_slug: basic-xxs
     instance_count: 1
-    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/worker build
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/worker build
     run_command: pnpm --filter @95forward/worker start
     envs:
+      # BUILD_TIME-only: keep devDependencies (tsc) for the build; runtime stays NODE_ENV=production.
+      - key: PNPM_SKIP_PRUNING
+        scope: BUILD_TIME
+        value: "true"
       - key: NODE_ENV
         value: production
       - key: APP_ENV
