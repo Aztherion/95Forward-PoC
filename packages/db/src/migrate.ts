@@ -2,6 +2,7 @@ import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+import { prepareDatabaseUrl } from "./connection";
 
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL;
@@ -10,7 +11,7 @@ async function main(): Promise<void> {
   }
 
   const migrationsFolder = path.resolve(__dirname, "../drizzle");
-  const pool = new Pool({ connectionString: url });
+  const pool = new Pool({ connectionString: prepareDatabaseUrl(url) });
   const db = drizzle(pool);
 
   console.log(`[db] running migrations from ${migrationsFolder}`);

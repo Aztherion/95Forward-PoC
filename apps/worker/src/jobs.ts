@@ -1,6 +1,6 @@
 import { run, makeWorkerUtils, parseCrontab, type Runner, type Task } from "graphile-worker";
 import { createProviders, buildTaskList, type JobHandler } from "@95forward/ai";
-import { createDb, tenants, type DbHandle } from "@95forward/db";
+import { createDb, tenants, prepareDatabaseUrl, type DbHandle } from "@95forward/db";
 import { getWorkerEnv, type WorkerEnv } from "@95forward/shared";
 
 // Daily re-embed sweep at 03:00 — proves Graphile's scheduled (cron) leg. Cron only fires from the
@@ -33,7 +33,7 @@ export async function startWorker(env: WorkerEnv): Promise<StartedWorker> {
   const ownerHandle: DbHandle = createDb(env.DATABASE_URL, { max: 2 });
 
   const utils = await makeWorkerUtils({
-    connectionString: env.DATABASE_URL,
+    connectionString: prepareDatabaseUrl(env.DATABASE_URL),
     schema: env.JOBS_SCHEMA,
   });
   await utils.migrate();
@@ -50,7 +50,7 @@ export async function startWorker(env: WorkerEnv): Promise<StartedWorker> {
   });
 
   const runner = await run({
-    connectionString: env.DATABASE_URL,
+    connectionString: prepareDatabaseUrl(env.DATABASE_URL),
     schema: env.JOBS_SCHEMA,
     concurrency: env.JOBS_CONCURRENCY,
     noHandleSignals: true,

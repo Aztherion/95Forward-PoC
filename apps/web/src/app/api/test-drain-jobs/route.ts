@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { runOnce } from "graphile-worker";
 import { buildTaskList, createProviders, type JobHandler } from "@95forward/ai";
-import { tenants } from "@95forward/db";
+import { tenants, prepareDatabaseUrl } from "@95forward/db";
 import { getEnv } from "@95forward/shared";
 import { getAppDb, getDb } from "@/server/db";
 import { isTestSeamEnabled } from "@/lib/test-seam";
@@ -42,7 +42,7 @@ export async function POST(): Promise<NextResponse> {
   if (!url) return NextResponse.json({ ok: false, error: "DATABASE_URL missing" }, { status: 500 });
 
   await runOnce({
-    connectionString: url,
+    connectionString: prepareDatabaseUrl(url),
     schema: process.env.JOBS_SCHEMA ?? "graphile_worker",
     taskList,
   });

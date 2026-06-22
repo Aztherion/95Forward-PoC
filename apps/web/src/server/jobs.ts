@@ -1,6 +1,7 @@
 import "server-only";
 import { makeWorkerUtils, type WorkerUtils } from "graphile-worker";
 import { JOB_NAMES } from "@95forward/ai";
+import { prepareDatabaseUrl } from "@95forward/db";
 
 const SCHEMA = process.env.JOBS_SCHEMA ?? "graphile_worker";
 
@@ -16,7 +17,10 @@ function getWorkerUtils(): Promise<WorkerUtils> {
     globalForJobs._f95WorkerUtils = (async () => {
       const url = process.env.DATABASE_URL;
       if (!url) throw new Error("DATABASE_URL is required to enqueue background jobs");
-      const utils = await makeWorkerUtils({ connectionString: url, schema: SCHEMA });
+      const utils = await makeWorkerUtils({
+        connectionString: prepareDatabaseUrl(url),
+        schema: SCHEMA,
+      });
       await utils.migrate();
       return utils;
     })();
