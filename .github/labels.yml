@@ -1,0 +1,27 @@
+# Label taxonomy for the automated bug pipeline (Phase 1).
+# The triage + fix workflows create these on demand (`gh label create --force`), so this file is
+# the documented source of truth rather than a hard prerequisite. The PM may also pre-create them.
+- name: bug
+  color: d73a4a
+  description: A defect in the PoC.
+- name: feature-request
+  color: a2eeef
+  description: A new capability or change — routed to a human, not auto-fixed.
+- name: auto-eligible
+  color: 0e8a16
+  description: Triage judged this a low-risk, low-complexity bug — the fix workflow may attempt it.
+- name: needs-human
+  color: b60205
+  description: High risk/complexity, a feature request, or an auto-fix that couldn't reach green — a human handles it.
+- name: "severity:low"
+  color: c2e0c6
+  description: Cosmetic / minor.
+- name: "severity:med"
+  color: fbca04
+  description: Annoying but usable.
+- name: "severity:high"
+  color: e99695
+  description: Blocks the demo or data looks wrong.
+- name: triaged
+  color: 5319e7
+  description: The triage workflow has classified this issue.

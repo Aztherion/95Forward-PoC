@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in the 95 Forward demo looks wrong or broke. A few quick fields help us fix it fast.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing 95 Forward. Fill in what you can — even a one-liner plus a screenshot helps.
+        You don't need to be technical; just describe what you saw.
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: "The 'based on…' note runs off the edge of the copilot card"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see? What did you expect to see instead?
+      placeholder: |
+        What happened: …
+        What I expected: …
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we see it too? Rough steps are fine.
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. Notice …
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where in the app?
+      description: Roughly which screen/area.
+      options:
+        - Search prospects
+        - Prospect record (QPI / Knowledge Base / Strategy / Visits)
+        - Master Prospect List
+        - Candidates / discovery
+        - Green Sheet
+        - Initiatives
+        - Visit mode / asks / follow-ups
+        - Host CRM (Constituents, Revenue, etc.)
+        - Sign-in / navigation / shell
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where were you testing?
+      options:
+        - Deployed app (ondigitalocean.app)
+        - Local dev
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it? (your best guess)
+      description: Just a guess — we re-assess on our side.
+      options:
+        - Low — cosmetic / minor
+        - Medium — annoying but usable
+        - High — blocks the demo / data looks wrong
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recording
+      description: Drag images/video here if you have them. (Paste works too.)
+      placeholder: Drop a screenshot here…
+    validations:
+      required: false

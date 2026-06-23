@@ -1,0 +1,25 @@
+name: Feature request / idea
+description: A new capability or change you'd like — not a bug.
+title: "[Idea]: "
+labels: ["feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome. Note: the automated pipeline only fixes bugs — feature requests are
+        routed to a human to scope, so this won't auto-open a PR.
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      placeholder: "Let me filter the prospect list by last gift amount"
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: What would you like, and why?
+      placeholder: |
+        I'd like … so that …
+    validations:
+      required: true
