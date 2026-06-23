@@ -55,12 +55,15 @@ export type ModelStopReason =
   | "pause_turn"
   | "refusal";
 
+export type ModelToolChoice = { type: "auto" } | { type: "any" } | { type: "tool"; name: string };
+
 export interface ModelRequest {
   model: ModelId;
   maxTokens: number;
   system: string;
   messages: ModelMessage[];
   tools?: ModelToolDef[];
+  toolChoice?: ModelToolChoice;
   temperature?: number;
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { Avatar, Card, EmptyState, QpiScore, SourceTag } from "@/components/ds";
+import { Search, Sparkle } from "lucide-react";
+import { filterChipLabel, type QueryInterpretation } from "@95forward/shared";
+import { Avatar, Card, EmptyState, QpiScore, SourceTag, Tag } from "@/components/ds";
 import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -19,10 +20,48 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 const EXAMPLES = [
+  "Prospects with QPI higher than 80",
   "Foundations with high capacity",
   "Not contacted in 60 days",
   "Strong relationship to clean water",
 ];
+
+// "How your query was understood" — the parsed structured filters as chips, plus the semantic term
+// and a note when the parse fell back to pure-semantic. Makes the AI's interpretation legible.
+function InterpretedQuery({ interpretation }: { interpretation: QueryInterpretation }) {
+  const hasFilters = interpretation.filters.length > 0;
+  const hasSemantic = interpretation.semanticTerms !== null;
+  if (!hasFilters && !hasSemantic && !interpretation.fellBack) return null;
+  return (
+    <section className="f95-stack f95-stack--sm" data-testid="interpreted-query">
+      <div className="f95-cluster">
+        <Sparkle size={15} strokeWidth={1.8} aria-hidden />
+        <span className="f95-eyebrow">How we read your search</span>
+      </div>
+      <div className="f95-cluster">
+        {interpretation.filters.map((filter, i) => (
+          <Tag
+            key={`${filter.field}-${i}`}
+            color="var(--ai-iris, #4A4F94)"
+            data-testid="interpreted-filter"
+          >
+            {filterChipLabel(filter)}
+          </Tag>
+        ))}
+        {interpretation.semanticTerms ? (
+          <Tag color="var(--reg-accent, #235C86)" data-testid="interpreted-semantic">
+            Related to “{interpretation.semanticTerms}”
+          </Tag>
+        ) : null}
+        {interpretation.fellBack ? (
+          <span className="f95-page__count" data-testid="interpreted-fallback">
+            We read this as a free-text search.
+          </span>
+        ) : null}
+      </div>
+    </section>
+  );
+}
 
 function MatchRow({ match }: { match: ProspectMatch }) {
   const kind = match.type === "individual" ? "person" : "org";
@@ -59,6 +98,7 @@ function MatchRow({ match }: { match: ProspectMatch }) {
 function Results({ result }: { result: ProspectSearchResult }) {
   return (
     <>
+      <InterpretedQuery interpretation={result.interpretation} />
       <section className="f95-stack">
         <h2 className="f95-section-title">Who this is about</h2>
         {result.matches.length === 0 ? (

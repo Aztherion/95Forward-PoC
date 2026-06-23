@@ -185,6 +185,12 @@ CI and the test suites never touch live providers, so the **operator** verifies 
    ```
    A clean run means the live embedding provider authenticated and wrote vectors for every seeded constituent / KB entry / interaction.
 2. **Live reasoning (Anthropic).** With `AI_MODE=live` on the deployed web app, open **`/95-forward/copilot-lab`** (non-prod harness) or ask the copilot to draft a KB/strategy field on a prospect, and confirm a real grounded suggestion returns. If the model key is missing or wrong, the env schema rejects boot (live mode requires the key), so a green deploy already proves the key is present and valid.
+3. **Live structured-query extraction (Anthropic, Initiative 14).** The NL search extraction is a model call that CI only exercises on the deterministic mock; the live Haiku parse is mock-hidden, so verify it once. On the deployed app's **Search prospects** (`/95-forward/search`), run each acceptance query and confirm the **"How we read your search"** chips match:
+   - `Prospects with QPI higher than 80` → chip **QPI > 80**; results include The Hallworth Family Foundation.
+   - `Foundations with high capacity` → chips **Type is foundation** + **Capacity ≥ 4**; foundations only.
+   - `Not contacted in 60 days` → chip **Not contacted in 60 days**; a subset, not all prospects.
+   - `Strong relationship to clean water` → chip **Relationship ≥ 4** + semantic **Related to "clean water"** (hybrid).
+     A free-text query (e.g. a prospect name) should show **no** filter chips and still return matches. If extraction ever returns an off-whitelist field, it is Zod-rejected and the search degrades to pure-semantic — never an error.
 
 If keys are not yet available, the demo still runs on `mock`/`demo` — but the live smoke must be completed before presenting the live-AI configuration.
 
@@ -194,7 +200,7 @@ If keys are not yet available, the demo still runs on `mock`/`demo` — but the 
 
 - Deploy is green and the **pre-deploy migrate job succeeded** (latest migrations applied on DO).
 - **`RESEARCH_MODE=demo`** on the deployed app (not `live`) — the demo uses **fictional seeded candidates only** (the I12 responsible-AI guardrail).
-- **Live AI smoke done** (above) — embeddings re-embed cleanly with `EMBEDDING_MODE=live`; the copilot returns a real suggestion with `AI_MODE=live`.
+- **Live AI smoke done** (above) — embeddings re-embed cleanly with `EMBEDDING_MODE=live`; the copilot returns a real suggestion with `AI_MODE=live`; the NL search extracts the four acceptance queries into the right interpreted-query chips (Initiative 14).
 - Demo data present / refreshed — run the guarded reset if you want a pristine slate (`ALLOW_DESTRUCTIVE_RESET=true RESEARCH_MODE=demo pnpm --filter @95forward/db reset --confirm`).
 - **Auth0 callback / logout URLs** include the deployed domain.
 - A smoke pass of the full demo click-path against the deployed URL.

@@ -75,6 +75,7 @@ export class LiveModelProvider implements ModelProvider {
               input_schema: tool.input_schema as Anthropic.Tool.InputSchema,
             })),
           }),
+      ...(req.toolChoice === undefined ? {} : { tool_choice: req.toolChoice }),
       ...(req.temperature === undefined ? {} : { temperature: req.temperature }),
     });
     return {
@@ -293,6 +294,38 @@ export function buildMockScripts(params: BuildMockScriptsParams): Record<string,
           "Grounded in the Tomorrow frame and the regional scale-up goal; framed as a concrete, donor-centric case for support.",
       }),
       textResponse("Drafted a funding rationale for your review, grounded in the initiative."),
+    ],
+    // Initiative 14 extraction scripts. The mock matches a tag as a substring of the user message,
+    // and the extraction call sends the raw query inside <query>…</query> — so these tags are
+    // distinctive substrings of the acceptance queries. Each emits one emit_search_filters tool_use
+    // mirroring what live Haiku should produce. A query matching no tag makes the mock throw, which
+    // extractSearchFilters catches and degrades to pure-semantic — the intended unparseable fallback.
+    "QPI higher than 80": [
+      toolUseResponse("emit_search_filters", {
+        filters: [{ field: "qpi_total", op: "gt", value: 80 }],
+        semanticTerms: null,
+      }),
+    ],
+    "Foundations with high capacity": [
+      toolUseResponse("emit_search_filters", {
+        filters: [
+          { field: "type", op: "eq", value: "foundation" },
+          { field: "capacity", op: "gte", value: 4 },
+        ],
+        semanticTerms: null,
+      }),
+    ],
+    "Not contacted in 60 days": [
+      toolUseResponse("emit_search_filters", {
+        filters: [{ field: "last_contact_days", op: "gt", value: 60 }],
+        semanticTerms: null,
+      }),
+    ],
+    "Strong relationship to clean water": [
+      toolUseResponse("emit_search_filters", {
+        filters: [{ field: "relationship", op: "gte", value: 4 }],
+        semanticTerms: "clean water",
+      }),
     ],
   };
 }

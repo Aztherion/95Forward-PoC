@@ -4,9 +4,11 @@ import {
   asks,
   constituents,
   followUpTasks,
+  fundingInitiatives,
   interactions,
   knowledgeBase,
   naturalPartners,
+  prospectFundingInitiatives,
   prospects,
   relationshipMapEntries,
   researchGaps,
@@ -27,11 +29,13 @@ import {
 } from "@95forward/shared";
 import {
   createProviders,
+  extractSearchFilters,
   hybridRetrieve,
   type CallerContext,
   type Citation,
   type RetrievalResult,
 } from "@95forward/ai";
+import type { QueryInterpretation } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
 import {
   deriveCadence,
@@ -41,7 +45,10 @@ import {
   type ProspectStatus,
 } from "@/lib/prospect-cadence";
 
-export type ProspectType = "individual" | "organization" | "foundation";
+import type { ProspectType, FundingFrame, ProspectListRow } from "./prospect-types";
+import { applyStructuredFilters, type EnrichedProspectListRow } from "./structured-filters";
+export type { ProspectType, FundingFrame, ProspectListRow } from "./prospect-types";
+export { applyStructuredFilters, type EnrichedProspectListRow } from "./structured-filters";
 
 export interface ProspectListParams {
   type?: ProspectType;
@@ -49,24 +56,6 @@ export interface ProspectListParams {
   band?: QpiBand;
   status?: ProspectStatus;
   focus?: "top33" | "unvisited90" | "hasOpenSuggestion";
-}
-
-export interface ProspectListRow {
-  id: string;
-  rank: number;
-  name: string;
-  type: ProspectType;
-  descriptor: string;
-  qpi: QpiResult;
-  rmName: string | null;
-  partnerName: string | null;
-  status: ProspectStatus;
-  cadence: string;
-  top33: boolean;
-  // Execution signals (I10) that feed the cycle-aware next-right-move rungs.
-  openFollowUpDueAt: Date | null;
-  visited: boolean;
-  hasAsk: boolean;
 }
 
 export interface ProspectRef {
@@ -130,11 +119,36 @@ export async function getTenantWeights(tenantId: string): Promise<QpiWeights> {
   });
 }
 
-export async function getProspectsList(
-  tenantId: string,
-  caller: Pick<CurrentUser, "id">,
-  params: ProspectListParams = {},
-): Promise<ProspectListRow[]> {
+// Bulk-load each prospect's funding horizons via the cultivation join (a prospect can be cultivated
+// toward several initiatives across horizons; ANY association of a frame qualifies it). Empty-guarded.
+async function loadProspectHorizons(
+  tx: Tx,
+  prospectIds: string[],
+): Promise<Map<string, Set<FundingFrame>>> {
+  const map = new Map<string, Set<FundingFrame>>();
+  if (prospectIds.length === 0) return map;
+  const rows = await tx
+    .selectDistinct({
+      prospectId: prospectFundingInitiatives.prospectId,
+      frame: fundingInitiatives.frame,
+    })
+    .from(prospectFundingInitiatives)
+    .innerJoin(
+      fundingInitiatives,
+      eq(fundingInitiatives.id, prospectFundingInitiatives.fundingInitiativeId),
+    )
+    .where(inArray(prospectFundingInitiatives.prospectId, prospectIds));
+  for (const row of rows) {
+    const set = map.get(row.prospectId) ?? new Set<FundingFrame>();
+    set.add(row.frame as FundingFrame);
+    map.set(row.prospectId, set);
+  }
+  return map;
+}
+
+// The full enriched prospect list (rank-then-QPI ordered), carrying the internal fields the
+// structured-search filters need. getProspectsList wraps this and strips them.
+export async function getEnrichedProspects(tenantId: string): Promise<EnrichedProspectListRow[]> {
   const weights = await getTenantWeights(tenantId);
   return withTenant(getAppDb(), tenantId, async (tx) => {
     const records = await tx.query.prospects.findMany({
@@ -161,12 +175,14 @@ export async function getProspectsList(
     });
 
     const constituentIds = records.map((record) => record.constituent.id);
+    const prospectIds = records.map((record) => record.id);
     const lastContactByConstituent = await loadLastContact(tx, constituentIds);
     const openFollowUpByProspect = await loadOpenFollowUps(tx);
     const visitedProspects = await loadExecutedVisitProspects(tx);
     const askProspects = await loadAskProspects(tx);
+    const horizonsByProspect = await loadProspectHorizons(tx, prospectIds);
 
-    const rows = records.map((record) => {
+    const rows: EnrichedProspectListRow[] = records.map((record) => {
       const qpi = computeQpi(toDimensionInputs(record.qpiAssessments), weights);
       const status = record.status as ProspectStatus;
       const firstPartner = record.naturalPartners[0];
@@ -188,10 +204,22 @@ export async function getProspectsList(
         hasAsk: askProspects.has(record.id),
         rmUserId: record.rm?.id ?? null,
         lastContactAt,
+        horizons: horizonsByProspect.get(record.id) ?? new Set<FundingFrame>(),
       };
     });
 
-    const filtered = rows.filter((row) => {
+    return rows.sort((a, b) => b.qpi.total - a.qpi.total || a.rank - b.rank);
+  });
+}
+
+export async function getProspectsList(
+  tenantId: string,
+  caller: Pick<CurrentUser, "id">,
+  params: ProspectListParams = {},
+): Promise<ProspectListRow[]> {
+  const rows = await getEnrichedProspects(tenantId);
+  return rows
+    .filter((row) => {
       if (params.type && row.type !== params.type) return false;
       if (params.status && row.status !== params.status) return false;
       if (params.band && row.qpi.band !== params.band) return false;
@@ -204,12 +232,10 @@ export async function getProspectsList(
         return false;
       if (params.focus === "hasOpenSuggestion" && row.qpi.unknownCount === 0) return false;
       return true;
-    });
-
-    return filtered
-      .sort((a, b) => b.qpi.total - a.qpi.total || a.rank - b.rank)
-      .map(({ rmUserId: _rmUserId, lastContactAt: _lastContactAt, ...row }) => row);
-  });
+    })
+    .map(
+      ({ rmUserId: _rmUserId, lastContactAt: _lastContactAt, horizons: _horizons, ...row }) => row,
+    );
 }
 
 export interface ProspectActivity {
@@ -442,6 +468,7 @@ export interface ProspectSearchResult {
   unknown: boolean;
   note?: string;
   matches: ProspectMatch[];
+  interpretation: QueryInterpretation;
 }
 
 export interface ProspectMatch {
@@ -452,20 +479,45 @@ export interface ProspectMatch {
   qpi: QpiResult;
 }
 
-// NL prospect search grounds every answer in retrieval provenance, then maps the matched rows back
-// to ranked prospects so the UI can show "here are the people this is about" with their citations.
+function toMatch(row: {
+  id: string;
+  name: string;
+  type: ProspectType;
+  rank: number;
+  qpi: QpiResult;
+}): ProspectMatch {
+  return { id: row.id, name: row.name, type: row.type, rank: row.rank, qpi: row.qpi };
+}
+
+// NL prospect search (Initiative 14): an LLM extracts whitelist-bounded structured filters + an
+// optional semantic term, and we compose three modes. Pure-semantic is the existing path, untouched.
 export async function searchProspects(
   tenantId: string,
   caller: CallerContext,
   query: string,
 ): Promise<ProspectSearchResult> {
+  const model = createProviders(getEnv()).model;
+  const interpretation = await extractSearchFilters(model, query);
+
+  if (interpretation.mode === "semantic") {
+    return semanticSearch(tenantId, caller, query, interpretation);
+  }
+  if (interpretation.mode === "structured") {
+    return structuredSearch(tenantId, caller, interpretation);
+  }
+  return hybridSearch(tenantId, caller, interpretation);
+}
+
+// Pure-semantic: the existing vector+keyword path, unchanged — extraction returned no filters.
+async function semanticSearch(
+  tenantId: string,
+  caller: CallerContext,
+  query: string,
+  interpretation: QueryInterpretation,
+): Promise<ProspectSearchResult> {
   const embedding = createProviders(getEnv()).embedding;
   const retrieval = await hybridRetrieve(getAppDb(), caller, embedding, query, { topK: 8 });
 
-  // Vector hits cite their own table's row (constituents / knowledge_base / interactions), never the
-  // prospect — so resolve each citation back to its prospect via the schema FKs. Without this the
-  // citation rowIds never match prospect.id and the vector path is dead (every query fell to the
-  // keyword scan, which a semantic query can't satisfy → "No matched prospects").
   const vectorProspectIds = await resolveProspectIdsFromCitations(
     tenantId,
     retrieval.facts.flatMap((fact) => fact.citations),
@@ -473,13 +525,10 @@ export async function searchProspects(
   const keywordProspectIds = await keywordMatchProspectIds(tenantId, query);
 
   const list = await getProspectsList(tenantId, caller);
-  // Union vector + keyword recall (demo: maximize recall), ranking semantic vector matches ahead of
-  // keyword-only ones, then by QPI. For production this could revert to vector-first with keyword
-  // only as a fallback.
   const matchedIds = new Set<string>([...vectorProspectIds, ...keywordProspectIds]);
   const matches = list
     .filter((row) => matchedIds.has(row.id))
-    .map((row) => ({ id: row.id, name: row.name, type: row.type, rank: row.rank, qpi: row.qpi }))
+    .map(toMatch)
     .sort((a, b) => {
       const aVec = vectorProspectIds.has(a.id) ? 0 : 1;
       const bVec = vectorProspectIds.has(b.id) ? 0 : 1;
@@ -491,6 +540,82 @@ export async function searchProspects(
     unknown: retrieval.unknown,
     note: retrieval.note,
     matches,
+    interpretation,
+  };
+}
+
+function structuredSummaryFact(count: number): RetrievalResult["facts"] {
+  if (count === 0) return [];
+  return [
+    {
+      fact: `${count} prospect${count === 1 ? "" : "s"} match these filters.`,
+      citations: [
+        { source: "prospects", sourceType: "structured", detail: "structured filter match" },
+      ],
+    },
+  ];
+}
+
+// Pure-structured: deterministic filter over the enriched list, ranked by QPI. No semantic retrieval
+// runs, so facts are synthesized from the deterministic match (not fabricated per-prospect claims).
+async function structuredSearch(
+  tenantId: string,
+  caller: CallerContext,
+  interpretation: QueryInterpretation,
+): Promise<ProspectSearchResult> {
+  const rows = await getEnrichedProspects(tenantId);
+  const matched = applyStructuredFilters(rows, interpretation.filters, caller.id);
+  const matches = matched.map(toMatch);
+  return {
+    facts: structuredSummaryFact(matches.length),
+    unknown: false,
+    note: matches.length === 0 ? "No prospects match those filters." : undefined,
+    matches,
+    interpretation,
+  };
+}
+
+// Hybrid: the structured filter defines the candidate set; the semantic term orders within it —
+// semantically-matched candidates first (by retrieval recall), then the rest by QPI. Structured-only
+// matches are kept (a valid filter match without a semantic signal isn't dropped).
+async function hybridSearch(
+  tenantId: string,
+  caller: CallerContext,
+  interpretation: QueryInterpretation,
+): Promise<ProspectSearchResult> {
+  const rows = await getEnrichedProspects(tenantId);
+  const candidates = applyStructuredFilters(rows, interpretation.filters, caller.id);
+  if (candidates.length === 0) {
+    return {
+      facts: [],
+      unknown: false,
+      note: "No prospects match those filters.",
+      matches: [],
+      interpretation,
+    };
+  }
+
+  const semanticTerms = interpretation.semanticTerms ?? "";
+  const embedding = createProviders(getEnv()).embedding;
+  const retrieval = await hybridRetrieve(getAppDb(), caller, embedding, semanticTerms, { topK: 8 });
+  const semanticIds = await resolveProspectIdsFromCitations(
+    tenantId,
+    retrieval.facts.flatMap((fact) => fact.citations),
+  );
+
+  const candidateById = new Map(candidates.map((row) => [row.id, row]));
+  const matches = [...candidateById.values()].map(toMatch).sort((a, b) => {
+    const aSem = semanticIds.has(a.id) ? 0 : 1;
+    const bSem = semanticIds.has(b.id) ? 0 : 1;
+    return aSem - bSem || b.qpi.total - a.qpi.total;
+  });
+
+  return {
+    facts: [...retrieval.facts, ...structuredSummaryFact(matches.length)],
+    unknown: false,
+    note: undefined,
+    matches,
+    interpretation,
   };
 }
 

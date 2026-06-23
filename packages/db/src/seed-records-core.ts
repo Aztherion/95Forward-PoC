@@ -881,6 +881,29 @@ export async function seedRecordsCore(db: Database, tenantId: string): Promise<v
     await db.insert(interactions).values(i).onConflictDoNothing({ target: interactions.id });
   }
 
+  // Recent touchpoints (relative to seed time) for a couple of prospects, so "not contacted in N
+  // days" returns a meaningful subset rather than everyone — the historical interactions above are
+  // all dated in 2025 and drift past any recency window as time passes. Idempotent via stableId.
+  const recentlyContacted: { key: string; daysAgo: number }[] = [
+    { key: "northwater", daysAgo: 12 },
+    { key: "whitfield", daysAgo: 21 },
+  ];
+  for (const r of recentlyContacted) {
+    const constituentId = stableId(`constituent:${r.key}`);
+    await db
+      .insert(interactions)
+      .values({
+        id: stableId(`interaction:${r.key}:recent`),
+        tenantId,
+        constituentId,
+        type: "call",
+        occurredAt: new Date(Date.now() - r.daysAgo * 86_400_000),
+        summary: `Recent check-in call ahead of the next ask.`,
+        ownerUserId: userIds.dana,
+      })
+      .onConflictDoNothing({ target: interactions.id });
+  }
+
   for (const ct of allConstituentTags) {
     await db.insert(constituentTags).values(ct).onConflictDoNothing({ target: constituentTags.id });
   }

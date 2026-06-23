@@ -13,3 +13,4 @@ export * from "./jobs/embed-content";
 export * from "./jobs/draft-follow-up";
 export * from "./jobs/discovery-prospects";
 export * from "./jobs/task-list";
+export * from "./extraction";
