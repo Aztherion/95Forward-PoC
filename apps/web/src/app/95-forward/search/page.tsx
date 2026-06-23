@@ -26,12 +26,22 @@ const EXAMPLES = [
   "Strong relationship to clean water",
 ];
 
+// A semantic term is only worth showing when it's a real phrase — guard against null, empty/
+// whitespace, and the literal string "null" so a pure-structured query never renders "Related to null".
+function semanticTermOf(interpretation: QueryInterpretation): string | null {
+  const term = interpretation.semanticTerms?.trim();
+  if (!term || term.toLowerCase() === "null") return null;
+  return term;
+}
+
 // "How your query was understood" — the parsed structured filters as chips, plus the semantic term
 // and a note when the parse fell back to pure-semantic. Makes the AI's interpretation legible.
 function InterpretedQuery({ interpretation }: { interpretation: QueryInterpretation }) {
   const hasFilters = interpretation.filters.length > 0;
-  const hasSemantic = interpretation.semanticTerms !== null;
-  if (!hasFilters && !hasSemantic && !interpretation.fellBack) return null;
+  // On a fallback the "free-text search" note already explains the query wholesale, so the redundant
+  // "Related to <query>" chip is suppressed; the semantic chip is for the deliberate hybrid term.
+  const semanticTerm = interpretation.fellBack ? null : semanticTermOf(interpretation);
+  if (!hasFilters && semanticTerm === null && !interpretation.fellBack) return null;
   return (
     <section className="f95-stack f95-stack--sm" data-testid="interpreted-query">
       <div className="f95-cluster">
@@ -48,9 +58,9 @@ function InterpretedQuery({ interpretation }: { interpretation: QueryInterpretat
             {filterChipLabel(filter)}
           </Tag>
         ))}
-        {interpretation.semanticTerms ? (
+        {semanticTerm !== null ? (
           <Tag color="var(--reg-accent, #235C86)" data-testid="interpreted-semantic">
-            Related to “{interpretation.semanticTerms}”
+            Related to “{semanticTerm}”
           </Tag>
         ) : null}
         {interpretation.fellBack ? (
@@ -96,15 +106,29 @@ function MatchRow({ match }: { match: ProspectMatch }) {
 }
 
 function Results({ result }: { result: ProspectSearchResult }) {
+  const matchCount = result.matches.length;
+  // "What we found" is the grounded-evidence section — retrieved facts with their sources. A
+  // pure-structured query has no retrieved evidence (its only "fact" is the count, now shown in the
+  // heading), so we omit the section rather than restate the list with a non-interactive provenance
+  // chip. Semantic/hybrid queries keep it, where it carries real KB/interaction snippets.
+  const showWhatWeFound = result.interpretation.mode !== "structured";
   return (
     <>
       <InterpretedQuery interpretation={result.interpretation} />
       <section className="f95-stack">
-        <h2 className="f95-section-title">Who this is about</h2>
-        {result.matches.length === 0 ? (
+        <h2 className="f95-section-title">
+          Who this is about
+          {matchCount > 0 ? (
+            <span className="f95-section-title__meta">
+              {" · "}
+              {matchCount} prospect{matchCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+        </h2>
+        {matchCount === 0 ? (
           <EmptyState
             title="No matched prospects"
-            line="The grounded facts below carry their own sources. Refine the question to pull specific people, companies, or foundations."
+            line="Refine the question to pull specific people, companies, or foundations."
           />
         ) : (
           <div className="f95-mpl__list">
@@ -115,47 +139,49 @@ function Results({ result }: { result: ProspectSearchResult }) {
         )}
       </section>
 
-      <section className="f95-stack">
-        <h2 className="f95-section-title">What we found</h2>
-        {result.unknown || result.facts.length === 0 ? (
-          <Card pad="lg">
+      {showWhatWeFound ? (
+        <section className="f95-stack">
+          <h2 className="f95-section-title">What we found</h2>
+          {result.unknown || result.facts.length === 0 ? (
+            <Card pad="lg">
+              <div className="f95-stack f95-stack--sm">
+                <SourceTag label="Unknown — worth researching" />
+                <p className="f95-page__count">
+                  {result.note ??
+                    "No grounded answer yet. Try rephrasing, or add what you know on a prospect so your copilot can ground the next answer."}
+                </p>
+              </div>
+            </Card>
+          ) : (
             <div className="f95-stack f95-stack--sm">
-              <SourceTag label="Unknown — worth researching" />
-              <p className="f95-page__count">
-                {result.note ??
-                  "No grounded answer yet. Try rephrasing, or add what you know on a prospect so your copilot can ground the next answer."}
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <div className="f95-stack f95-stack--sm">
-            {result.facts.map((fact, factIndex) => (
-              <Card key={`${factIndex}-${fact.fact.slice(0, 24)}`} pad="lg">
-                <div className="f95-itemrow" style={{ borderBottom: "none", paddingBottom: 0 }}>
-                  <div className="f95-itemrow__body">
-                    <div className="f95-itemrow__title" style={{ fontWeight: 400 }}>
-                      {fact.fact}
-                    </div>
-                    <div className="f95-cluster">
-                      {fact.citations.length === 0 ? (
-                        <SourceTag label="Unknown — worth researching" />
-                      ) : (
-                        fact.citations.map((citation, citeIndex) => (
-                          <SourceTag
-                            key={`${citeIndex}-${citation.source}`}
-                            source={citation.source}
-                            title={citation.detail ?? citation.sourceType}
-                          />
-                        ))
-                      )}
+              {result.facts.map((fact, factIndex) => (
+                <Card key={`${factIndex}-${fact.fact.slice(0, 24)}`} pad="lg">
+                  <div className="f95-itemrow" style={{ borderBottom: "none", paddingBottom: 0 }}>
+                    <div className="f95-itemrow__body">
+                      <div className="f95-itemrow__title" style={{ fontWeight: 400 }}>
+                        {fact.fact}
+                      </div>
+                      <div className="f95-cluster">
+                        {fact.citations.length === 0 ? (
+                          <SourceTag label="Unknown — worth researching" />
+                        ) : (
+                          fact.citations.map((citation, citeIndex) => (
+                            <SourceTag
+                              key={`${citeIndex}-${citation.source}`}
+                              source={citation.source}
+                              title={citation.detail ?? citation.sourceType}
+                            />
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
     </>
   );
 }

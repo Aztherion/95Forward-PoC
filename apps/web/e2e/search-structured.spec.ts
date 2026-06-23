@@ -96,3 +96,54 @@ test.describe("95 Forward — NL structured-query layer (Initiative 14)", () => 
     await expect(page.getByText("No matched prospects")).toBeVisible();
   });
 });
+
+test.describe("95 Forward — search UI polish", () => {
+  test("triggering a search via a SUGGESTION CHIP shows a pending affordance", async ({ page }) => {
+    await page.goto(SEARCH);
+    // Click the chip (a button, not a form submit) — under MOCK_LATENCY_MS the transition is pending
+    // long enough to assert. This is the path that previously showed no loading feedback.
+    await page.getByRole("button", { name: "Foundations with high capacity" }).click();
+    await expect(page.getByTestId("search-pending")).toBeVisible();
+    await page.waitForURL(/[?&]q=/);
+    await expect(page.locator('[data-testid="search-match"]').first()).toBeVisible();
+  });
+
+  test("triggering a search via the Search button also shows a pending affordance", async ({
+    page,
+  }) => {
+    await page.goto(SEARCH);
+    await page.getByLabel("Search prospects").fill("Prospects with QPI higher than 80");
+    await page
+      .getByRole("button", { name: "Searching…" })
+      .or(page.getByRole("button", { name: "Search", exact: true }))
+      .click();
+    await expect(page.getByTestId("search-pending")).toBeVisible();
+    await page.waitForURL(/[?&]q=/);
+  });
+
+  test("a pure-structured query shows no 'Related to null' chip and the count is in the heading", async ({
+    page,
+  }) => {
+    await search(page, "Prospects with QPI higher than 80");
+
+    // #2: no stringified-null semantic chip.
+    await expect(page.getByTestId("interpreted-semantic")).toHaveCount(0);
+    await expect(page.getByText("Related to", { exact: false })).toHaveCount(0);
+
+    // #3: the count moves into the "Who this is about" heading…
+    await expect(
+      page.getByRole("heading", { name: /Who this is about · 2 prospects/ }),
+    ).toBeVisible();
+    // …and "What we found" is omitted for pure-structured (no retrieved evidence, no dead chip).
+    await expect(page.getByRole("heading", { name: "What we found" })).toHaveCount(0);
+  });
+
+  test("a semantic query keeps 'What we found' with its grounded sources", async ({ page }) => {
+    await search(page, "Hallworth");
+    await expect(
+      page.getByRole("heading", { name: "Who this is about", exact: false }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What we found" })).toBeVisible();
+    await expect(page.locator(".f95-src").first()).toBeVisible();
+  });
+});

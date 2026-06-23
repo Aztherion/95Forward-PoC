@@ -646,6 +646,10 @@
   font: var(--text-h3);
   color: var(--text-strong);
 }
+.f95-section-title__meta {
+  color: var(--text-muted);
+  font-weight: 400;
+}
 .f95-inline-form {
   display: flex;
   flex-direction: column;
