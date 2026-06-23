@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkle } from "lucide-react";
 import type { ProposalRow } from "@95forward/ai";
 import { Button, Card, Textarea } from "@/components/ds";
+import { CopilotTrigger } from "@/components/copilot/CopilotTrigger";
 import {
   runCallMemoDraftAction,
   runFollowUpDraftAction,
@@ -100,28 +100,16 @@ export function CopilotDrafts({
         <div className="f95-cluster">
           <h2 className="f95-section-title">From your copilot</h2>
           <span className="f95-recordbar__spacer" />
-          <form action={runCallMemoDraftAction}>
-            <input type="hidden" name="prospectId" value={prospectId} />
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              iconLeft={<Sparkle size={15} strokeWidth={1.8} />}
-            >
-              Draft a call memo
-            </Button>
-          </form>
-          <form action={runFollowUpDraftAction}>
-            <input type="hidden" name="prospectId" value={prospectId} />
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              iconLeft={<Sparkle size={15} strokeWidth={1.8} />}
-            >
-              Draft the follow-up
-            </Button>
-          </form>
+          <CopilotTrigger
+            action={runCallMemoDraftAction}
+            subjectId={prospectId}
+            label="Draft a call memo"
+          />
+          <CopilotTrigger
+            action={runFollowUpDraftAction}
+            subjectId={prospectId}
+            label="Draft the follow-up"
+          />
         </div>
         {drafts.length === 0 ? (
           <span className="f95-deflist__desc--empty">

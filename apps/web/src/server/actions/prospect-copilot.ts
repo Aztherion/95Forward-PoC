@@ -17,6 +17,7 @@ import { getEnv } from "@95forward/shared";
 import type { CurrentUser } from "@95forward/shared";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppDb } from "@/server/db";
+import type { CopilotActionState } from "@/components/copilot/copilot-action-state";
 
 type Caller = Pick<CurrentUser, "id" | "tenantId" | "role">;
 
@@ -51,37 +52,11 @@ function qpiProviders(prospectId: string): Providers {
   };
 }
 
-function buildProviders(prospectId: string): Providers {
-  const env = getEnv();
-  if (env.AI_MODE === "live") {
-    return createProviders(env);
-  }
-  return qpiProviders(prospectId);
-}
-
-export async function runProspectQpiAction(formData: FormData): Promise<void> {
-  try {
-    const user = await getCurrentUser();
-    if (!user) return;
-    const prospectId = formData.get("prospectId");
-    if (typeof prospectId !== "string" || prospectId.length === 0) return;
-
-    await runTask({
-      providers: buildProviders(prospectId),
-      taskType: "propose_qpi",
-      tools: buildToolset(),
-      caller: callerOf(user),
-      db: getAppDb(),
-      userContent: `propose_qpi for prospect ${prospectId}.`,
-    });
-  } catch (error) {
-    console.error("[prospects] runProspectQpiAction failed", error);
-  } finally {
-    const id = formData.get("prospectId");
-    if (typeof id === "string" && id.length > 0) {
-      revalidatePath(`/95-forward/prospects/${id}`);
-    }
-  }
+export async function runProspectQpiAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runCopilotTask(formData, "propose_qpi", qpiProviders, "runProspectQpiAction");
 }
 
 function knowledgeProviders(prospectId: string): Providers {
@@ -176,19 +151,21 @@ function relationshipMapProviders(prospectId: string): Providers {
 async function runCopilotTask(
   formData: FormData,
   taskType:
+    | "propose_qpi"
     | "draft_strategy"
     | "propose_relationship_map"
     | "research_prospect"
     | "draft_visit_plan",
   providersFor: (prospectId: string) => Providers,
   label: string,
-): Promise<void> {
+): Promise<CopilotActionState> {
   let prospectId: string | null = null;
   try {
     const user = await getCurrentUser();
-    if (!user) return;
+    if (!user) return { ok: false, error: "Your session has expired — sign in again." };
     const raw = formData.get("prospectId");
-    if (typeof raw !== "string" || raw.length === 0) return;
+    if (typeof raw !== "string" || raw.length === 0)
+      return { ok: false, error: "Missing prospect." };
     prospectId = raw;
 
     const providers = getEnv().AI_MODE === "live" ? createProviders(getEnv()) : providersFor(raw);
@@ -200,15 +177,20 @@ async function runCopilotTask(
       db: getAppDb(),
       userContent: `${taskType} for prospect ${raw}.`,
     });
+    return { ok: true };
   } catch (error) {
     console.error(`[prospects] ${label} failed`, error);
+    return { ok: false, error: "The copilot could not finish — please try again." };
   } finally {
     if (prospectId) revalidatePath(`/95-forward/prospects/${prospectId}`);
   }
 }
 
-export async function runProspectKnowledgeAction(formData: FormData): Promise<void> {
-  await runCopilotTask(
+export async function runProspectKnowledgeAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runCopilotTask(
     formData,
     "research_prospect",
     knowledgeProviders,
@@ -216,12 +198,18 @@ export async function runProspectKnowledgeAction(formData: FormData): Promise<vo
   );
 }
 
-export async function runProspectStrategyAction(formData: FormData): Promise<void> {
-  await runCopilotTask(formData, "draft_strategy", strategyProviders, "runProspectStrategyAction");
+export async function runProspectStrategyAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runCopilotTask(formData, "draft_strategy", strategyProviders, "runProspectStrategyAction");
 }
 
-export async function runProspectVisitPlanAction(formData: FormData): Promise<void> {
-  await runCopilotTask(
+export async function runProspectVisitPlanAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runCopilotTask(
     formData,
     "draft_visit_plan",
     visitPlanProviders,
@@ -229,8 +217,11 @@ export async function runProspectVisitPlanAction(formData: FormData): Promise<vo
   );
 }
 
-export async function runProspectRelationshipMapAction(formData: FormData): Promise<void> {
-  await runCopilotTask(
+export async function runProspectRelationshipMapAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runCopilotTask(
     formData,
     "propose_relationship_map",
     relationshipMapProviders,

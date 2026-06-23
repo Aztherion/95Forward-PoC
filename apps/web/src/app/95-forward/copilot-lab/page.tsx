@@ -9,6 +9,7 @@ import {
   type ProvisionalSuggestionState,
 } from "@/components/ds";
 import { Topbar } from "@/components/shell";
+import { CopilotTrigger } from "@/components/copilot/CopilotTrigger";
 import { getCurrentUser } from "@/lib/auth";
 import { getDemoSubject, listSubjectProposals } from "@/server/data/copilot";
 import {
@@ -110,16 +111,12 @@ export default async function CopilotLabPage() {
             />
           )}
 
-          <form action={runCopilotAction}>
-            <Button
-              type="submit"
-              variant="go"
-              size="md"
-              iconLeft={<FlaskConical size={16} strokeWidth={1.8} />}
-            >
-              Run copilot
-            </Button>
-          </form>
+          <CopilotTrigger
+            action={runCopilotAction}
+            subjectId=""
+            label="Run copilot"
+            icon={<FlaskConical size={16} strokeWidth={1.8} />}
+          />
 
           {proposals.length === 0 ? (
             <EmptyState

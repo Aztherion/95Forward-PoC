@@ -38,6 +38,7 @@ import {
 import { getConstituentIdForProspect } from "@/server/data/execution-data";
 import { getTenantSettings } from "@/server/data/settings";
 import { enqueueFollowUpDraft } from "@/server/jobs";
+import type { CopilotActionState } from "@/components/copilot/copilot-action-state";
 
 export interface FormState {
   ok?: boolean;
@@ -221,16 +222,16 @@ async function runDraft(
   formData: FormData,
   taskType: "draft_call_memo" | "draft_follow_up",
   label: string,
-): Promise<void> {
+): Promise<CopilotActionState> {
   let prospectId: string | null = null;
   try {
     const user = await getCurrentUser();
-    if (!user) return;
+    if (!user) return { ok: false, error: "Your session has expired — sign in again." };
     const parsed = draftRequestSchema.safeParse({ prospectId: formData.get("prospectId") });
-    if (!parsed.success) return;
+    if (!parsed.success) return { ok: false, error: "Missing prospect." };
     prospectId = parsed.data.prospectId;
     const constituentId = await getConstituentIdForProspect(user.tenantId, prospectId);
-    if (!constituentId) return;
+    if (!constituentId) return { ok: false, error: "Prospect not found." };
     const providers =
       getEnv().AI_MODE === "live"
         ? createProviders(getEnv())
@@ -243,26 +244,37 @@ async function runDraft(
       db: getAppDb(),
       userContent: `${taskType} for prospect ${prospectId}.`,
     });
+    return { ok: true };
   } catch (error) {
     console.error(`[execution] ${label} failed`, error);
+    return { ok: false, error: "The copilot could not finish — please try again." };
   } finally {
     if (prospectId) revalidateProspect(prospectId);
   }
 }
 
-export async function runCallMemoDraftAction(formData: FormData): Promise<void> {
-  await runDraft(formData, "draft_call_memo", "runCallMemoDraftAction");
+export async function runCallMemoDraftAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
+  return runDraft(formData, "draft_call_memo", "runCallMemoDraftAction");
 }
 
 // The 24-hour follow-up draft is now a durable background job (Initiative 11), enqueued only when
 // the draft_24h_followups copilot toggle is on. The draft still lands as the I10 draft artifact.
-export async function runFollowUpDraftAction(formData: FormData): Promise<void> {
+export async function runFollowUpDraftAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
   const user = await getCurrentUser();
-  if (!user) return;
+  if (!user) return { ok: false, error: "Your session has expired — sign in again." };
   const parsed = draftRequestSchema.safeParse({ prospectId: formData.get("prospectId") });
-  if (!parsed.success) return;
+  if (!parsed.success) return { ok: false, error: "Missing prospect." };
   const settings = await getTenantSettings(user.tenantId);
-  if (!settings.toggles.draft_24h_followups) return;
+  if (!settings.toggles.draft_24h_followups) {
+    return { ok: false, error: "24-hour follow-up drafts are turned off in settings." };
+  }
   await enqueueFollowUpDraft(user.tenantId, user.id, parsed.data.prospectId);
   revalidateProspect(parsed.data.prospectId);
+  return { ok: true };
 }

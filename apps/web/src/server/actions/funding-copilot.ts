@@ -16,6 +16,7 @@ import {
 import { getEnv, type CurrentUser } from "@95forward/shared";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppDb } from "@/server/db";
+import type { CopilotActionState } from "@/components/copilot/copilot-action-state";
 
 type Caller = Pick<CurrentUser, "id" | "tenantId" | "role">;
 
@@ -45,13 +46,17 @@ function rationaleProviders(fundingInitiativeId: string): Providers {
   };
 }
 
-export async function runInitiativeRationaleAction(formData: FormData): Promise<void> {
+export async function runInitiativeRationaleAction(
+  _prev: CopilotActionState,
+  formData: FormData,
+): Promise<CopilotActionState> {
   let initiativeId: string | null = null;
   try {
     const user = await getCurrentUser();
-    if (!user) return;
+    if (!user) return { ok: false, error: "Your session has expired — sign in again." };
     const raw = formData.get("fundingInitiativeId");
-    if (typeof raw !== "string" || raw.length === 0) return;
+    if (typeof raw !== "string" || raw.length === 0)
+      return { ok: false, error: "Missing initiative." };
     initiativeId = raw;
 
     const providers =
@@ -64,8 +69,10 @@ export async function runInitiativeRationaleAction(formData: FormData): Promise<
       db: getAppDb(),
       userContent: `draft_funding_initiative_rationale for initiative ${raw}.`,
     });
+    return { ok: true };
   } catch (error) {
     console.error("[initiatives] runInitiativeRationaleAction failed", error);
+    return { ok: false, error: "The copilot could not finish — please try again." };
   } finally {
     if (initiativeId) revalidatePath(`/95-forward/initiatives/${initiativeId}`);
   }

@@ -21,6 +21,7 @@ import type { CurrentUser } from "@95forward/shared";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppDb } from "@/server/db";
 import { getDemoSubject } from "@/server/data/copilot";
+import type { CopilotActionState } from "@/components/copilot/copilot-action-state";
 
 const LAB_PATH = "/95-forward/copilot-lab";
 
@@ -96,14 +97,17 @@ function buildProviders(taskProviders: () => Providers): Providers {
   return taskProviders();
 }
 
-export async function runCopilotAction(_formData: FormData): Promise<void> {
+export async function runCopilotAction(
+  _prev: CopilotActionState,
+  _formData: FormData,
+): Promise<CopilotActionState> {
   try {
     const user = await getCurrentUser();
-    if (!user) return;
+    if (!user) return { ok: false, error: "Your session has expired — sign in again." };
     const caller = callerOf(user);
     const db = getAppDb();
     const subject = await getDemoSubject(user.tenantId);
-    if (!subject) return;
+    if (!subject) return { ok: false, error: "No seeded prospect to work with." };
 
     const tools = buildToolset();
 
@@ -124,8 +128,10 @@ export async function runCopilotAction(_formData: FormData): Promise<void> {
       db,
       userContent: `Run draft_outreach for constituent ${subject.constituentId} (${subject.constituentName}).`,
     });
+    return { ok: true };
   } catch (error) {
     console.error("[copilot-lab] runCopilotAction failed", error);
+    return { ok: false, error: "The copilot could not finish — please try again." };
   } finally {
     revalidatePath(LAB_PATH);
   }

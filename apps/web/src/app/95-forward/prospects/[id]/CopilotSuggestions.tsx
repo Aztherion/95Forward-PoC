@@ -7,6 +7,7 @@ import {
   ProvisionalSuggestion,
   type ProvisionalSuggestionState,
 } from "@/components/ds";
+import { CopilotTrigger } from "@/components/copilot/CopilotTrigger";
 import { approveProposalAction, dismissProposalAction } from "@/server/actions/copilot";
 import { runProspectQpiAction } from "@/server/actions/prospect-copilot";
 
@@ -99,17 +100,11 @@ export function CopilotSuggestions({
           {pending.length > 0 ? <span> · {pending.length} to review</span> : null}
         </h2>
         <span className="f95-recordbar__spacer" />
-        <form action={runProspectQpiAction}>
-          <input type="hidden" name="prospectId" value={prospectId} />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            iconLeft={<Sparkle size={15} strokeWidth={1.8} />}
-          >
-            Ask the copilot
-          </Button>
-        </form>
+        <CopilotTrigger
+          action={runProspectQpiAction}
+          subjectId={prospectId}
+          label="Ask the copilot"
+        />
       </div>
 
       {proposals.length === 0 ? (

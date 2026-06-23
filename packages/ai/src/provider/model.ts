@@ -115,15 +115,20 @@ export class MockModelProvider implements ModelProvider {
   readonly kind = "mock" as const;
   private queue: ModelResponse[] = [];
   private readonly scripts: Record<string, ModelResponse[]>;
+  private readonly delayMs: number;
   private activeScript: ModelResponse[] | null = null;
   private cursor = 0;
 
-  constructor(scripts: Record<string, ModelResponse[]> = {}) {
+  constructor(scripts: Record<string, ModelResponse[]> = {}, delayMs = 0) {
     this.scripts = scripts;
+    this.delayMs = delayMs;
   }
 
+  // MOCK_LATENCY_MS injects a deterministic delay so tests can exercise the slow-resolution path the
+  // instant mocks never covered (the copilot-trigger pending→resolved transition). Unset/0 in CI.
   static scripted(scriptByTag: Record<string, ModelResponse[]>): MockModelProvider {
-    return new MockModelProvider(scriptByTag);
+    const delayMs = Number.parseInt(process.env.MOCK_LATENCY_MS ?? "0", 10);
+    return new MockModelProvider(scriptByTag, Number.isFinite(delayMs) ? delayMs : 0);
   }
 
   queueResponse(response: ModelResponse): this {
@@ -140,6 +145,9 @@ export class MockModelProvider implements ModelProvider {
   }
 
   async createMessage(req: ModelRequest): Promise<ModelResponse> {
+    if (this.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.delayMs));
+    }
     if (this.queue.length > 0) {
       const next = this.queue.shift();
       if (next === undefined) throw new Error("MockModelProvider: queue underflow");

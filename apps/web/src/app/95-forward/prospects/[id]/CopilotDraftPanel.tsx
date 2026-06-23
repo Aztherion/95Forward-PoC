@@ -6,6 +6,8 @@ import {
   ProvisionalSuggestion,
   type ProvisionalSuggestionState,
 } from "@/components/ds";
+import { CopilotTrigger } from "@/components/copilot/CopilotTrigger";
+import type { CopilotActionState } from "@/components/copilot/copilot-action-state";
 import { approveProposalAction, dismissProposalAction } from "@/server/actions/copilot";
 
 type Provenance = { source?: string }[];
@@ -62,7 +64,7 @@ export interface CopilotDraftPanelProps {
   subjectId: string;
   subjectIdName?: string;
   proposals: ProposalRow[];
-  runAction: (formData: FormData) => void | Promise<void>;
+  runAction: (prev: CopilotActionState, formData: FormData) => Promise<CopilotActionState>;
   askLabel: string;
   emptyLine: string;
   testId: string;
@@ -87,17 +89,12 @@ export function CopilotDraftPanel({
           {pending.length > 0 ? <span> · {pending.length} to review</span> : null}
         </h2>
         <span className="f95-recordbar__spacer" />
-        <form action={runAction}>
-          <input type="hidden" name={subjectIdName} value={subjectId} />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            iconLeft={<Sparkle size={15} strokeWidth={1.8} />}
-          >
-            {askLabel}
-          </Button>
-        </form>
+        <CopilotTrigger
+          action={runAction}
+          subjectId={subjectId}
+          subjectIdName={subjectIdName}
+          label={askLabel}
+        />
       </div>
 
       {proposals.length === 0 ? (
