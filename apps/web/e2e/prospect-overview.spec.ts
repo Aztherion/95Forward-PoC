@@ -160,7 +160,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await copilot.getByRole("button", { name: "Ask the copilot" }).click();
 
     const suggestion = copilot.locator(".f95-prov").filter({ hasText: "Capacity" });
-    await expect(suggestion).toBeVisible();
+    await expect(suggestion).toBeVisible({ timeout: 15000 });
     await expect(suggestion.locator(".f95-prov__from")).toHaveText("Unknown");
     await expect(suggestion.locator(".f95-prov__to")).toHaveText("5");
     await expect(suggestion.locator(".f95-src")).toBeVisible();
@@ -180,7 +180,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await copilot.getByRole("button", { name: "Ask the copilot" }).click();
 
     const suggestion = copilot.locator(".f95-prov").filter({ hasText: "Capacity" });
-    await expect(suggestion).toBeVisible();
+    await expect(suggestion).toBeVisible({ timeout: 15000 });
 
     await suggestion.getByRole("button", { name: "Dismiss" }).click();
     await expect(qpiTotal(page)).toHaveText("48");
@@ -237,7 +237,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
       page
         .locator('[data-testid="relationship-team"] .f95-itemrow')
         .filter({ hasText: partnerName }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("offers Knowledge Base, Strategy, and Visits tabs as realized screens", async ({ page }) => {

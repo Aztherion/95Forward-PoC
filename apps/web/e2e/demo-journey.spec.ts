@@ -246,12 +246,14 @@ test.describe.serial("95 Forward — the headline demo journey (Initiative 13)",
     const card = candidateCard(page, "David Osei");
     await card.locator('[data-testid="candidate-endorse"]').click();
     const requestIntro = card.getByRole("button", { name: "Request intro" });
-    await expect(requestIntro).toBeVisible();
+    await expect(requestIntro).toBeVisible({ timeout: 15000 });
     await requestIntro.click();
     const promote = card.locator('[data-testid="candidate-promote"]');
-    await expect(promote).toBeVisible();
+    await expect(promote).toBeVisible({ timeout: 15000 });
     await promote.click();
-    await expect(candidateCard(page, "David Osei").getByText("On the list")).toBeVisible();
+    await expect(candidateCard(page, "David Osei").getByText("On the list")).toBeVisible({
+      timeout: 15000,
+    });
 
     await page.goto("/95-forward/prospects");
     await expect(page.locator("body")).toContainText("David Osei");

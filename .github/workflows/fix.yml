@@ -72,6 +72,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm build
+
       - name: Database setup (migrate + jobs schema + seed + embed)
         run: |
           pnpm db:wait
