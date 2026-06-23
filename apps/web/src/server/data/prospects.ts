@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, desc, eq, ilike, isNotNull, or } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 import {
   asks,
   constituents,
@@ -29,6 +29,7 @@ import {
   createProviders,
   hybridRetrieve,
   type CallerContext,
+  type Citation,
   type RetrievalResult,
 } from "@95forward/ai";
 import { getAppDb } from "@/server/db";
@@ -461,24 +462,29 @@ export async function searchProspects(
   const embedding = createProviders(getEnv()).embedding;
   const retrieval = await hybridRetrieve(getAppDb(), caller, embedding, query, { topK: 8 });
 
-  const matchedRowIds = new Set(
-    retrieval.facts.flatMap((fact) => fact.citations.map((citation) => citation.rowId)),
+  // Vector hits cite their own table's row (constituents / knowledge_base / interactions), never the
+  // prospect — so resolve each citation back to its prospect via the schema FKs. Without this the
+  // citation rowIds never match prospect.id and the vector path is dead (every query fell to the
+  // keyword scan, which a semantic query can't satisfy → "No matched prospects").
+  const vectorProspectIds = await resolveProspectIdsFromCitations(
+    tenantId,
+    retrieval.facts.flatMap((fact) => fact.citations),
   );
+  const keywordProspectIds = await keywordMatchProspectIds(tenantId, query);
 
   const list = await getProspectsList(tenantId, caller);
-  let matches = list
-    .filter((row) => matchedRowIds.has(row.id))
-    .map((row) => ({ id: row.id, name: row.name, type: row.type, rank: row.rank, qpi: row.qpi }));
-
-  // Mock embeddings aren't semantically clusterable, so vector retrieval can match no prospect rows
-  // in CI/demo. Fall back to a deterministic keyword scan over prospect/constituent names and KB
-  // text so natural-language search still returns the prospects the query is about.
-  if (matches.length === 0) {
-    const fallbackIds = await keywordMatchProspectIds(tenantId, query);
-    matches = list
-      .filter((row) => fallbackIds.has(row.id))
-      .map((row) => ({ id: row.id, name: row.name, type: row.type, rank: row.rank, qpi: row.qpi }));
-  }
+  // Union vector + keyword recall (demo: maximize recall), ranking semantic vector matches ahead of
+  // keyword-only ones, then by QPI. For production this could revert to vector-first with keyword
+  // only as a fallback.
+  const matchedIds = new Set<string>([...vectorProspectIds, ...keywordProspectIds]);
+  const matches = list
+    .filter((row) => matchedIds.has(row.id))
+    .map((row) => ({ id: row.id, name: row.name, type: row.type, rank: row.rank, qpi: row.qpi }))
+    .sort((a, b) => {
+      const aVec = vectorProspectIds.has(a.id) ? 0 : 1;
+      const bVec = vectorProspectIds.has(b.id) ? 0 : 1;
+      return aVec - bVec || b.qpi.total - a.qpi.total;
+    });
 
   return {
     facts: retrieval.facts,
@@ -486,6 +492,56 @@ export async function searchProspects(
     note: retrieval.note,
     matches,
   };
+}
+
+// Map retrieval citations (which reference constituents / knowledge_base / interactions rows) back
+// to the prospects they belong to, via the schema FKs. Each branch is guarded against empty arrays
+// because drizzle's inArray() emits invalid SQL for [].
+export async function resolveProspectIdsFromCitations(
+  tenantId: string,
+  citations: Citation[],
+): Promise<Set<string>> {
+  const constituentRowIds: string[] = [];
+  const kbRowIds: string[] = [];
+  const interactionRowIds: string[] = [];
+  for (const c of citations) {
+    if (c.rowId === undefined) continue;
+    if (c.source === "constituents") constituentRowIds.push(c.rowId);
+    else if (c.source === "knowledge_base") kbRowIds.push(c.rowId);
+    else if (c.source === "interactions") interactionRowIds.push(c.rowId);
+  }
+
+  const resolved = new Set<string>();
+  if (constituentRowIds.length === 0 && kbRowIds.length === 0 && interactionRowIds.length === 0) {
+    return resolved;
+  }
+
+  await withTenant(getAppDb(), tenantId, async (tx) => {
+    if (constituentRowIds.length > 0) {
+      const rows = await tx
+        .select({ id: prospects.id })
+        .from(prospects)
+        .where(inArray(prospects.constituentId, constituentRowIds));
+      for (const row of rows) resolved.add(row.id);
+    }
+    if (kbRowIds.length > 0) {
+      const rows = await tx
+        .select({ prospectId: knowledgeBase.prospectId })
+        .from(knowledgeBase)
+        .where(inArray(knowledgeBase.id, kbRowIds));
+      for (const row of rows) resolved.add(row.prospectId);
+    }
+    if (interactionRowIds.length > 0) {
+      const rows = await tx
+        .select({ id: prospects.id })
+        .from(prospects)
+        .innerJoin(interactions, eq(interactions.constituentId, prospects.constituentId))
+        .where(inArray(interactions.id, interactionRowIds));
+      for (const row of rows) resolved.add(row.id);
+    }
+  });
+
+  return resolved;
 }
 
 async function keywordMatchProspectIds(tenantId: string, query: string): Promise<Set<string>> {

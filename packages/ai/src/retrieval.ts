@@ -25,7 +25,11 @@ export interface HybridRetrieveOptions {
 }
 
 const DEFAULT_TOP_K = 5;
-const DEFAULT_MAX_DISTANCE = 0.35;
+// Cosine-distance cap for a vector hit to count. 0.55 admits genuinely-related content for live
+// OpenAI text-embedding-3-small (short query ↔ longer doc lands ~0.35–0.55) while still rejecting
+// unrelated topics (~0.7+). The earlier 0.35 predated live embeddings and rejected real matches.
+// Results are distance-sorted and topK-sliced, so this is a quality floor, not a volume control.
+const DEFAULT_MAX_DISTANCE = 0.55;
 
 function formatUsd(cents: number): string {
   return (cents / 100).toLocaleString("en-US", {
