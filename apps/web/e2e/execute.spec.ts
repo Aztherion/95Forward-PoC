@@ -191,7 +191,7 @@ test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () 
   test("the seeded referral shows, and a new referral promotes into a prospect", async ({
     page,
   }) => {
-    const referredName = `Dr. E2E Referral ${Date.now()}`;
+    const referredName = `Dr. E2E Referral ${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     cleanups.push(() => deleteReferralByName(referredName));
 
     await gotoVisitsTab(page, HALLWORTH_ID);

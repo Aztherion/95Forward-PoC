@@ -6,6 +6,7 @@ test.describe("Copilot lab demonstration harness", () => {
   test("runs the full loop: propose, approve, and dismiss with no applied write until approval", async ({
     page,
   }) => {
+    test.setTimeout(60_000);
     await page.goto(LAB);
 
     await expect(page.locator('[data-register="95-forward"]')).toHaveCount(1);

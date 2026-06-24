@@ -233,7 +233,7 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
 
     await expect(
       pipeline.locator('[data-testid="pipeline-prospect"]').filter({ hasText: "Bello" }),
-    ).toHaveCount(0);
+    ).toHaveCount(0, { timeout: 15000 });
   });
 
   test("the copilot drafts a rationale as a provisional iris suggestion", async ({ page }) => {

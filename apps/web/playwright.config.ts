@@ -13,6 +13,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // Multi-step server-action/copilot flows under MOCK_LATENCY_MS + a saturated shared dev server can
+  // legitimately exceed Playwright's 30s default; 45s gives headroom without letting a genuinely
+  // hung test linger. The heaviest multi-round-trip tests raise it further locally via test.setTimeout.
+  timeout: 45_000,
   // The whole suite shares one `next dev` server, whose on-demand compilation is the bottleneck.
   // Capping workers keeps the server from being oversaturated (which timed out a random test per
   // run under the default ~50%-of-cores parallelism), without changing the dev-login auth seam.
@@ -62,9 +66,11 @@ export default defineConfig({
       RESEARCH_MODE: "demo",
       NODE_ENV: "development",
       // Make the mock model resolve slowly so the suite exercises the copilot-trigger
-      // pending→resolved path (the latency-sensitive bug instant mocks never covered). Kept modest:
-      // it applies per model call, and some flows (the copilot-lab double agent loop) make several.
-      MOCK_LATENCY_MS: "400",
+      // pending→resolved path (the latency-sensitive bug instant mocks never covered). 200ms is high
+      // enough that a missing pending state is observably wrong (copilot-pending asserts "Working…"),
+      // but low enough that multi-model-call flows (the copilot-lab double-agent loop) don't
+      // manufacture timeout flakes — it applies once per model call, so cost is latency × round-trips.
+      MOCK_LATENCY_MS: "200",
     },
   },
 });

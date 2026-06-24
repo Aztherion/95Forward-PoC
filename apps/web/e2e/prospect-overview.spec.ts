@@ -1,4 +1,30 @@
+import { createRequire } from "node:module";
 import { test, expect, type Page } from "@playwright/test";
+
+interface PgClient {
+  connect(): Promise<void>;
+  query(text: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  end(): Promise<void>;
+}
+type PgClientCtor = new (config: { connectionString: string }) => PgClient;
+
+const requireFromDb = createRequire(require.resolve("@95forward/db"));
+const { Client } = requireFromDb("pg") as { Client: PgClientCtor };
+const DB_URL = process.env.DATABASE_URL ?? "postgres://forward:forward@localhost:5432/forward";
+
+async function withDb<T>(fn: (client: PgClient) => Promise<T>): Promise<T> {
+  const client = new Client({ connectionString: DB_URL });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.end();
+  }
+}
+
+function uniqueSuffix(): string {
+  return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+}
 
 const HALLWORTH = "The Hallworth Family Foundation";
 const BELLO = "Dr. Aisha Bello";
@@ -151,6 +177,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
   test("approving an AI QPI suggestion recomputes the score and fills the gap", async ({
     page,
   }) => {
+    test.setTimeout(60_000);
     const path = await openProspectByName(page, BELLO);
     registerCleanup((p) => restoreDimensionUnknown(p, path, "capacity", "40"));
 
@@ -173,6 +200,7 @@ test.describe.serial("95 Forward — prospect overview", () => {
   });
 
   test("dismissing an AI QPI suggestion applies nothing", async ({ page }) => {
+    test.setTimeout(60_000);
     await openProspectByName(page, NORTHWATER);
     await expect(qpiTotal(page)).toHaveText("48");
 
@@ -209,22 +237,14 @@ test.describe.serial("95 Forward — prospect overview", () => {
   });
 
   test("adds a natural partner and shows it on the relationship team", async ({ page }) => {
-    const path = await openProspectByName(page, VEGA);
+    await openProspectByName(page, VEGA);
     const team = page.locator('[data-testid="relationship-team"]');
 
-    const partnerName = `E2E Partner ${Date.now()}`;
-    registerCleanup(async (p) => {
-      await p.goto(path);
-      const row = p
-        .locator('[data-testid="relationship-team"] .f95-itemrow')
-        .filter({ hasText: partnerName });
-      if ((await row.count()) > 0) {
-        await row.getByRole("button", { name: "Remove" }).click();
-        await page.reload();
-      }
-      await expect(
-        p.locator('[data-testid="relationship-team"]').filter({ hasText: partnerName }),
-      ).toHaveCount(0);
+    const partnerName = `E2E Partner ${uniqueSuffix()}`;
+    registerCleanup(async () => {
+      await withDb(async (client) => {
+        await client.query("delete from natural_partners where external_name = $1", [partnerName]);
+      });
     });
 
     await team.getByRole("button", { name: "Add natural partner" }).click();

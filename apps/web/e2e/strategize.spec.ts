@@ -29,6 +29,10 @@ const SEEDED_GAP_LABELS = ["Wealth screen on the trustees", "Spouse / family giv
 
 const DB_URL = process.env.DATABASE_URL ?? "postgres://forward:forward@localhost:5432/forward";
 
+function uniqueSuffix(): string {
+  return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+}
+
 async function restoreHallworthToSeed(): Promise<void> {
   const client = new Client({ connectionString: DB_URL });
   await client.connect();
@@ -142,7 +146,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await gotoTab(page, HALLWORTH_ID, "knowledge");
 
     const fieldRow = page.locator('[data-testid="kb-capacitySource"]');
-    const newValue = `Foundation assets ≈ $180M — confirmed via 990-PF e2e ${Date.now()}.`;
+    const newValue = `Foundation assets ≈ $180M — confirmed via 990-PF e2e ${uniqueSuffix()}.`;
 
     await fieldRow.getByRole("button", { name: "Edit" }).click();
     const form = fieldRow.locator('[data-testid="kb-field-form"]');
@@ -157,7 +161,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
   test("resolving a research gap removes it from the open list", async ({ page }) => {
     await gotoTab(page, HALLWORTH_ID, "knowledge");
 
-    const gapLabel = `E2E gap — verify board chair tenure ${Date.now()}`;
+    const gapLabel = `E2E gap — verify board chair tenure ${uniqueSuffix()}`;
     const gaps = page.locator('[data-testid="research-gaps"]');
 
     await gaps.getByRole("button", { name: "Add something worth researching" }).click();
@@ -205,7 +209,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await gotoTab(page, HALLWORTH_ID, "strategy");
 
     const fieldRow = page.locator('[data-testid="strategy-hooks"]');
-    const newValue = `Clean-water access; multi-year measurable model — e2e ${Date.now()}.`;
+    const newValue = `Clean-water access; multi-year measurable model — e2e ${uniqueSuffix()}.`;
 
     await fieldRow.getByRole("button", { name: "Edit" }).click();
     await fieldRow.locator("textarea[name=value]").fill(newValue);
@@ -217,6 +221,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
   });
 
   test("approving a copilot strategy draft applies it to the strategy field", async ({ page }) => {
+    test.setTimeout(60_000);
     await gotoTab(page, HALLWORTH_ID, "strategy");
 
     const goalsField = page.locator('[data-testid="strategy-relationshipGoals"]');
@@ -245,6 +250,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
   test("dismissing a copilot strategy draft applies nothing and leaves the field unchanged", async ({
     page,
   }) => {
+    test.setTimeout(60_000);
     await gotoTab(page, HALLWORTH_ID, "strategy");
 
     const goalsField = page.locator('[data-testid="strategy-relationshipGoals"]');
@@ -268,7 +274,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await gotoTab(page, HALLWORTH_ID, "visits");
 
     const before = await page.locator('[data-testid="planned-visit"]').count();
-    const goal = `Confirm trustee appetite for a lead gift — e2e ${Date.now()}.`;
+    const goal = `Confirm trustee appetite for a lead gift — e2e ${uniqueSuffix()}.`;
 
     await page.getByRole("button", { name: "Plan a visit" }).click();
     const form = page.locator('[data-testid="visit-plan-form"]');
@@ -323,7 +329,7 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
 
     const map = page.locator('[data-testid="relationship-map"]');
     const before = await map.locator('[data-testid="kdm-row"]').count();
-    const name = `E2E Trustee ${Date.now()}`;
+    const name = `E2E Trustee ${uniqueSuffix()}`;
 
     await map.getByRole("button", { name: "Add a decision-maker" }).click();
     const form = page.locator('[data-testid="kdm-form"]');
