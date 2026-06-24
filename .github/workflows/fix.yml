@@ -148,6 +148,7 @@ jobs:
             --model claude-opus-4-8
             --max-turns 40
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,LS,Bash(pnpm:*),Bash(npx:*),Bash(node:*),Bash(git add:*),Bash(git commit:*),Bash(git status:*),Bash(git diff:*),Bash(cat:*),Bash(ls:*)"
+          allowed_bots: "github-actions[bot]"
 
       - name: Did Claude commit a fix?
         id: changed
