@@ -4,5 +4,6 @@ export * from "./roles";
 export * from "./user";
 export * from "./qpi";
 export * from "./forms";
+export * from "./feedback";
 export * from "./constants";
 export * from "./search-filters";

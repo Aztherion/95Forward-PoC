@@ -593,3 +593,57 @@ export const promoteCandidateInputSchema = z.object({
   candidateId: z.string().uuid(),
 });
 export type PromoteCandidateInput = z.infer<typeof promoteCandidateInputSchema>;
+
+// Initiative 15 — in-app feedback. These option arrays MUST mirror the dropdowns in
+// .github/ISSUE_TEMPLATE/bug_report.yml verbatim so the composed issue body matches the structure
+// the triage workflow already understands.
+export const FEEDBACK_AREAS = [
+  "Search prospects",
+  "Prospect record (QPI / Knowledge Base / Strategy / Visits)",
+  "Master Prospect List",
+  "Candidates / discovery",
+  "Green Sheet",
+  "Initiatives",
+  "Visit mode / asks / follow-ups",
+  "Host CRM (Constituents, Revenue, etc.)",
+  "Sign-in / navigation / shell",
+  "Not sure",
+] as const;
+export const FEEDBACK_ENVIRONMENTS = [
+  "Deployed app (ondigitalocean.app)",
+  "Local dev",
+  "Not sure",
+] as const;
+export const FEEDBACK_SEVERITIES = [
+  "Low — cosmetic / minor",
+  "Medium — annoying but usable",
+  "High — blocks the demo / data looks wrong",
+] as const;
+
+const feedbackSummary = z.string().trim().min(1, "A one-line summary is required").max(200);
+const feedbackLongText = z.string().trim().max(4000);
+
+export const feedbackBugInputSchema = z.object({
+  kind: z.literal("bug"),
+  summary: feedbackSummary,
+  whatHappened: feedbackLongText.min(1, "Tell us what happened"),
+  steps: feedbackLongText.optional(),
+  area: z.enum(FEEDBACK_AREAS),
+  environment: z.enum(FEEDBACK_ENVIRONMENTS),
+  severity: z.enum(FEEDBACK_SEVERITIES),
+  screenshots: feedbackLongText.optional(),
+});
+
+export const feedbackFeatureInputSchema = z.object({
+  kind: z.literal("feature"),
+  summary: feedbackSummary,
+  detail: feedbackLongText.min(1, "Tell us what you'd like, and why"),
+});
+
+export const feedbackInputSchema = z.discriminatedUnion("kind", [
+  feedbackBugInputSchema,
+  feedbackFeatureInputSchema,
+]);
+export type FeedbackInput = z.infer<typeof feedbackInputSchema>;
+export type FeedbackBugInput = z.infer<typeof feedbackBugInputSchema>;
+export type FeedbackFeatureInput = z.infer<typeof feedbackFeatureInputSchema>;

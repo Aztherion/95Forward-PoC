@@ -1,5 +1,7 @@
 import { Bell, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ds";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
+import { isFeedbackEnabled } from "@/server/feedback/config";
 
 export interface TopbarProps {
   title: string;
@@ -7,6 +9,7 @@ export interface TopbarProps {
 }
 
 export function Topbar({ title, subtitle }: TopbarProps) {
+  const feedbackEnabled = isFeedbackEnabled();
   return (
     <header className="shell-topbar">
       <div className="shell-topbar__heading">
@@ -25,6 +28,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
       <Button variant="secondary" size="sm" iconLeft={<Plus size={16} strokeWidth={1.8} />}>
         Add
       </Button>
+      {feedbackEnabled ? <FeedbackWidget /> : null}
       <button type="button" className="shell-bell" aria-label="Notifications">
         <Bell size={18} strokeWidth={1.8} />
       </button>

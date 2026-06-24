@@ -25,3 +25,6 @@
 - name: triaged
   color: 5319e7
   description: The triage workflow has classified this issue.
+- name: "source:in-app"
+  color: 1d76db
+  description: Filed from the in-app feedback widget by a stakeholder (Initiative 15).

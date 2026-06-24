@@ -65,7 +65,7 @@ services:
     http_port: 8080
     health_check:
       http_path: /
-    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/ai build && pnpm --filter @95forward/web build
+    build_command: corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && export NEXT_PUBLIC_BUILD_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) && pnpm --filter @95forward/shared build && pnpm --filter @95forward/db build && pnpm --filter @95forward/ai build && pnpm --filter @95forward/web build
     run_command: pnpm --filter @95forward/web exec next start --hostname 0.0.0.0 --port ${PORT}
     envs:
       # BUILD_TIME-only: keep devDependencies (tsc) for the build; runtime stays NODE_ENV=production.
@@ -117,6 +117,17 @@ services:
         type: SECRET
         value: REPLACE_ME
       - key: OPENAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: REPLACE_ME
+      # In-app feedback → GitHub issue (Initiative 15). FEEDBACK_GITHUB_TOKEN is a DEDICATED
+      # fine-grained PAT scoped to THIS repo, Issues: Read & Write only — distinct from any CI
+      # token (least privilege for a user-facing path). Server-only; never reaches the browser.
+      - key: FEEDBACK_MODE
+        value: live
+      - key: FEEDBACK_REPO
+        value: Aztherion/95Forward-PoC
+      - key: FEEDBACK_GITHUB_TOKEN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
         value: REPLACE_ME

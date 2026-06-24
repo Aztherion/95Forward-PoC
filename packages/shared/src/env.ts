@@ -20,6 +20,14 @@ const baseEnvShape = {
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   EMBEDDINGS_MODEL: z.string().min(1).default("text-embedding-3-small"),
+
+  // Initiative 15 (in-app feedback → GitHub issue). "mock" (default, CI/local) composes and
+  // validates the payload without calling GitHub; "live" submits a real issue and requires the
+  // token + repo below. FEEDBACK_ENABLED can hard-off the widget without touching the mode.
+  FEEDBACK_MODE: z.enum(["mock", "live"]).default("mock"),
+  FEEDBACK_GITHUB_TOKEN: z.string().optional(),
+  FEEDBACK_REPO: z.string().optional(),
+  FEEDBACK_ENABLED: z.enum(["true", "false"]).optional(),
 };
 
 function applyAiKeyRefinement(
@@ -51,6 +59,27 @@ function applyAiKeyRefinement(
   }
 }
 
+function applyFeedbackRefinement(
+  env: { FEEDBACK_MODE: "mock" | "live"; FEEDBACK_GITHUB_TOKEN?: string; FEEDBACK_REPO?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (env.FEEDBACK_MODE !== "live") return;
+  if (!env.FEEDBACK_GITHUB_TOKEN) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["FEEDBACK_GITHUB_TOKEN"],
+      message: "FEEDBACK_GITHUB_TOKEN is required when FEEDBACK_MODE=live",
+    });
+  }
+  if (!env.FEEDBACK_REPO) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["FEEDBACK_REPO"],
+      message: "FEEDBACK_REPO is required when FEEDBACK_MODE=live",
+    });
+  }
+}
+
 // Web runtime: the base + Auth0 (Initiative 1) + the dev-login security gate. Names match what
 // @auth0/nextjs-auth0 v4 reads. This is the canonical app Env consumed across apps/web.
 export const webEnvSchema = z
@@ -71,7 +100,8 @@ export const webEnvSchema = z
       .default("false")
       .transform((value) => value === "true"),
   })
-  .superRefine(applyAiKeyRefinement);
+  .superRefine(applyAiKeyRefinement)
+  .superRefine(applyFeedbackRefinement);
 
 // Worker runtime (Initiative 11): the base + the Graphile Worker / queue config + the RLS app
 // pool URL. No Auth0 vars — the worker carries no user-facing auth surface.

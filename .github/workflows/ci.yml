@@ -28,6 +28,9 @@ jobs:
       E2E_TEST_MODE: "true"
       # AI runs in deterministic mock mode in CI — no ANTHROPIC/OPENAI keys, no paid calls.
       AI_MODE: mock
+      # In-app feedback (Initiative 15) stays in mock in CI — composes the payload but never
+      # calls GitHub and carries no token, so the suite never files a real issue.
+      FEEDBACK_MODE: mock
       # Background jobs (Initiative 11): demo research provider + the worker's own queue schema.
       RESEARCH_MODE: demo
       JOBS_SCHEMA: graphile_worker

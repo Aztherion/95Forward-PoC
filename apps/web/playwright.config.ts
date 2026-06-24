@@ -64,6 +64,7 @@ export default defineConfig({
       AI_MODE: "mock",
       EMBEDDING_MODE: "mock",
       RESEARCH_MODE: "demo",
+      FEEDBACK_MODE: "mock",
       NODE_ENV: "development",
       // Make the mock model resolve slowly so the suite exercises the copilot-trigger
       // pending→resolved path (the latency-sensitive bug instant mocks never covered). 200ms is high
