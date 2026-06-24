@@ -160,11 +160,14 @@ jobs:
 
       - name: Push branch
         if: steps.changed.outputs.changed == 'true'
-        run: git push origin "${{ steps.branch.outputs.branch }}"
+        run: |
+          git push "https://x-access-token:${CI_BOT_TOKEN}@github.com/${{ github.repository }}.git" "${{ steps.branch.outputs.branch }}"
+        env:
+          CI_BOT_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
 
       - name: Open PR (or escalate to needs-human)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
         run: |
           set -euo pipefail
           OUTCOME="$(cat /tmp/outcome.md 2>/dev/null || echo 'No summary produced.')"
