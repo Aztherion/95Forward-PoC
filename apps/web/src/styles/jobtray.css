@@ -6,7 +6,7 @@
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  max-width: 380px;
+  max-width: min(640px, calc(100vw - 48px));
   padding: 10px 16px;
   border-radius: var(--radius-pill);
   background: var(--ai-surface);
@@ -26,6 +26,7 @@
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -42,6 +43,8 @@
 .f95-jobtray__ready {
   display: inline-flex;
   align-items: center;
+  flex: none;
+  white-space: nowrap;
   padding: 4px 12px;
   border-radius: var(--radius-pill);
   background: var(--ai-tint);
