@@ -74,6 +74,31 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     await expect(page.locator('[data-testid="job-tray-ready"]')).toContainText("ready to review");
   });
 
+  test("on a mobile viewport the job tray collapses to a pill and expands on tap", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/95-forward/today");
+
+    const tray = page.locator('[data-testid="job-tray"]');
+    await expect(tray).toBeVisible();
+
+    // Collapsed by default on mobile: the toggle shows but the full content is hidden.
+    const toggle = page.locator('[data-testid="job-tray-toggle"]');
+    const ready = page.locator('[data-testid="job-tray-ready"]');
+    await expect(toggle).toBeVisible();
+    await expect(ready).toBeHidden();
+
+    // Tapping the toggle expands the tray to reveal its full content.
+    await toggle.click();
+    await expect(ready).toBeVisible();
+    await expect(ready).toContainText("ready to review");
+
+    // Tapping again re-collapses it.
+    await toggle.click();
+    await expect(ready).toBeHidden();
+  });
+
   test("enqueue research from a KB gap, drain, review the proposal, approve it, and the KB updates", async ({
     page,
   }) => {
