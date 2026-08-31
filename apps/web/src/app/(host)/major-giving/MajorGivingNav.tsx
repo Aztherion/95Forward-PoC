@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const ITEMS = [
   { id: "opportunities", label: "Opportunities", href: "/major-giving/opportunities" },
+  { id: "top", label: "Top 20", href: "/major-giving/top" },
   { id: "proposals", label: "Proposals", href: "/major-giving/proposals" },
   { id: "portfolio", label: "Portfolio", href: "/major-giving/portfolio" },
 ] as const;
