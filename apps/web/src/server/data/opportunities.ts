@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { constituents, opportunities, users, withTenant } from "@95forward/db";
 import type { OpportunityInput } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
@@ -51,6 +51,32 @@ export async function getOpportunitiesList(
       .leftJoin(users, eq(users.id, opportunities.ownerUserId))
       .where(whereClause)
       .orderBy(desc(opportunities.askAmountCents), asc(constituents.displayName));
+  });
+}
+
+export async function getTopOpportunities(
+  tenantId: string,
+  limit: number,
+): Promise<OpportunityListRow[]> {
+  return withTenant(getAppDb(), tenantId, async (tx) => {
+    return tx
+      .select({
+        id: opportunities.id,
+        constituentId: opportunities.constituentId,
+        constituentName: constituents.displayName,
+        stage: opportunities.stage,
+        askAmountCents: opportunities.askAmountCents,
+        expectedAmountCents: opportunities.expectedAmountCents,
+        expectedCloseDate: opportunities.expectedCloseDate,
+        likelihoodPct: opportunities.likelihoodPct,
+        ownerUserId: opportunities.ownerUserId,
+        ownerName: users.name,
+      })
+      .from(opportunities)
+      .innerJoin(constituents, eq(constituents.id, opportunities.constituentId))
+      .leftJoin(users, eq(users.id, opportunities.ownerUserId))
+      .orderBy(sql`${opportunities.askAmountCents} desc nulls last`, asc(constituents.displayName))
+      .limit(limit);
   });
 }
 

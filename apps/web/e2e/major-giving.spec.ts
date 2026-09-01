@@ -87,6 +87,30 @@ test.describe("major giving — opportunities pipeline", () => {
   });
 });
 
+test.describe("major giving — top 20", () => {
+  test("ranks the largest potential gifts with stage and likelihood", async ({ page }) => {
+    await gotoOpportunities(page);
+
+    await page.getByRole("navigation", { name: "Major Giving sections" }).getByRole("link", {
+      name: "Top 20",
+    }).click();
+    await page.waitForURL(/\/major-giving\/top$/);
+    await expect(page.locator(".f95-page__title")).toHaveText("Top 20");
+
+    const rows = page.locator(".f95-itemrow");
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThanOrEqual(20);
+
+    // Ranked by ask amount descending — the top-ranked gift is Hallworth's $2,800,000.
+    const first = rows.first();
+    await expect(first).toContainText("1. ");
+    await expect(first).toContainText(HALLWORTH);
+    await expect(first).toContainText("Ask $2,800,000");
+    await expect(first.locator(".f95-mg-likelihood")).toBeVisible();
+  });
+});
+
 test.describe("major giving — create and edit an opportunity", () => {
   test("creates an opportunity, sees it in the pipeline, then edits it", async ({ page }) => {
     const ask = uniqueAmount();
