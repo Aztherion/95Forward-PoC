@@ -39,6 +39,7 @@ const EMPTY: TrayState = {
 
 export function JobTray() {
   const [state, setState] = useState<TrayState>(EMPTY);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -85,10 +86,28 @@ export function JobTray() {
   const firstDiscovery = state.discoveryResearching[0];
   const firstReady = state.ready[0];
   const firstDiscoveryReady = state.discoveryReady[0];
+  const totalCount = activeCount + readyTotal;
 
   return (
-    <aside className="f95-jobtray" data-testid="job-tray" aria-live="polite">
-      <Sparkles size={15} strokeWidth={1.8} className="f95-jobtray__mark" aria-hidden />
+    <aside
+      className={`f95-jobtray${expanded ? " f95-jobtray--expanded" : ""}`}
+      data-testid="job-tray"
+      aria-live="polite"
+    >
+      <button
+        type="button"
+        className="f95-jobtray__toggle"
+        onClick={() => setExpanded((prev) => !prev)}
+        aria-expanded={expanded}
+        aria-label={expanded ? "Collapse job status" : "Expand job status"}
+        data-testid="job-tray-toggle"
+      >
+        <Sparkles size={15} strokeWidth={1.8} className="f95-jobtray__mark" aria-hidden />
+        <span className="f95-jobtray__count" aria-hidden>
+          {totalCount}
+        </span>
+      </button>
+      <div className="f95-jobtray__content">
       {researchingCount > 0 ? (
         <span className="f95-jobtray__item" data-testid="job-tray-researching">
           <span className="f95-jobtray__pulse" aria-hidden />
@@ -124,6 +143,7 @@ export function JobTray() {
           ready
         </Link>
       ) : null}
+      </div>
     </aside>
   );
 }

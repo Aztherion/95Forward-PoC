@@ -508,14 +508,16 @@ describe("seed: volunteers & memberships slice", () => {
     expect(statuses.has("pending")).toBe(true);
   });
 
-  it("includes both upcoming and lapsed renewals relative to mid-2026", async () => {
+  it("includes both upcoming and lapsed renewals relative to the seed date", async () => {
     if (!handle) {
       return;
     }
     const members = await db.query.memberships.findMany({
       where: eq(memberships.tenantId, tenantId),
     });
-    const reference = "2026-06-21";
+    const day = 86_400_000;
+    const reference = new Date().toISOString().slice(0, 10);
+    const windowEnd = new Date(Date.now() + 60 * day).toISOString().slice(0, 10);
     const lapsed = members.filter(
       (m) => m.renewalDate !== null && m.renewalDate < reference && m.status !== "cancelled",
     );
@@ -524,7 +526,7 @@ describe("seed: volunteers & memberships slice", () => {
         m.status === "active" &&
         m.renewalDate !== null &&
         m.renewalDate >= reference &&
-        m.renewalDate <= "2026-08-20",
+        m.renewalDate <= windowEnd,
     );
     expect(lapsed.length).toBeGreaterThan(0);
     expect(upcoming.length).toBeGreaterThan(0);
