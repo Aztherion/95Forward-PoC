@@ -38,8 +38,14 @@ interface MembershipSpec {
   tierKey: string;
   status: string;
   startDate: string;
-  renewalDate: string;
-  lastRenewedOn: string | null;
+  /**
+   * Renewal date as a day offset from the seed date (negative = already past). Relative so the
+   * demo keeps a realistic mix of upcoming and lapsed renewals whenever it is seeded; absolute
+   * dates silently drain the "next 60 days" list as wall-clock time passes them.
+   */
+  renewalInDays: number;
+  /** Renewed once before, one year prior to the renewal date. */
+  previouslyRenewed: boolean;
 }
 
 const VOLUNTEER_KEYS = [
@@ -159,100 +165,116 @@ const MEMBERSHIPS: MembershipSpec[] = [
     tierKey: "leadership",
     status: "active",
     startDate: "2024-01-15",
-    renewalDate: "2026-07-10",
-    lastRenewedOn: "2025-07-10",
+    renewalInDays: 19,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "cordova",
     tierKey: "champion",
     status: "active",
     startDate: "2023-06-01",
-    renewalDate: "2027-06-01",
-    lastRenewedOn: "2026-06-01",
+    renewalInDays: 345,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "whitfield",
     tierKey: "champion",
     status: "active",
     startDate: "2022-03-01",
-    renewalDate: "2026-07-01",
-    lastRenewedOn: "2025-07-01",
+    renewalInDays: 10,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "bradley",
     tierKey: "sustainer",
     status: "active",
     startDate: "2023-09-01",
-    renewalDate: "2026-09-01",
-    lastRenewedOn: "2025-09-01",
+    renewalInDays: 72,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "vega",
     tierKey: "sustainer",
     status: "active",
     startDate: "2024-02-15",
-    renewalDate: "2026-05-15",
-    lastRenewedOn: "2025-05-15",
+    renewalInDays: -37,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "lin",
     tierKey: "friend",
     status: "active",
     startDate: "2025-01-01",
-    renewalDate: "2026-06-25",
-    lastRenewedOn: null,
+    renewalInDays: 4,
+    previouslyRenewed: false,
   },
   {
     constituentKey: "webb",
     tierKey: "friend",
     status: "lapsed",
     startDate: "2022-01-01",
-    renewalDate: "2025-12-01",
-    lastRenewedOn: "2024-12-01",
+    renewalInDays: -202,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "bello",
     tierKey: "friend",
     status: "pending",
     startDate: "2026-06-01",
-    renewalDate: "2027-06-01",
-    lastRenewedOn: null,
+    renewalInDays: 345,
+    previouslyRenewed: false,
   },
   {
     constituentKey: "osgood",
     tierKey: "champion",
     status: "active",
     startDate: "2023-01-01",
-    renewalDate: "2026-08-15",
-    lastRenewedOn: "2025-08-15",
+    renewalInDays: 55,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "generic-10",
     tierKey: "sustainer",
     status: "active",
     startDate: "2024-04-01",
-    renewalDate: "2026-04-01",
-    lastRenewedOn: "2025-04-01",
+    renewalInDays: -81,
+    previouslyRenewed: true,
   },
   {
     constituentKey: "generic-15",
     tierKey: "friend",
     status: "active",
     startDate: "2025-12-01",
-    renewalDate: "2026-12-01",
-    lastRenewedOn: null,
+    renewalInDays: 163,
+    previouslyRenewed: false,
   },
   {
     constituentKey: "cornerstone",
     tierKey: "leadership",
     status: "active",
     startDate: "2024-01-01",
-    renewalDate: "2027-01-01",
-    lastRenewedOn: "2026-01-01",
+    renewalInDays: 194,
+    previouslyRenewed: true,
   },
 ];
 
-export async function seedVolunteersAndMemberships(db: Database, tenantId: string): Promise<void> {
+const DAY = 86_400_000;
+
+function isoDateFrom(now: Date, offsetDays: number): string {
+  return new Date(now.getTime() + offsetDays * DAY).toISOString().slice(0, 10);
+}
+
+function isoOneYearBefore(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCFullYear(date.getUTCFullYear() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+export async function seedVolunteersAndMemberships(
+  db: Database,
+  tenantId: string,
+  now: Date = new Date(),
+): Promise<void> {
   for (const key of VOLUNTEER_KEYS) {
     await db
       .update(constituents)
@@ -304,6 +326,7 @@ export async function seedVolunteersAndMemberships(db: Database, tenantId: strin
   }
 
   for (const m of MEMBERSHIPS) {
+    const renewalDate = isoDateFrom(now, m.renewalInDays);
     await db
       .insert(memberships)
       .values({
@@ -313,8 +336,8 @@ export async function seedVolunteersAndMemberships(db: Database, tenantId: strin
         tierId: stableId(`tier:${m.tierKey}`),
         status: m.status,
         startDate: m.startDate,
-        renewalDate: m.renewalDate,
-        lastRenewedOn: m.lastRenewedOn,
+        renewalDate,
+        lastRenewedOn: m.previouslyRenewed ? isoOneYearBefore(renewalDate) : null,
       })
       .onConflictDoNothing({ target: memberships.id });
   }

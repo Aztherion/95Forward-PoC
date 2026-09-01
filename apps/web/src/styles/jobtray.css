@@ -16,9 +16,42 @@
   color: var(--ai-ink);
 }
 
+.f95-jobtray__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .f95-jobtray__mark {
   color: var(--iris-600);
   flex: none;
+}
+
+.f95-jobtray__count {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--ai-tint);
+  color: var(--iris-700);
+  font-weight: 600;
+}
+
+.f95-jobtray__content {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
 }
 
 .f95-jobtray__item {
@@ -56,6 +89,40 @@
 
 .f95-jobtray__ready:hover {
   background: var(--iris-100);
+}
+
+/* On narrow (mobile) viewports the bar can't fit its content, so it collapses to a
+   compact icon+count pill by default and expands to the full content when tapped. */
+@media (max-width: 640px) {
+  .f95-jobtray {
+    right: 16px;
+    bottom: 16px;
+    max-width: calc(100vw - 32px);
+  }
+
+  .f95-jobtray__count {
+    display: inline-flex;
+  }
+
+  .f95-jobtray:not(.f95-jobtray--expanded) .f95-jobtray__content {
+    display: none;
+  }
+
+  .f95-jobtray--expanded {
+    flex-wrap: wrap;
+  }
+
+  .f95-jobtray--expanded .f95-jobtray__content {
+    flex-wrap: wrap;
+  }
+
+  .f95-jobtray--expanded .f95-jobtray__count {
+    display: none;
+  }
+
+  .f95-jobtray__item {
+    white-space: normal;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
