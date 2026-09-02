@@ -110,6 +110,10 @@
 
   .f95-jobtray--expanded {
     flex-wrap: wrap;
+    /* Once expanded the tray wraps to multiple rows, so the pill radius rounds the
+       corners in past the wrapped items and clips them. Use a moderate rounded-square
+       radius here; the collapsed pill above keeps its circular --radius-pill. */
+    border-radius: var(--radius-lg);
   }
 
   .f95-jobtray--expanded .f95-jobtray__content {
