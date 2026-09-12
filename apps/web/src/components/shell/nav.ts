@@ -19,7 +19,8 @@ export type NavIcon =
   | "file-text"
   | "briefcase"
   | "radio"
-  | "compass";
+  | "compass"
+  | "scale";
 
 export interface NavLeaf {
   kind: "leaf";
@@ -151,6 +152,10 @@ export const NAV_SECTIONS: NavSection[] = [
             href: "/95-forward/initiatives",
             icon: "target",
           },
+          // The Rules of Robb (I22). Deliberately at `/rules`, not `/95-forward/rules`: the RULE
+          // chips on every screen link here, and a short stable path is what makes the chip's
+          // promise — "this leads somewhere a human can read" — cheap to honour everywhere.
+          { kind: "leaf", id: "rules", label: "Rules", href: "/rules", icon: "scale" },
         ],
       },
       {

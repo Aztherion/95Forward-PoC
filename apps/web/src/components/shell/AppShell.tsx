@@ -20,6 +20,7 @@ import {
   LogOut,
   Megaphone,
   Radio,
+  Scale,
   Settings,
   Sunrise,
   Target,
@@ -53,6 +54,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   briefcase: Briefcase,
   radio: Radio,
   compass: Compass,
+  scale: Scale,
 };
 
 function isActive(pathname: string, href: string): boolean {

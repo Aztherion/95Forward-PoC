@@ -52,11 +52,21 @@ export async function dataVersion(db: Database, tenantId: string): Promise<strin
   ].join("|");
 }
 
+/**
+ * The cache key.
+ *
+ * `rulesVersion` (I22) is separate from `dataVersion` on purpose. The settings fields below cover
+ * every parameter the simulation reads, so a percentile edit would move the key on its own — but a
+ * rule being switched off, or a statement being rewritten, changes what the org is looking at
+ * without changing any of them. One counter that moves on ANY doctrine write means a cache added
+ * later has exactly one thing to remember to include.
+ */
 export function simulationCacheKey(
   scope: MetricScope,
   dataVersion: string,
   settings: ForwardSettings,
   trialCount: number,
+  rulesVersion: string,
 ): string {
   const sim = settings.simulation;
   return [
@@ -64,6 +74,7 @@ export function simulationCacheKey(
     scope.initiative,
     scope.period,
     dataVersion,
+    rulesVersion,
     trialCount,
     sim.percentiles.best,
     sim.percentiles.mostLikely,
@@ -79,6 +90,8 @@ export interface SimulationServiceOptions {
   readonly settings: ForwardSettings;
   readonly clock: Clock;
   readonly dataVersion: string;
+  /** From `rulesVersion(db, tenantId)` (I22). Moves on any doctrine write. */
+  readonly rulesVersion: string;
   /** Supply a shared Map to keep the cache across requests; omit for a per-instance cache. */
   readonly cache?: Map<string, SimulationResult>;
 }
@@ -121,7 +134,13 @@ export class ForwardSimulationService {
       return this.compute(scope, overrides, trials);
     }
 
-    const key = simulationCacheKey(scope, this.options.dataVersion, this.options.settings, trials);
+    const key = simulationCacheKey(
+      scope,
+      this.options.dataVersion,
+      this.options.settings,
+      trials,
+      this.options.rulesVersion,
+    );
     const cached = this.cache.get(key);
     if (cached) {
       this.hits++;
