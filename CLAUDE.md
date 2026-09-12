@@ -11,6 +11,10 @@ this codebase and **how to verify it**. Read it before editing.
 "copilot proposes, human disposes" safety model matter more than feature breadth. See `README.md`
 for the full architecture and `docs/deployment-and-ops-runbook.md` for operations.
 
+**UI work:** `docs/design-system.md` is the source of truth for colour, type, spacing and component
+patterns. Read it before writing any frontend code. If a design and the design system conflict, the
+design system wins unless the change is deliberate and documented in the same PR.
+
 ## The golden rule: minimal, scoped changes
 
 When fixing a bug, change the **least** code needed to fix exactly what was reported.
