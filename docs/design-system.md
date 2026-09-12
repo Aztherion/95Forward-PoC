@@ -1,0 +1,802 @@
+# 95 Forward — Design System (as built)
+
+**Source of truth for all UI work.** Reconstructed from the running code in `apps/web`, because the
+original Claude Design project is no longer accessible and the surviving export in
+`95-forward-design-system-handoff/` has drifted from what ships (§8.6).
+
+This document describes **what exists**, not what should. Where the code is inconsistent, §8 says so
+rather than picking a winner. If you change the UI, update this file in the same PR.
+
+Every claim carries a file path. Counts are grep-verified as of this commit — treat them as a
+snapshot, not a guarantee.
+
+---
+
+## 1. Stack and where things live
+
+Hand-written **plain global CSS** with BEM-ish `f95-*` / `shell-*` class names, over **CSS custom
+properties**. There is **no Tailwind, no PostCSS config, no CSS Modules, no CSS-in-JS, no component
+library, and no TypeScript token module** — `apps/web/package.json` lists only `lucide-react`,
+`next`, `react`, `drizzle-orm`, `graphile-worker` and the Auth0 SDK as runtime deps. All styling
+ships through one entrypoint imported exactly once, at `apps/web/src/app/layout.tsx:4`. **Dark mode
+does not exist** in any form. The only theming axis is a two-value _register_ (§6.5).
+
+| File                                                     | Defines                                                                                                                                 |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/styles/globals.css`                        | The only stylesheet entrypoint; `@import`s 6 token files + 8 stylesheets in fixed order                                                 |
+| `apps/web/src/styles/tokens/colors.css`                  | 87 colour properties — 42 raw ramp values + 45 semantic aliases, all on bare `:root`                                                    |
+| `apps/web/src/styles/tokens/typography.css`              | Families, 14 sizes, 5 weights, 4 line-heights, 5 letter-spacings, 8 composite `--text-*` roles, 3 utility classes                       |
+| `apps/web/src/styles/tokens/spacing.css`                 | 13 spacing steps, layout sizes, control heights                                                                                         |
+| `apps/web/src/styles/tokens/elevation.css`               | Radii, border widths, 5 shadows, 2 focus rings                                                                                          |
+| `apps/web/src/styles/tokens/motion.css`                  | Durations, easings, 3 keyframes, global reduced-motion block                                                                            |
+| `apps/web/src/styles/tokens/base.css`                    | Reset, `body` defaults, global `:focus-visible` ring                                                                                    |
+| `apps/web/src/styles/register.css`                       | 7 `--reg-*` aliases per register — the only conditional token values in the codebase                                                    |
+| `apps/web/src/styles/ds.css` (1020 ln)                   | Button, Badge, Tag, Avatar, Card, field/Input, RoleChip, HorizonTag, SourceTag, Heartbeat, ProvisionalSuggestion, QpiScore, `.f95-prow` |
+| `apps/web/src/styles/ds-data.css` (1029 ln)              | DataTable, Pagination, Select, Checkbox, Switch, Tabs, EmptyState, Textarea, FieldGroup/FormRow, filter bar, and all layout primitives  |
+| `apps/web/src/styles/shell.css`                          | App shell, sidebar, nav, topbar, `.page-placeholder`, `.styleguide`                                                                     |
+| `apps/web/src/styles/{visit,jobtray,feedback,login}.css` | Visit mode overlay; background-job pill; feedback menu + the app's only modal; auth screens                                             |
+| `apps/web/src/components/ds/`                            | 23 files exporting **24 components** via the `index.ts` barrel                                                                          |
+| `apps/web/src/components/shell/`                         | `AppShell`, `Topbar`, `PagePlaceholder`, and `nav.ts` (the nav data)                                                                    |
+| `apps/web/src/lib/format.ts`                             | The only shared display-formatting module (§7)                                                                                          |
+
+Imports resolve through the `@/*` → `./src/*` alias (`apps/web/tsconfig.json`). Icons are
+`lucide-react` throughout — sizes are keyed to the slot, see §5.12.
+
+**Fonts** — three self-hosted `.woff2` families loaded with `next/font/local` in
+`apps/web/src/app/layout.tsx:6-35`, bound to `--font-hanken` / `--font-newsreader` /
+`--font-plex-mono` on `<html>`, which `tokens/typography.css:13-15` wraps as `--font-sans` /
+`--font-serif` / `--font-mono`.
+
+**Live gallery** — `/styleguide` (`apps/web/src/app/styleguide/page.tsx`), gated by
+`NODE_ENV !== "production"` plus the global auth middleware. It demos **11 of the 24** exported
+components (§8.5).
+
+---
+
+## 2. Colour
+
+`tokens/colors.css`. Components reference the **semantic aliases**, not the raw ramps.
+
+### Raw ramps
+
+| Ramp         | Values                                                                                                                                              | Role per the token file                      |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Haze         | `--haze-50 #f7f9fa` · `100 #eff2f4` · `200 #e3e8ec` · `300 #cdd6dd` · `--white #ffffff`                                                             | App background, sunken surfaces, hover fills |
+| Ink          | `--ink-900 #16202b` · `800 #20303f` · `700 #2b3e4f` · `600 #44586a` · `500 #5c7081` · `400 #7e909f` · `300 #a7b4be` · `200 #c9d2d9` · `100 #e1e7eb` | Text (900→400), borders (300→100)            |
+| Horizon blue | `--blue-700 #1a3f5c` · `600 #235c86` · `500 #3878a3` · `300 #8fb7d2` · `100 #dceaf3` · `50 #eef5fa`                                                 | Brand; Relationship Manager / ownership      |
+| Dawn gold    | `--gold-700 #a56f1e` · `600 #c8862a` · `500 #dfa13c` · `300 #ebc684` · `100 #f7e9cd` · `50 #fbf4e4`                                                 | Momentum, "go see them today"                |
+| Sage         | `--sage-700 #2d5c46` · `600 #3b7458` · `500 #4e8f6f` · `300 #9cc6b1` · `100 #dcebe2` · `50 #edf5f0`                                                 | Natural Partner role; success                |
+| Iris         | `--iris-700 #393e80` · `600 #4a4f94` · `500 #5b61a8` · `300 #acafd6` · `100 #e6e7f4` · `50 #f1f2f9`                                                 | **Reserved for AI/copilot** (but see §8.2)   |
+| Teal         | `--teal-600 #2f7e8c` · `--teal-100 #d7eaec`                                                                                                         | QPI "Philanthropy" dimension                 |
+| Brick        | `--brick-600 #a8402f` · `--brick-100 #f1dbd6`                                                                                                       | Destructive / danger only                    |
+
+### Semantic aliases — use these
+
+| Token                                                                 | Resolves to               | Used for                                                                  |
+| --------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------- |
+| `--bg-app`                                                            | haze-50                   | `body`, `.shell`, `.f95-visit`                                            |
+| `--surface-card` / `--surface-raised`                                 | white                     | Cards, sidebar, topbar, inputs, table wrap                                |
+| `--surface-sunk`                                                      | haze-100                  | Empty states, settings notes, sunk cards                                  |
+| `--text-strong` / `--text-body` / `--text-secondary` / `--text-muted` | ink-900 / 700 / 500 / 400 | Headings & values / body / meta & table headers / placeholders & eyebrows |
+| `--border-hairline` / `--border-default` / `--border-strong`          | ink-100 / 200 / 300       | Card + row rules / control borders / hover borders                        |
+| `--brand-primary` / `-hover` / `-press`                               | blue-600 / 500 / 700      | Primary button, links, active tab                                         |
+| `--accent-go`                                                         | gold-600                  | The "go" CTA and 90+ emphasis                                             |
+| `--text-on-accent`                                                    | white                     | Text on filled backgrounds                                                |
+
+### Status palette — it exists, twice over
+
+A red/amber/green triad is declared at token level: **`--color-success` (sage-600),
+`--color-attention` (gold-600), `--color-danger` (brick-600), `--color-info` (blue-600)**
+(`tokens/colors.css:98-101`). Deliberately muted — not saturated traffic-light colours.
+
+**But three of those four aliases have zero references.** Only `--color-danger` is consumed. The
+palette that actually renders is the `.f95-badge--*` tone classes and `.f95-heartbeat--*` state
+classes, which bypass the aliases and reach straight for the raw ramps (`ds.css:149-159`,
+`ds.css:600-629`). See §8.1.
+
+### Special-purpose palettes
+
+| Palette          | Tokens                                                                                                                           | Rule of use (per token comments)                                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Roles            | `--role-manager` (blue-600) + `-tint`; `--role-partner` (sage-600) + `-tint`                                                     | "Must never look alike" — enforced by _shape_ too: manager = filled pill, partner = dashed border + door glyph (`RoleChip.tsx`) |
+| AI / copilot     | `--ai-ink` (iris-600), `--ai-surface` (iris-50), `--ai-tint` (iris-100), `--ai-border` (iris-300)                                | Copilot surfaces only                                                                                                           |
+| Unknown          | `--unknown-ink` (ink-400), `--unknown-surface` (haze-100), `--unknown-border` (ink-200)                                          | "Honorable research gap, NOT an error" — always rendered with a **dashed** border                                               |
+| Funding horizons | `--horizon-today` (gold-600), `-tomorrow` (blue-600), `-forever` (iris-700)                                                      | Near → far. Also carries a distinct SVG glyph per value, so the encoding is not colour-only                                     |
+| QPI dimensions   | `--qpi-capacity` (blue-600), `-relationship` (sage-600), `-timing` (gold-600), `-history` (iris-600), `-philanthropy` (teal-600) | Five score parts                                                                                                                |
+| QPI tier bands   | `--qpi-go` (gold-600, 90-100), `-strong` (blue-600, 70-89), `-build` (sage-600, 50-69), `-early` (ink-400, <50)                  | Thresholds in `packages/shared/src/qpi.ts:70-75`                                                                                |
+
+> The two QPI palettes are consumed through **string-name indirection** — the token name is stored as
+> a `varName` string and interpolated as ``var(`${varName}`)`` (`QpiScore.tsx:15-20`,
+> `QpiBreakdown.tsx:8-14`). Grepping `var(--qpi-capacity)` finds nothing even though it renders.
+
+### Colour outside the tokens
+
+- **35 hard-coded colour literals** survive outside `colors.css` — 25 in CSS, 10 in TSX. Notably:
+  `ds.css` writes `#fff` in 7 declarations (`:178,:182,:186,:445,:525,:529,:533`) while `--white`
+  exists; `Avatar.tsx:14` hard-codes 5 uppercase hexes duplicating the blue/sage/gold/iris/teal-600
+  ramp; `Mark.tsx:19,22,27` hard-codes `#235C86`, `#FFFFFF`, `#C8862A`. `ds-data.css`, `shell.css`,
+  `visit.css`, `feedback.css`, `jobtray.css` and `login.css` contain **zero** raw hexes.
+- **Shadows and focus rings are raw rgba by design** (`tokens/elevation.css:24-38`), ink-tinted
+  rather than referencing a colour token.
+- **6 custom properties are referenced but never defined** — see §8.1.
+
+---
+
+## 3. Typography
+
+| Var            | Family                                     | Job                                                            |
+| -------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| `--font-sans`  | **Hanken Grotesk** (variable 100–900)      | All UI and body text                                           |
+| `--font-serif` | **Newsreader** (variable 200–800 + italic) | Human moments only — the ask, discovery questions (Visit mode) |
+| `--font-mono`  | **IBM Plex Mono** (400/500/600)            | Evidence: citation tags, QPI part scores, suggestion deltas    |
+
+**Weights** `--fw-regular 400` · `medium 500` · `semibold 600` · `bold 700` · `heavy 800`.
+
+**Sizes (px)** `--fs-micro 11` · `caption 12` · `small 13` · **`body 15` (default)** · `base 16` ·
+`lg 18` · `xl 21` · `2xl 26` · `3xl 32` · `4xl 40` · `5xl 52` · `moment 28` · `score 64` ·
+`score-lg 88`.
+
+**Line heights** `--lh-tight 1.1` · `snug 1.25` · `normal 1.45` · `relaxed 1.6`.
+**Letter spacing** `--ls-tight -0.02em` · `snug -0.01em` · `normal 0` · `wide 0.04em` ·
+`caps 0.08em`.
+
+### Composite roles and what consumes them
+
+| Token            | Composition            | Consumers                                                                                           |
+| ---------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `--text-h1`      | 700 / 32px / 1.1 sans  | `.f95-page__title`, `.f95-record-head__title`, `.page-placeholder__title`                           |
+| `--text-h2`      | 600 / 26px / 1.25 sans | `.shell-topbar__title`, `.login__title`, styleguide register title                                  |
+| `--text-h3`      | 600 / 21px / 1.25 sans | `.f95-section-title`, `.f95-settings__title`, `.f95-mg-stage__title`                                |
+| `--text-title`   | 600 / 18px / 1.25 sans | `.f95-empty__title`                                                                                 |
+| `--text-body-r`  | 400 / 15px / 1.45 sans | `body`, `.f95-table`, `.f95-input`, `.f95-textarea`, `.f95-select__el`, `.f95-check`, `.f95-switch` |
+| `--text-label`   | 500 / 13px / 1.25 sans | `.f95-field__label`, `.shell-user__name`, `.f95-qpi__plabel`, job tray                              |
+| `--text-caption` | 500 / 12px / 1.25 sans | `.f95-page__count`, record/table meta, hints, `.f95-stat__sub`                                      |
+| `--text-display` | 700 / 40px / 1.1 sans  | **zero consumers**                                                                                  |
+
+> **The composite roles are the minority.** Of 120 `font:` declarations across the 15 stylesheets,
+> **48 use a `--text-*` token and 71 re-compose the shorthand inline** from `--fw-*`/`--fs-*`
+> primitives (69 of those hard-coding the line-height as a bare number). Matching the surrounding
+> file matters more than reaching for a composite role.
+
+### Role map
+
+| Role               | Declaration                                                                 | Where                                                                                            |
+| ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Page title         | `--text-h1` + `--ls-snug`                                                   | `.f95-page__title` (`ds-data.css:451`)                                                           |
+| Section heading    | `--text-h3`                                                                 | `.f95-section-title` (`ds-data.css:645`)                                                         |
+| Eyebrow / overline | `600 / 11px / 1`, `--ls-caps`, uppercase, `--reg-eyebrow` or `--text-muted` | 5 near-identical rules — §8.4                                                                    |
+| Table header       | `600 / 12px / 1.2`, `--ls-snug`, `--text-secondary`                         | `.f95-table thead th` (`ds-data.css:15-25`)                                                      |
+| Table cell         | `--text-body-r`                                                             | `.f95-table` (`ds-data.css:9-14`)                                                                |
+| Stat value         | `600 / 21px / 1.1`, tabular                                                 | `.f95-stat__value` (`ds-data.css:516-520`)                                                       |
+| Big number         | `800 (heavy)`, `--ls-tight`, tabular                                        | `.f95-qpi__num` 64px · `.f95-foil__value` 32px · `.f95-prow__rank .n` / `.f95-prow__qpi .v` 26px |
+| Serif moment       | 400 serif, `--ls-snug`                                                      | `.f95-visit__ask` 40px · `.f95-visit__prompt` 32px · `.f95-visit__q` 28px                        |
+| Monospace          | `500 / 11px` or `13px`                                                      | `.f95-src`, `.f95-qpi__pscore`, `.f95-prov__from/__to`, `.f95-weight__max`                       |
+
+**Monospace is 11px or 13px everywhere** — there is no mono role at body or label size, and **no CSS
+rule anywhere combines `--font-mono` with `text-transform: uppercase`** (relevant to §9).
+
+**Numerals** — `body` sets `font-feature-settings: var(--num-tabular)` (`"tnum" 1, "lnum" 1`)
+globally (`tokens/base.css:21`), so everything is tabular by default. 12 numeric classes in
+`ds-data.css` re-assert `font-variant-numeric: tabular-nums`. Two mechanisms, split cleanly by
+stylesheet generation — §8.3.
+
+**Zero consumers:** `--text-display`, `--fs-base`, `--fs-5xl`, `--fs-score-lg`, `--ls-normal`,
+`--ls-wide`, `--lh-relaxed`, and the `.f95-overline` / `.f95-num` utilities.
+
+---
+
+## 4. Spacing, radius, elevation, borders
+
+### Spacing — 13 steps declared, 5 carry the app
+
+`--space-0 0` · `1 4` · `2 8` · `3 12` · `4 16` · `5 20` · `6 24` · `7 32` · `8 40` · `9 48` ·
+`10 64` · `11 80` · `12 96` (px).
+
+**`--space-2 / 3 / 4 / 5 / 7` account for 148 of 161 total references.** Use them first:
+
+> Counting rule: these figures count bare `var(--token)` references. Two `var(--token, fallback)`
+> forms in `feedback.css` (`:28`, `:57`) are excluded; include them and `--space-5` and
+> `--radius-sm` each gain one.
+
+| Step               | Typical job                                                |
+| ------------------ | ---------------------------------------------------------- |
+| `--space-2` (8px)  | Chip clusters, action groups, `.f95-cluster` gap           |
+| `--space-3` (12px) | List gaps, filter-bar gap, `.f95-statgrid` gap             |
+| `--space-4` (16px) | Default stack gap, `.f95-page` gap, tile grids             |
+| `--space-5` (20px) | Card padding (`.f95-card__pad`), sidebar padding           |
+| `--space-7` (32px) | Page gutter, topbar gutter, `--content-gutter`, `pad="lg"` |
+
+Three conventions coexist: `ds.css` is 19 token vs **51 raw-px** spacing declarations, `ds-data.css`
+is the inverse (64 token vs 19 raw), `shell.css` is even (17 vs 16), and `login.css` / `jobtray.css`
+use **zero** spacing tokens. Follow the file you are editing.
+
+**Layout sizing** `--container-max 1320px` · `--sidebar-w 264px` · `--rail-w 72px` _(0 refs)_ ·
+`--content-gutter var(--space-7)` _(0 refs)_.
+**Control heights** `--control-sm 32px` · `--control-md 40px` (default) · `--control-lg 48px` ·
+`--touch-min 44px` _(0 refs)_.
+
+### Radius — 8 declared, 4 carry the app (46 of 49 references)
+
+`--radius-xs 4` · `sm 6` · `md 10` · `lg 14` · `xl 20` _(0)_ · `2xl 28` _(0)_ · `pill 999px` ·
+`circle 50%` _(0)_.
+
+| Radius | Applied to                                                                      |
+| ------ | ------------------------------------------------------------------------------- |
+| `xs`   | Checkbox, `.f95-src`, focus-ring rounding                                       |
+| `sm`   | `--btn--sm`, tags, pagination buttons, progress/bar tracks, suggestion delta    |
+| `md`   | Buttons, inputs, selects, textareas, nav rows, `.f95-prow`, topbar icon buttons |
+| `lg`   | **Cards**, table wrap, empty state, modal, login card                           |
+| `pill` | Badges, horizon tags, role chips, switch track, heartbeat, job tray             |
+
+### Elevation — shallow in practice
+
+| Token          | Value                                 | Reaches the screen via                                                |
+| -------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| `--shadow-xs`  | `0 1px 2px /0.05`                     | **dead**                                                              |
+| `--shadow-sm`  | `0 1px 2px /0.06, 0 1px 1px /0.04`    | **every `<Card>` in app code** — the `elevation` prop is never passed |
+| `--shadow-md`  | `0 2px 4px /0.05, 0 4px 12px /0.07`   | two `:hover` rules only                                               |
+| `--shadow-lg`  | `0 4px 8px /0.06, 0 12px 28px /0.10`  | feedback dropdown                                                     |
+| `--shadow-xl`  | `0 8px 16px /0.08, 0 24px 56px /0.14` | the modal                                                             |
+| `--inset-sunk` | `inset 0 1px 2px /0.05`               | `.f95-card--sunk`                                                     |
+| `--ring`       | `0 0 0 3px rgba(56,120,163,.35)`      | 9 rules — global `:focus-visible` + every control                     |
+| `--ring-go`    | `0 0 0 3px rgba(200,134,42,.28)`      | 2 rules — go button focus, `.f95-card--go`                            |
+
+A card's edge is **hairline + quiet lift**, not a heavy shadow. Hover raises `sm → md` with
+`translateY(-1px)`.
+
+### Borders
+
+All three width tokens (`--border-w`, `--border-w-2`, `--border-w-emph`) have **zero references** —
+every border writes its width literally. Default is `1px solid var(--border-*)`. Exceptions that
+carry meaning: checkbox `1.5px`; partner role chip `1.5px dashed`; active tab `2px` underline; card
+AI accent and `.f95-prow` tier rail `3px` left border.
+
+**Dashed borders are semantic** — they mark the "unknown / worth researching" state
+(`.f95-badge--unknown`, `.f95-src--unknown`, `.f95-empty`, `.page-placeholder__empty`) and the
+Natural Partner chip. Exactly **one** dashed _divider_ exists (`.f95-qpi__foot`, `ds.css:856`).
+
+### Motion
+
+`--dur-instant 80ms` · `fast 140ms` (all control hovers) · `base 220ms` (cards, chevrons) ·
+`slow 360ms` (login entrance) · `deliberate 520ms` _(0 refs)_. Easings `--ease-out`, `--ease-in-out`,
+`--ease-emph` _(0 refs)_. `--beat-period 2600ms` drives the cadence pulse. Keyframes
+`f95-heartbeat`, `f95-rise`, `f95-reveal`. Four `prefers-reduced-motion` blocks kill animation and
+transition durations globally.
+
+---
+
+## 5. Component patterns
+
+24 components exported from 23 files in `apps/web/src/components/ds/` (barrel: `index.ts`). Every one
+is a thin `className` string-builder over `f95-*` classes — no runtime styling.
+
+### 5.1 Page shell and navigation — `components/shell/`
+
+`AppShell` (`AppShell.tsx:132-201`) is the only shell. Two route-group layouts render it —
+`app/(host)/layout.tsx:12` and `app/95-forward/layout.tsx:12` — differing only by a `register` prop
+stamped as `data-register` on `.shell`. Structure: flex row = **fixed 264px sticky sidebar**
+(`.shell-sidebar`, white, hairline right border, own scroll, full height) + `.shell-main`. Renders a
+skip link, brand block, nav, the account footer, and — in the `95-forward` register only — the
+`JobTray`.
+
+Nav is data-driven from one static array, `components/shell/nav.ts:62-193`: 4 sections, 4 item kinds
+(`leaf` / `group` / `cta` / `eyebrow`). Active state is a prefix match (`AppShell.tsx:58-61`); a
+group containing the current route is force-expanded. The 95 Forward group is `branded` — it renders
+the `Mark` SVG instead of a lucide icon.
+
+**`Topbar` is not rendered by the shell.** It is imported per-page by **12 of 79 `page.tsx`** files —
+11 of 13 under `95-forward`, **1 of 63** under `(host)` (Settings). 14 call sites in total
+(`search/loading.tsx` and `PagePlaceholder.tsx` are the other two). The remaining host pages build
+their header from `.f95-page__header` markup instead. See §8.4.
+
+```tsx
+// apps/web/src/app/95-forward/today/page.tsx:86-97
+<Topbar title="Today" subtitle="95 Forward" />
+<div className="f95-page" data-testid="today">
+  <div className="f95-page__header">
+    <div className="f95-page__heading">
+      <div className="f95-page__eyebrow">95 Forward</div>
+      <h1 className="f95-page__title">Today</h1>
+      <p className="f95-page__count">…</p>
+```
+
+**Layout primitives are bare CSS classes** in `ds-data.css`, with no React wrapper except `FormRow`:
+`.f95-page` (68 files), `.f95-stack` (+`--sm`; 106 elements / 51 files), `.f95-cluster` (132),
+`.f95-page__header` (32), `.f95-record-head` (10), `.f95-tilegrid` (+`--wide`), `.f95-statgrid`,
+`.f95-deflist` (114 occurrences / 29 files), `.f95-inline-form` (22), `.f95-overview` (2).
+
+### 5.2 Card — `ds/Card.tsx`, `ds.css:288-338` — 134 uses / 62 files
+
+| Prop          | Values                                             | Notes                                                                               |
+| ------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `tone`        | `default` · `ai` · `go` · `sunk`                   | `ai` = iris surface + border; `go` = gold border + `--ring-go`; `sunk` = inset well |
+| `pad`         | `sm 16` · **`md 20` (default)** · `lg 32` · `none` | `sm` and `none` have **0 uses**                                                     |
+| `elevation`   | `sm` (default) · `md` · `none`                     | **0 uses** — every card renders `--shadow-sm`                                       |
+| `accent`      | bool                                               | **Only styled compounded with `tone="ai"`** — a no-op on other tones (§8.2)         |
+| `interactive` | bool                                               | Pointer + `shadow-md` + 1px lift. 1 use                                             |
+
+```tsx
+// apps/web/src/app/95-forward/today/page.tsx:30
+<Card tone="go" accent pad="lg">
+```
+
+### 5.3 Table — `ds/DataTable.tsx`, `ds-data.css:1-80` — 16 uses / 14 files, all under `app/(host)`
+
+Generic column config (`key`, `header`, `cell`, optional `sortKey`, `align`). Built in: sticky
+`haze-50` header, `align:"right"` → `.f95-table__num` (right-align + tabular), zebra striping on even
+rows (`color-mix` of haze-50 at 55%), `rowHref` turning the **first cell** into a
+`.f95-table__cell-link` and the row into a hover-highlighted `.f95-table__row--link`, sortable
+headers with `ArrowUp`/`ArrowDown`/`ChevronsUpDown` and `aria-sort`. **Sorting and paging are
+URL-driven** (`buildHref`), never client state. Pair with `Pagination` (3 uses).
+
+```tsx
+// apps/web/src/app/(host)/constituents/page.tsx:76-82
+{ key: "lifetime", header: "Lifetime giving", sortKey: "lifetimeGiving",
+  align: "right", cell: (row) => formatCurrencyFromCents(row.lifetimeGivingCents) },
+```
+
+### 5.4 List rows — all class-only, none is a component
+
+| Pattern                                                    | Where                 | Uses                                                                |
+| ---------------------------------------------------------- | --------------------- | ------------------------------------------------------------------- |
+| `.f95-itemrow` (+`__body`/`__title`/`__meta`/`__actions`)  | `ds-data.css:609-640` | 27 rows / 21 files                                                  |
+| `.f95-stat` (+`__label`/`__value`/`__sub`)                 | `ds-data.css:506-524` | 25 / 11 files — 4 competing compositions (§8.4)                     |
+| `.f95-deflist__item` (+`__term`/`__desc`)                  | `ds-data.css:563-590` | 18; the `DefItem` renderer is re-declared verbatim in 3 route files |
+| `.f95-prow` — ranked prospect row, 3px `--_tier` left rail | `ds.css:873-935`      | 2 screens, composed differently (§8.4)                              |
+| `.f95-mg-stage__head` — `count · total` stage summary      | `ds-data.css:742-757` | 1 screen                                                            |
+
+### 5.5 Buttons — `ds/Button.tsx`, `ds.css:1-120` — 209 uses / 78 files
+
+All 209 call sites pass `variant` explicitly.
+
+| Variant     | Treatment                                         | Uses   |
+| ----------- | ------------------------------------------------- | ------ |
+| `primary`   | Blue fill                                         | **71** |
+| `ghost`     | Transparent, haze hover                           | **69** |
+| `secondary` | White + border outline                            | **50** |
+| `danger`    | Transparent, brick text, brick-100 border         | 9      |
+| `go`        | Gold fill — "the next right move", used sparingly | 8      |
+
+Sizes `sm` (32px/13px/radius-sm — **148 uses**, the norm), `md` (40px/15px/radius-md, default), `lg`
+(48px/18px). `block` has 0 uses. **70 Buttons are wrapped in a `next/link` `<Link>`** — the dominant
+link-as-button pattern (§8.2).
+
+### 5.6 Badges, chips and pills — six distinct components, different jobs
+
+| Component    | Class            | Shape                       | Variants                                                                                                                 | Uses                      |
+| ------------ | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| `Badge`      | `.f95-badge`     | 22px pill, 11px semibold    | `neutral` `info` `success` `attention` `danger` `go` `ai` `unknown`; `dot`; `solid` _(0 uses)_                           | the status pill in tables |
+| `Tag`        | `.f95-tag`       | 26px, `radius-sm`, outlined | free-form `color` dot, `selected`, `onRemove` _(0 uses)_                                                                 | 6                         |
+| `HorizonTag` | `.f95-horizon`   | 24px pill                   | `today`/`tomorrow`/`forever`, each with its own glyph; `solid`                                                           | 5                         |
+| `RoleChip`   | `.f95-role`      | pill                        | `manager` (filled blue) vs `partner` (**dashed sage + door glyph**)                                                      | —                         |
+| `SourceTag`  | `.f95-src`       | 11px mono chip              | `--grounded` (iris tint, doc icon) / `--unknown` (dashed, sans, "Unknown — worth researching")                           | 12                        |
+| `Heartbeat`  | `.f95-heartbeat` | pill + animated dot         | `status`: `on-track` sage / `due-soon` gold / `overdue` brick, plus `label` for the text                                 | 3                         |
+| `Avatar`     | `.f95-avatar`    | 28/36/48px circle           | `size` (always emitted), `kind="org"` → rounded square, `src` → `<img alt={name}>`, `ringColor` → double box-shadow halo | 6 (none pass `src`)       |
+
+```tsx
+// apps/web/src/app/(host)/constituents/page.tsx:71
+<Badge tone={typeTone(row.type)}>{titleCaseFromSnake(row.type)}</Badge>
+```
+
+Domain-status → tone mapping is **not centralised**: one shared helper (`membershipStatusTone`)
+against 14 screen-local re-implementations (§8.4).
+
+### 5.7 Form controls
+
+All share `--control-md` height, `--radius-md`, `--border-default`, hover `--border-strong`, focus
+`blue-500` + `--ring`.
+
+- **`Input`** — `.f95-field` wrapper gives `__label` (13px, `· optional` suffix), `__hint`, `__err`.
+  Modifiers: `--has-icon` (36px left pad), `--invalid`, and **`--ai`** (iris surface/border/text) for
+  copilot-proposed values.
+- **`Textarea`** — `min-height: 84px`, vertical resize only.
+- **`Select`** — `appearance:none` + lucide `ChevronDown` overlay; `selectSize="sm"` → 32px.
+- **`Checkbox`** — 18px, 1.5px border, CSS `clip-path` tick, fills `--reg-accent`.
+- **`Switch`** — 38×22 pill, 18px thumb, `:has(:checked)` fills `--reg-accent`.
+- **Layout** — `FieldGroup` (uppercase `__legend`), `FormRow` (`--2`/`--3`, collapse below 720px),
+  `.f95-filterbar` (26 occurrences / 6 components).
+
+```tsx
+// apps/web/src/app/(host)/constituents/ConstituentForm.tsx (pattern)
+<FormRow columns={2}>
+  <Input label="Display name" name="displayName" required />
+  <Select label="Type" name="type" options={TYPE_OPTIONS} />
+</FormRow>
+```
+
+Each control's invalid and disabled treatment differs, and sibling APIs diverge (§8.5).
+
+### 5.8 Tabs — `ds/Tabs.tsx`, `ds-data.css:264-302`
+
+Link-based tabs, 2px `--reg-accent` underline on the active item, horizontally scrollable. **4 call
+sites.** Six hand-rolled `*Nav` components reuse the same classes with different ARIA and are the
+dominant variant at 16 call sites (§8.2).
+
+### 5.9 Modal — one instance, not a primitive
+
+`.f95-modal__scrim` + `.f95-modal` live in `feedback.css:42-74` and are used only by
+`components/feedback/FeedbackWidget.tsx`. Fixed scrim `rgba(22,32,43,0.32)`, top-aligned, 520px
+max-width, `radius-lg` + `--shadow-xl`, `role="dialog"` `aria-modal`. Focus-on-open, Tab trapping,
+Escape and scrim-click all live **inside the widget**, not in a reusable place. There is **no `Modal`
+component**.
+
+### 5.10 Empty and loading states
+
+- **`EmptyState`** (`.f95-empty`) — dashed border, sunk background, 44px circular icon chip, title +
+  line (max 420px) + optional action. **38 call sites** — the dominant whole-list empty.
+- **Inline empties** — `.f95-table__muted` (table cells), `.f95-deflist__desc--empty` (**41
+  occurrences / 27 files**, in every case standalone as a de facto muted-text utility, §8.4),
+  `.f95-foil__value--empty`, `.f95-mg-likelihood__empty`.
+- **Loading** — **no spinner and no skeleton exists anywhere.** One route-level `loading.tsx`
+  (`95-forward/search`). In-flight forms use `disabled` + `aria-busy`. Background work surfaces
+  through the **`JobTray`** — a fixed bottom-right iris pill with a pulsing dot, 95 Forward register
+  only.
+- **Toast / notification — does not exist.** The topbar bell is decorative and unwired.
+
+### 5.11 Copilot surfaces
+
+- **`ProvisionalSuggestion`** — the "copilot proposes, you decide" card: `ai` badge title, optional
+  `N% confident`, body, optional `from → to` delta (mono, strike-through old value), `SourceTag`
+  footnote, Approve / Edit / Dismiss. Resolved states collapse to one line.
+- **`QpiScore` / `QpiBreakdown`** — 64px heavy tabular number in the band colour + `/100`, band dot
+  and label, and a "See inside the score" / "Hide the math" disclosure revealing per-dimension bars,
+  ratings, rationale and source tags. `compact` drops the number to 26px.
+
+### 5.12 Screen conventions — the recipe for a new screen
+
+These are house patterns, not components, but a new screen that skips them will not look or test like
+the rest of the app.
+
+**Page skeleton.** 73 of 79 `page.tsx` files export `const dynamic = "force-dynamic"`; 72 of 79 are
+`export default async function` server components. In Next 15, `params` and `searchParams` arrive as
+**Promises** (`params: Promise<{ id: string }>`, `searchParams: Promise<RawSearchParams>` — 22 pages
+take searchParams). Every page opens with the same null-guard preamble:
+
+```tsx
+export const dynamic = "force-dynamic";
+
+export default async function ThingPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const { id } = await params;
+  …
+```
+
+**Forms.** `.f95-inline-form` (`ds-data.css:653` — column flex, `gap: var(--space-3)`) is the standard
+vertical form layout: **22 uses across 19 files**. Forms bind DS field primitives to server actions
+through `useActionState` (**35 files, 80 `<form action={formAction}>` sites**):
+
+```tsx
+const [state, formAction, isPending] = useActionState(someAction, initialState);
+<form action={formAction} className="f95-inline-form">
+  <input type="hidden" name="prospectId" value={id} />
+  <Input label="Name" name="name" error={state.fieldErrors?.name} />
+  <Button type="submit" disabled={isPending}>
+    {isPending ? "Saving…" : "Save"}
+  </Button>
+</form>;
+```
+
+**Disclosure.** The standard way to add an inline create/log form to a detail screen (**19 files**):
+`useState(false)` renders a collapsed trigger `Button` that swaps itself for an expanded
+`<Card><form className="f95-inline-form">`, closing again on `state.ok`.
+
+**Copilot actions.** `components/copilot/CopilotTrigger.tsx` is the canonical AI-invocation
+affordance — a `<form action={formAction}>` wrapping `<Button type="submit" variant="secondary"
+size="sm" disabled={isPending} iconLeft={…}>`, icon defaulting to `<Sparkle size={15}
+strokeWidth={1.8} />`, `pendingLabel` defaulting to `"Working…"`, plus a hidden subject-id input.
+
+**Icons.** `lucide-react` is the only icon source (103 files). **170 of 171 icon renders use
+`strokeWidth={1.8}`.** Size is keyed to the slot, not chosen freely:
+
+| Slot                          | Size                       |
+| ----------------------------- | -------------------------- |
+| `EmptyState` `icon`           | 20 (34 of 41 icon props)   |
+| `Button` `iconLeft`           | 15 (28) · 16 (16) · 14 (7) |
+| Sidebar nav row / group child | 18 / 17                    |
+| Topbar bell, sign-out         | 18                         |
+| `Select` chevron              | 16                         |
+| `DataTable` sort arrow        | 13                         |
+
+**Test IDs.** 91 `data-testid` attributes across 39 files, kebab-case. 11 sit on the `.f95-page` root
+and name the screen (`<div className="f95-page" data-testid="today">`), with more on each meaningful
+region and on every form. **The Playwright suite pins these** — a screen that omits them is
+untestable in the house style.
+
+**Truncation.** The app clips text in exactly **5 rules** (`text-overflow: ellipsis`:
+`ds.css:462,:924,:932`, `jobtray.css:31`, `shell.css:213`) and has **zero `-webkit-line-clamp`**
+anywhere. Everything else wraps. Long donor names and rationale copy will wrap, not clip, unless you
+opt in.
+
+**Accessibility posture.** There is **no `sr-only` / visually-hidden utility anywhere in the repo**
+(0 hits). 52 `aria-label` attributes carry that load instead. `aria-hidden` appears on only 12 of the
+170 icon renders — decorative icons are usually left exposed. See §8.5 for where the shared
+components fall short.
+
+---
+
+## 6. Layout conventions
+
+1. **Composition.** Every authenticated screen is `AppShell` → (optional `<Topbar/>`) → one
+   `.f95-page` container. `.f95-page` (`ds-data.css:435-441`) = `padding: var(--space-7)`,
+   `max-width: var(--container-max)` (1320px), **left-aligned, not centred**, flex column, `gap:
+var(--space-4)`. Used in **68 files**.
+2. **Narrower variants.** `.f95-settings` caps at 760px; Visit mode's reading column at 680px.
+3. **Grid is rare.** Layout is overwhelmingly flexbox — only **9 selectors declare `display:grid`**
+   and there are **11 `grid-template-columns` declarations** in the whole stylesheet set. Intrinsic
+   grids use `repeat(auto-fit, minmax(…, 1fr))` at three track sizes: **150px** (`.f95-statgrid`),
+   **220px** (`.f95-tilegrid`, `.f95-deflist`), **320px** (`.f95-tilegrid--wide`). The only
+   fixed-column grids are `.f95-formrow--2` / `--3`.
+4. **Detail screens** use `.f95-overview` — one column, becoming `1fr / 340px` main+rail at ≥960px
+   with the rail `position: sticky`.
+5. **Register.** `data-register="host" | "95-forward"` on the shell root swaps seven `--reg-*`
+   variables (`register.css`): `--reg-accent`, `-accent-strong`, `-accent-surface` _(0 refs)_,
+   `-nav-active-bg`, `-nav-active-fg`, `-nav-active-icon`, `-eyebrow`. Consumers: active tab, table
+   sort icon, cell-link hover, checkbox, switch, fieldgroup legend, page eyebrow, nav active row.
+6. **Breakpoints — there are exactly three layout media queries in the source tree:**
+   `max-width: 720px` (form rows → 1 column, `ds-data.css:349`) and `min-width: 960px` twice
+   (`.f95-overview` grid and its sticky rail, `ds-data.css:1000,1017`). Plus 4
+   `prefers-reduced-motion` blocks.
+7. **Mobile is undefined.** `shell.css` contains **zero** media queries — the 264px sidebar never
+   collapses. There is no JS viewport handling anywhere, and Playwright runs Desktop Chrome only.
+8. **Visit mode** is a `position: fixed; inset: 0; z-index: 60` overlay above the shell
+   (`visit.css`), low chrome, large serif type.
+9. **Z-index ladder** — six hard-coded literals, no token: sticky table header `1`, feedback menu
+   `50`, job tray `50`, visit mode `60`, skip link `100`, modal scrim `100`.
+10. **Horizontal scroll** exists in exactly two places: `.f95-table-wrap` and `.f95-tablist`.
+
+---
+
+## 7. Data-display formatting
+
+`apps/web/src/lib/format.ts` (65 lines) is the **only** shared display-formatting module, and holds
+the **only two `Intl.*` constructions in the entire repo** (`:4`, `:16`). Everything else is
+hand-rolled. There is **no date or number library** in any `package.json`.
+
+| Kind                  | Convention                                                                                                                                                                                                                                                | Where                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Currency**          | Integer **cents** in, `Intl.NumberFormat("en-US", USD, min/max fraction 0)` out — whole dollars, **never cents**: `$250,000`. Null → `—`.                                                                                                                 | `formatCurrencyFromCents` (`format.ts:1-10`)                                  |
+| **Abbreviated money** | **Does not exist.** Zero uses of `notation:"compact"`, zero `compactDisplay`, no division by 1e3/1e6 in any render path. The `$1M` strings in the repo are hard-coded prose in seed data and the styleguide.                                              | —                                                                             |
+| **Dates**             | `Intl.DateTimeFormat("en-US", {year:numeric, month:short, day:numeric, timeZone:"UTC"})` → `Sep 11, 2025`. UTC is pinned because the columns are Postgres `date` (calendar days, no zone). Null/invalid → `—`. **No time-of-day format exists anywhere.** | `formatDate` (`format.ts:12-22`)                                              |
+| **Machine dates**     | `toISOString().slice(0,10)` for URL params and `<input type="date">` — re-implemented in 4 lib files, no shared helper.                                                                                                                                   | `event-params.ts:53`, `marketing-format.ts:30`, `membership-renewals.ts:8,39` |
+| **Relative time**     | **Four disagreeing implementations** — §8.4.                                                                                                                                                                                                              | —                                                                             |
+| **Counts**            | `.toLocaleString("en-US")` inline in **3 files / 7 sites**; **raw with no separator** in the 17 page-header `{n} records` ternaries and in table cells. No shared count formatter.                                                                        | `(host)/page.tsx:43,50` vs `constituents/page.tsx:154`                        |
+| **Percentages**       | Computed **server-side**, always `Math.round` to a whole integer — never `toFixed`, never a decimal. Rendered as bare `{n}%`. Some clamp 0–100 server-side.                                                                                               | `analysis-metrics.ts:41,72`, `green-sheet-metrics.ts:33,38`                   |
+| **Hours**             | Bare `.toFixed(2)` → `12.50`, at 6 display sites in 4 files. No helper. Unit normally carried by the column header.                                                                                                                                       | `volunteers/roster/page.tsx:34`                                               |
+| **Enum labels**       | `titleCaseFromSnake` — `corporate_grant` → `Corporate Grant`. Does **not** lower-case the rest. 9 local `Record<…,string>` label maps exist for enums whose form is not plain title-case.                                                                 | `format.ts:60-65`                                                             |
+| **Null / empty**      | Four conventions, all live: em dash `—` (default, usually in `.f95-table__muted`); a muted phrase ("No gifts yet", "No contact yet", "Unassigned"); a full sentence ("No tags yet — add what you know."); or `EmptyState` for a whole list.               | §8.4                                                                          |
+| **Numeric alignment** | Opt-in per column on `DataTable` (`align:"right"` → `.f95-table__num`), used 29 times / 14 files. Tabular figures are on globally regardless.                                                                                                             | `DataTable.tsx:10,62,87`                                                      |
+| **Pagination**        | `Showing {from}–{to} of {total}` with an **en dash** (not the em dash used for nulls) and raw unseparated numbers; `No records` at zero.                                                                                                                  | `Pagination.tsx:22,35`                                                        |
+
+**Inline formatting count:** 10 distinct files format numbers for display inline rather than through
+a helper — 8 in `apps/web`, 2 in `packages/ai`. `packages/ai` carries **two private USD formatters**
+(`retrieval.ts:34-40`, `tools/index.ts:15-21`) whose output differs from `formatCurrencyFromCents`.
+
+---
+
+## 8. Inconsistencies and open questions
+
+Everything below is **reported, not resolved**. Counts are grep-verified; "dominant" means the
+variant with more call sites, not the better one.
+
+### 8.1 Token-layer defects
+
+1. **6 custom properties are referenced but never defined**, across 7 sites: `--ink-strong`
+   (`shell.css:16`), `--motion-fast` (`shell.css:18`), `--elevation-sm` (`jobtray.css:14`),
+   `--text-primary` (`feedback.css:30,:68`), `--text-lg` (`feedback.css:66`), `--ai-iris`
+   (`95-forward/search/page.tsx`).
+2. **5 `var()` fallbacks contradict the real token**: `var(--radius-sm, 8px)` vs the real `6px`;
+   `var(--motion-fast, 120ms)` vs `--dur-fast: 140ms`; `var(--text-lg, 18px)` names a token that
+   does not exist (`--fs-lg` does); `var(--ai-iris, #4A4F94)` hard-codes `--ai-ink`;
+   `var(--reg-accent, #235C86)` hard-codes `--blue-600`.
+3. **33 declared tokens have zero references**, including all three `--border-w*`, three of the four
+   `--color-*` status aliases, `--focus-ring`, `--rail-w`, `--touch-min`, `--content-gutter`,
+   `--radius-xl`/`2xl`/`circle`, `--fs-5xl`, `--fs-score-lg`, `--text-display`, `--reg-accent-surface`
+   (defined twice, used zero times).
+4. **Two focus-ring tokens, and the dead one is the semantic one.** `--ring` (raw rgba of blue-500)
+   is used in 9 rules; `--focus-ring: var(--blue-500)` in **0**. Two further focus rings are inlined
+   as raw rgba (`ds.css:409,:418`) instead of tokenised.
+5. **Semantic aliases collapse onto the same hex**, so roles the palette comments say "must never
+   look alike" are identical: `--blue-600` backs 6 aliases, `--gold-600` backs 5, `--sage-600` backs
+   4, `--ink-400` backs 3, `--iris-600` backs 2.
+
+### 8.2 Competing implementations of the same thing
+
+6. **Tabs — two implementations, and the invalid attribute is load-bearing.** The DS `Tabs` uses
+   `role="tablist"`/`role="tab"` (4 sites). Six hand-rolled `*Nav` components use `role="navigation"`
+   but still set `aria-selected` on plain links — **they must**, because `.f95-tab[aria-selected="true"]`
+   is the only rule that styles an active tab and nothing targets `aria-current`.
+   **`*Nav` is dominant: 16 call sites across 6 near-verbatim duplicate files** (Analysis,
+   MajorGiving, Marketing, Memberships, Revenue, Volunteers), none shared.
+7. **`Card accent` is a silent no-op outside AI cards.** The only rule is the compound
+   `.f95-card--ai.f95-card--accent` (`ds.css:324-326`). Of 12 `accent` call sites, 7 are `tone="ai"`
+   (works) and **5 are `tone="go"` (renders nothing)**.
+8. **Link-as-button is nested interactive throughout.** `<Link><Button/></Link>` puts a `<button>`
+   inside an `<a>` at **70 sites across 43 files** — dominant. Two competing treatments: raw
+   `<a class="f95-btn …">` on the auth screens (2 sites), and `Pagination`'s `<Link>` +
+   `aria-disabled` + `tabIndex={-1}`. `Button` has no `as`/`href` prop.
+9. **Tables — two implementations.** `DataTable` (sortable, `aria-sort`, right-align, row links) at
+   16 sites, dominant; raw `<table class="f95-table">` markup with none of those at 2 sites
+   (`green-sheet`, `RelationshipMapTab`).
+10. **The AI marker disagrees by register.** `<Badge tone="ai">` appears 8 times, **none under
+    `app/(host)`**; the host register labels the same AI-derived value `<Badge tone="neutral">AI</Badge>`
+    at 3 sites.
+11. **The "major-gift likelihood" foil is implemented four ways** — three hand-rolled `.f95-foil`
+    blocks disagreeing on icon (Sparkles 20 vs Gauge 20), on how AI origin is marked, and on card
+    padding, plus `LikelihoodFoil` using a different class family. Three distinct empty strings
+    across the four.
+12. **Five icon-button treatments exist beside `Button`**: `.shell-bell` (38px bordered, 2 sites),
+    `.shell-signout` (32px borderless), `.f95-stepper__btn` (30px, borders with the raw `--ink-200`
+    rather than `--border-default`), `.f95-pagination__btn`, `.f95-tag__x` (dead).
+13. **Three progress/bar treatments with inconsistent clamping and a11y.** `.f95-bars` (4 sites, all
+    with `role="img"`), `.f95-progress` (5 sites, **none with any role or aria**),
+    `.f95-qpi__ptrack`. Of the 5 `.f95-progress` sites, 2 clamp, 2 feed raw unclamped `pct`, and 1 is
+    driven by `barHeightPercent` — which sets a **width** at that site, contradicting its name.
+
+### 8.3 Two stylesheet generations
+
+14. `ds.css` was added in Initiative 0, `ds-data.css` in Initiative 2, and the split still shows:
+    **`ds.css` consumes 0 `--reg-*` tokens** (hard-coding the blue ramp for the equivalent states in
+    10 declarations) while `ds-data.css` consumes 9. Likewise tabular figures — `font-feature-settings`
+    appears only in `ds.css`/`base.css` (9 rules), `font-variant-numeric` only in
+    `ds-data.css`/`visit.css` (13 rules). **No file uses both mechanisms.**
+
+### 8.4 Duplicated and drifting patterns
+
+15. **Relative time has four disagreeing implementations**: `deriveCadence`
+    (`prospect-cadence.ts`, "1d ago"), a screen-local `relativeDate` (`prospects/[id]/page.tsx:50-65`,
+    "Yesterday" / "3 days ago"), `followUpLabel` (`follow-up.ts`, **rounds** where the others floor),
+    and `formatTenure` (`wavemaker.ts`). The first two appear in the _same prospect flow_. None share
+    a day-math constant. One staleness value is a hard-coded literal: `updatedAt="6h ago"`
+    (`prospects/[id]/page.tsx:308`).
+16. **Status-tone mappers are copy-pasted, not shared.** 14 screen-local implementations against one
+    shared helper. Three list/record pairs are currently **byte-identical** and free to diverge;
+    `cancelled` maps to `unknown` in two places and `neutral` elsewhere.
+17. **Four competing stat-tile compositions** across 25 `.f95-stat` occurrences: Card-wrapped inside
+    `.f95-tilegrid` (10), bare inside `.f95-statgrid` (12), Card-wrapped inside `.f95-statgrid` (1),
+    and Card-wrapped in no grid at all (2). Counts inside `.f95-stat__value` also disagree — 6 sites
+    apply `toLocaleString`, 4 render a raw integer.
+18. **Three page-header treatments coexist** (`.f95-page__header` 32 uses, `.f95-record-head` 10,
+    `Topbar` 14) — and **12 pages render two `<h1>` elements**, one from `Topbar` and one from the
+    page body.
+19. **Five eyebrow treatments, two byte-identical.** `.f95-page__eyebrow` and
+    `.f95-fieldgroup__legend` share all four declarations plus margin; `.page-placeholder__eyebrow`
+    differs only in margin; `.f95-visit__eyebrow` swaps the colour. The token-layer utility
+    `.f95-overline` has **0 uses**, and a sixth name `f95-eyebrow` is applied in TSX with no rule at
+    all.
+20. **The URL-param `update()` helper is re-implemented in 7 filter components and they disagree** —
+    3 call `next.delete("page")` to reset pagination, 4 do not.
+21. **The `.f95-prow` prospect row is hand-written on two screens with different composition** — MPL
+    sets `--_tier`, roles and cadence; Search sets none of them, so its left border silently falls
+    back to `--border-default`. There is no shared `ProspectRow`.
+22. **The definition-list renderer is duplicated four times**; three copies render `—` for empty and
+    the fourth renders "Unknown — worth researching".
+23. **The QPI band→variable map is duplicated** (`tierVar()` and `BAND_META`), and the band
+    _vocabulary_ disagrees across three places: `"Go — see them today"/"Strong"/"Building"/"Early"`
+    vs `"90+"/"70–89"/"50–69"/"Under 50"` vs the token comments. The thresholds themselves come from
+    one shared function.
+24. **`titleCaseFromSnake` is re-inlined character-for-character** in `list-fields.ts:34-37` instead
+    of imported.
+
+### 8.5 Dead, orphaned and mis-wired
+
+25. **6 classes are applied in TSX with no CSS rule anywhere**: `f95-eyebrow`, `f95-field__error`
+    (the real class is `f95-field__err` — so that error text renders in inherited colour, not
+    `--color-danger`), `f95-prov`, `f95-prov__title`, `f95-settings__intro`, and `f95-rise` — which
+    is a **keyframes name applied as a class**.
+26. **7 classes are defined in CSS and never used**: `.f95-num`, `.f95-overline`, `.f95-recordbar`,
+    `.f95-mpl__pillgroup`, `.f95-mpl__pillgroup-label`, `.f95-visit__amount`, `.f95-visit__phasenav`.
+27. **BEM elements outliving their block.** `.f95-recordbar` has 0 uses but `.f95-recordbar__spacer`
+    has 20 — and 5 of those sit inside a **column** flex container where `flex: 1` does nothing.
+    `.f95-deflist__desc--empty` is used **41 times across 27 files, every one standalone** with no
+    `.f95-deflist` parent — it has become the generic muted-text utility.
+    `.f95-table__cell-link` has **77 occurrences, only 1 inside `DataTable`** — 39 pair it with
+    `.f95-cluster` as an undocumented breadcrumb back-link.
+28. **Dead component API**: `QpiBreakdown` is exported but has no call sites outside `QpiScore`;
+    `Badge.solid`, `Tag.onRemove`, `SourceTag.onClick`, `Card.elevation`, `Card.pad="sm"|"none"`,
+    `DataTable.caption` and `Button.block` all have **0 call sites**, leaving their CSS dead.
+    `PagePlaceholder` is exported from the shell barrel and **rendered nowhere**.
+29. **`/styleguide` has drifted from the DS surface** — it demos 11 of 24 exported components.
+    Checkbox, Switch, Select, Textarea, DataTable, Pagination, Tabs, EmptyState, FieldGroup, FormRow,
+    QpiScore, QpiBreakdown and Mark are absent.
+30. **`resolveRegister`/`isForwardRoute` in `packages/shared` do not drive the running app** — the
+    shell receives `register` as a layout prop, and the only app call site passes the literal
+    `"/styleguide"`.
+31. **The topbar's "Add" button and "Search Keystone" input are unwired** — no `onClick`, no `href`,
+    no form, no handler.
+32. **Sibling field APIs diverge**: `Input`/`Textarea` accept `optional`, `Select` does not; `Select`
+    names its size prop `selectSize` while everything else uses `size`; and **14 call sites bypass
+    `label` entirely and pass `aria-label`**, producing visually unlabelled controls. The auto-id
+    expression is re-implemented character-identically in all three, and guarantees no uniqueness.
+33. **Accessibility inconsistencies in shared components**: `SourceTag` renders `role="button"` on a
+    `<span>` with no `tabIndex` and no keyboard handler (and no call site passes `onClick`, so it
+    announces as a button that does nothing); `Tag`'s remove affordance is likewise unreachable by
+    keyboard; `DataTable` sets `aria-sort` only on the active column and no `<th scope>` exists
+    anywhere in the app; of 21 `f95-field__err` sites only 1 adds `role="alert"`.
+34. **Documented-but-unimplemented**: `data-density="b"` is set on two Visit-mode elements and
+    described in comments, but **no CSS selector anywhere targets `[data-density]`**.
+    `--touch-min: 44px` and `--rail-w: 72px` imply touch targets and a collapsed rail that do not
+    exist.
+35. **Token comments contradict the code**: `--radius-md` is annotated "default card / control" but
+    cards use `--radius-lg`; the typography header cites `--fs-display`, which does not exist; the
+    Iris comment says "never used for human-entered data" but `--horizon-forever` paints iris on a
+    DB-sourced value at 5 call sites; the Unknown palette is documented as "NOT an error" but is the
+    mapping for `cancelled` in two helpers.
+36. **Two hard-coded transitions** (`240ms ease`) sit beside a full motion-token set
+    (`ds-data.css:697,:788`).
+37. **Hover affordances are inconsistent across list rows**: `.f95-card--interactive` and
+    `.f95-prow--interactive` duplicate the same two declarations in separate rules, while
+    `.f95-table__row--link` changes background only, with no lift.
+
+38. **The word "register" means two incompatible things in live code.** `data-register`
+    (`register.css`, `AppShell.tsx:135`) means _which product's chrome is showing_ — `host` vs
+    `95-forward`. But the token-file comments (`tokens/spacing.css:2-5`,
+    `tokens/typography.css:8-10`) use "Register A / Register B" for _density_ — portfolio vs
+    in-the-moment — which is the stale export's sense and is not implemented (§8.5.34). Both senses
+    appear in the codebase unreconciled.
+
+### 8.6 Drift from the stale export
+
+39. The token layer **barely drifted** — `apps/web/src/styles/tokens/*.css` is the export's
+    `project/tokens/*.css` run through Prettier: the same 176 token names, with only the three font
+    families (now `next/font` variables) and a cosmetic `0.10`→`0.1` differing. The real drift is
+    structural: the export's runtime self-injecting `<style>` convention was replaced by static
+    stylesheets; `AISuggestion`/`.f95-ai` became `ProvisionalSuggestion`/`.f95-prov` (**which has no
+    base rule — it rides on `Card`**); `QPIScore` split into `QpiScore` + `QpiBreakdown`;
+    `ProspectRow` was demoted to page-local markup; the kit grew from 12 to 24 exports; and
+    "register" was **redefined** from density A/B to chrome owner (host | 95-forward).
+    **Nothing in the export is imported by the app.** Three repo files still (wrongly) describe the
+    export as authoritative. **Where they disagree, the code wins.**
+
+### 8.7 Not a design-system issue, but blocking
+
+40. `pnpm lint` currently fails with **101 errors**, all from the untracked Claude Design export at
+    `docs/design/Major gift war room redesign/{support.js,_ds/…/_ds_bundle.js}`.
+    `eslint.config.mjs:21` ignores the _old_ export (`95-forward-design-system-handoff/**`) but
+    nothing ignores the new one. `npx eslint apps packages` is clean: **0 errors, 1 warning** (the
+    known `Avatar.tsx` `<img>` warning). If `docs/design/` is committed, CI lint fails.
+
+---
+
+## 9. Gaps for the war-room redesign
+
+Assessed against `docs/design/SCREENS.md` (The Board · The Forecast Room · Opportunity Detail).
+**Gaps are reported, not filled** — adding tokens is the decision of the initiative that builds the
+screens.
+
+### The seven named items
+
+| #   | Needed                                                                 | Verdict                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Moving / Slowing / Stuck status palette** on chips, borders and dots | **Adaptable, mis-keyed**              | The green/amber/red triad exists as `--color-success`/`-attention`/`-danger` (3 of the 4 aliases unreferenced) and as `Badge`'s `success`/`attention`/`danger` tints. `Heartbeat` is the only component wiring a 3-state triad to one enum (`on-track`/`due-soon`/`overdue`), setting background, border, dot and label together — the closest working model. But **the words Moving/Slowing/Stuck appear nowhere** in app, styles, shared or DB (0 grep hits), and the one enum-to-colour ramp actually applied as a border is the **ordinal** QPI tier set, not a health triad. |
+| 2   | **Monospace rule chips, consequence lines, inline arithmetic**         | **Adaptable, wrong size and case**    | `SourceTag` (`.f95-src`) is an 11px mono provenance pill with a doc icon — the nearest analogue, and the existing "no-black-box" citation chip. But **every mono treatment in the system is 11px or 13px**; there is no mono role at body/label size. And **no rule anywhere combines `--font-mono` with `text-transform: uppercase`** — all 16 uppercase/letter-spaced label treatments are sans. `.f95-mono` is used exactly once.                                                                                                                                              |
+| 3   | **Tabular / lining numerals for money in columns**                     | **Exists**                            | Global on `body` via `--num-tabular` (`base.css:21`); `DataTable`'s `align:"right"` → `.f95-table__num` adds `text-align:right` + `tabular-nums`; 12 further numeric classes re-assert it. The `.f95-num` opt-in utility has 0 uses.                                                                                                                                                                                                                                                                                                                                              |
+| 4   | **A dominant-metric type step** above any current heading              | **Adaptable, bound elsewhere**        | `--fs-score` (64px) exists but has **one declaration in one component** — the QPI number. Above it, `--fs-score-lg` (88px), `--fs-5xl` (52px) and `--text-display` are declared with **zero consumers**. The largest type actually rendered is 40px serif (Visit mode); the largest money figure is 32px (`.f95-foil__value`); stat blocks top out at 21px. `.f95-statgrid` + `.f95-stat` gives a metric block but has **no notion of one dominant metric plus subordinates**.                                                                                                    |
+| 5   | **`THEY SAID` / `WE SAID` / `BLOCKING` / `NOT ASKED` badges**          | **Missing entirely**                  | 0 grep hits across apps + packages (the only 2 matches are prose in an e2e test). No milestone model exists to key them to. `Badge` has 8 tones, none semantically close.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 6   | **Initiative colour dots** — a small categorical palette               | **Missing entirely**                  | `funding_initiatives` has **no colour column** (`packages/db/src/schema/funding.ts:6-23`); 0 hits for any `initiativeColor`-style identifier. Initiatives are currently colour-coded only by their 3-value `frame` via `HorizonTag` — and that encoding carries a distinct glyph per value, so it is not colour-only. Three named categorical maps exist in code, **all keyed to QPI**. `Tag` accepts an arbitrary `color` string with no palette behind it. **Seven different dot primitives exist, none shared and none status-keyed.**                                         |
+| 7   | **Left-border accent on cards** for health state                       | **Adaptable, currently screen-local** | The whole stylesheet set contains **exactly two `border-left` declarations**: `.f95-card--ai.f95-card--accent` (§8.2 — inert on other tones) and `.f95-prow` (`ds.css:880`), which takes its 3px rail from an inline `--_tier` custom property set from the QPI band. That second one is the working pattern — but it is page-local markup, not a component, and its second consumer never sets `--_tier`.                                                                                                                                                                        |
+
+### Further gaps SCREENS.md implies
+
+| Needed                                                                                         | Verdict                               | Evidence                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Charting** for the BMW cumulative curve with band, axes, in-chart labels and a today divider | **Missing entirely**                  | **No charting library is installed** (0 hits for recharts/d3/victory/nivo/chart.js/visx/echarts) and no chart is drawn in SVG — `<svg>` appears only in 5 icon components. All existing "charts" are CSS div bars with no axes, no time dimension, no band and no in-chart labels.            |
+| **Abbreviated currency** (`$1.86M`, `$845K`) — used throughout SCREENS.md                      | **Missing entirely**                  | §7. `formatCurrencyFromCents` always emits full `Intl` currency.                                                                                                                                                                                                                              |
+| **Breadcrumb** (`The Board · #1 of 7 · Opportunity`)                                           | **Missing** (de facto pattern exists) | 0 hits for breadcrumb/crumb; `Topbar` accepts only `title`/`subtitle`. But 39 sites already pair `.f95-table__cell-link` with `.f95-cluster` as an ad-hoc back-link (§8.5).                                                                                                                   |
+| **Six-column stage board** (kanban)                                                            | **Missing entirely**                  | The only "pipeline" is `.f95-mg-pipeline`, which is `flex-direction: column` (stacked sections) on a host route. No grid supports six columns; only two horizontal-scroll containers exist. Per-stage `count · total` summaries **do** exist, as screen-local markup (`.f95-mg-stage__head`). |
+| **Legend** (`Moving`/`Slowing`/`Stuck`, `Actual`/`Most likely`/`Best–Worst`/`Goal`)            | **Missing entirely**                  | No legend component or class; every `legend` hit is `FieldGroup`'s fieldset legend.                                                                                                                                                                                                           |
+| **Timeline rows** (date · health dot · change · actor)                                         | **Adaptable**                         | No timeline primitive. The de facto row is `.f95-itemrow` — no date gutter, no health-dot column, no actor line.                                                                                                                                                                              |
+| **Labelled divider inside a column set** (`COUNTS AS QUALIFIED ASKS` ∕ `OUTSIDE THE HEADLINE`) | **Missing**                           | Exactly one dashed divider exists in the system; no vertical rule, no labelled break.                                                                                                                                                                                                         |
+| **Progress bars** (qualification counter, initiative share)                                    | **Exists**                            | `.f95-progress` (8px track, `--progress--lg` 12px) + `.f95-goalmeta__pct`; a 5px variant inside `QpiBreakdown`.                                                                                                                                                                               |
+| **Numbered rank markers** (`#1`, `01`)                                                         | **Exists as markup, not a component** | `.f95-prow__rank` — 44px column, 12px muted `#`, 26px heavy tabular number. Hand-written in 2 files.                                                                                                                                                                                          |
+| **Tabs carrying a colour dot** (initiative tabs)                                               | **Missing**                           | `TabItem` is `{id,label,href}`; the component renders a bare label. No icon, no dot, no disabled state — and SCREENS.md needs the Team/All-reps toggle _disabled_.                                                                                                                            |
+| **Main + sticky rail** for Opportunity Detail side panels                                      | **Exists**                            | `.f95-overview` — `1fr / 340px` above 960px with a sticky rail.                                                                                                                                                                                                                               |
+| **`Open in Keystone →` cross-boundary link**                                                   | **Adaptable**                         | `.f95-analysis-link` — 12px semibold ink-600 inline-flex with a 4px gap, plus a `--muted` modifier.                                                                                                                                                                                           |
+| **Six-stage vocabulary** (`Get the visit` … `Repeat`)                                          | **Missing in the data layer**         | `opportunityStageEnum` has 4 values (identification, cultivation, solicitation, stewardship) — `packages/db/src/schema/enums.ts:24-29`.                                                                                                                                                       |
+| **Nav entries for the three screens**                                                          | **Missing**                           | The 95 Forward nav group is Today / Prospects / Candidates / Green Sheet / Initiatives + the "Enter visit mode" CTA. No Board, Opportunities or Forecast (`nav.ts:118-163`).                                                                                                                  |
+
+**Two structural notes for whoever builds these.** (a) The system's only precedent for distinguishing
+states by **shape rather than colour alone** is `RoleChip` (filled vs dashed + glyph) and
+`HorizonTag` (a distinct glyph per value) — worth preserving for a health triad. (b) No `--reg-*`
+token carries any status, health or stage meaning, so a war-room health palette has **no existing
+register hook** to attach to.
