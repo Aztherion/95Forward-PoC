@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f7f9fa;color:#2b3e4f;font-family:'Hanken Grotesk',system-ui,sans-serif;font-size:15px;line-height:1.45;font-feature-settings:"tnum" 1,"lnum" 1}
+  a{color:#235c86;text-decoration:none}
+  a:hover{color:#3878a3;text-decoration:underline}
+  button{font:inherit}
+  :focus-visible{outline:2px solid #3878a3;outline-offset:2px}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;align-items:stretch;background:#f7f9fa">
+
+  <div style="width:232px;flex:0 0 232px;background:#ffffff;border-right:1px solid #e1e7eb;padding:20px 16px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;align-self:flex-start;height:100vh">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:15px;font-weight:700;color:#16202b;letter-spacing:-0.01em">95 Forward</div>
+      <div style="font-size:12px;color:#7e909f">Water For People</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:#eef5fa;color:#1a3f5c;font-size:14px;font-weight:600">
+        <span style="width:6px;height:6px;border-radius:50%;background:#c8862a"></span>The Board
+      </div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Opportunities</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Prospects</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Initiatives</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Forecast</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Green Sheet</div>
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid #dfa13c;color:#a56f1e;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:600;text-align:center">Enter visit mode</div>
+      <div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #e1e7eb">
+        <span style="width:28px;height:28px;border-radius:50%;background:#dceaf3;color:#1a3f5c;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">DR</span>
+        <span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:500;color:#16202b">Dana Reese</span><span style="font-size:11px;color:#7e909f">Major Gifts Officer</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <div style="background:#ffffff;border-bottom:1px solid #e1e7eb;padding:18px 32px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#235c86">95 Forward · Thursday 12 September</div>
+        <div style="font-size:32px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;color:#16202b">The Board</div>
+        <div style="font-size:13px;color:#5c7081">{{ boardSummary }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;border:1px solid #c9d2d9;border-radius:999px;padding:3px">
+        <button onClick="{{ setMine }}" style="border:0;background:{{ mineBg }};color:{{ mineFg }};font-size:13px;font-weight:600;padding:6px 16px;border-radius:999px;cursor:pointer">My board</button>
+        <button onClick="{{ setTeam }}" style="border:0;background:{{ teamBg }};color:{{ teamFg }};font-size:13px;font-weight:600;padding:6px 16px;border-radius:999px;cursor:pointer">Team</button>
+      </div>
+    </div>
+
+    <div style="padding:24px 32px 48px;display:flex;flex-direction:column;gap:20px;max-width:1320px">
+
+      <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+          <div style="padding:20px 24px 18px;border-right:1px solid #e1e7eb;border-bottom:1px solid #e1e7eb;display:flex;flex-direction:column;gap:2px;min-width:0">
+            <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a56f1e">Qualified asks on the table</div>
+            <div style="font-size:clamp(34px,5.2vw,60px);font-weight:800;letter-spacing:-0.03em;color:#16202b;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap">{{ askTotal }}</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.03em;text-transform:uppercase;color:{{ coverageInk }};border:1.5px solid {{ coverageInk }};border-radius:999px;padding:2px 8px">{{ coverageLabel }} coverage · {{ multipleLabel }} is the rule</span>
+              <button onClick="{{ toggleDecompose }}" style="background:transparent;border:0;padding:0;color:#235c86;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left">{{ decomposeLabel }}</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;min-width:0">
+            <div style="padding:12px 18px;border-bottom:1px solid #e1e7eb;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;min-width:0">
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#7e909f">Needed at {{ multipleLabel }} coverage</span>
+                <span style="font-size:12px;color:#7e909f">to land the {{ goalLabel }} FY26 goal</span>
+              </span>
+              <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#44586a;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap">{{ neededTotal }}</span>
+            </div>
+            <div style="padding:12px 18px;border-bottom:1px solid #e1e7eb;background:#fdf7f6;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;min-width:0">
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#a8402f">Coverage gap</span>
+                <span style="font-size:12px;color:#a8402f">of qualified asks missing to reach {{ multipleLabel }}</span>
+              </span>
+              <span style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#a8402f;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap">{{ gapLabel }}</span>
+            </div>
+            <div style="padding:12px 18px;border-bottom:1px solid #e1e7eb;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;min-width:0">
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#7e909f">New asks to qualify</span>
+                <span style="font-size:12px;color:#7e909f">{{ perDay }} a day · {{ weeksLabel }} weeks left</span>
+              </span>
+              <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#44586a;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap">{{ perWeek }}<span style="font-size:12px;font-weight:600;color:#7e909f"> /wk</span></span>
+            </div>
+          </div>
+        </div>
+        <sc-if value="{{ showDecompose }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid #e1e7eb;padding:16px 24px 20px;display:flex;flex-direction:column;gap:2px">
+            <div style="font-size:12px;font-weight:600;color:#5c7081;padding-bottom:8px">The {{ askCount }} opportunities behind that number</div>
+            <sc-for list="{{ decomposeRows }}" as="row" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr 150px 132px 96px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #eff2f4;font-size:14px">
+                <span style="color:#16202b;font-weight:500">{{ row.name }}</span>
+                <span style="color:#5c7081;font-size:13px">{{ row.initiative }}</span>
+                <span style="color:#5c7081;font-size:13px">{{ row.stage }}</span>
+                <span style="text-align:right;font-weight:600;color:#16202b;font-variant-numeric:tabular-nums">{{ row.amount }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+          <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">Fix first</div>
+          <div style="font-size:13px;color:#5c7081">{{ fixSummary }}</div>
+        </div>
+        <div style="background:#ffffff;border:1px dashed #c9d2d9;border-left:3px solid #a8402f;border-radius:10px;padding:4px 0">
+          <sc-for list="{{ fixes }}" as="fix" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:20px 1fr 150px;gap:16px;align-items:center;padding:12px 20px;border-bottom:1px solid #eff2f4">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a8402f;font-weight:600">{{ fix.tag }}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-size:15px;color:#16202b"><b style="font-weight:600">{{ fix.name }}</b> · {{ fix.initiative }} · <span style="font-variant-numeric:tabular-nums">{{ fix.amount }}</span></span>
+                <span style="font-size:13px;color:#44586a">{{ fix.problem }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7e909f">{{ fix.impact }}</span>
+              </span>
+              <button style="justify-self:end;background:#ffffff;border:1px solid #c9d2d9;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600;color:#16202b;cursor:pointer;white-space:nowrap" style-hover="border-color:#7e909f">{{ fix.action }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+          <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">Then the money</div>
+          <div style="font-size:13px;color:#5c7081">Ranked by what a move today does to qualified asks on the table.</div>
+        </div>
+
+        <sc-for list="{{ items }}" as="item" hint-placeholder-count="5">
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);margin-bottom:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:72px minmax(0,1fr) 236px;gap:20px;padding:18px 22px 18px 0">
+              <div style="border-left:3px solid {{ item.healthInk }};padding-left:16px;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#16202b;font-variant-numeric:tabular-nums">{{ item.rank }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ item.healthInk }};text-transform:uppercase;letter-spacing:0.04em">{{ item.healthLabel }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                  <span style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">{{ item.name }}</span>
+                  <span style="font-size:12px;color:#7e909f">{{ item.entity }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                  <span style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#16202b;font-variant-numeric:tabular-nums">{{ item.amount }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #c9d2d9;border-radius:999px;padding:3px 10px;font-size:12px;color:#2b3e4f">
+                    <span style="width:7px;height:7px;border-radius:50%;background:{{ item.horizonInk }}"></span>{{ item.initiative }}
+                  </span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:{{ item.healthInk }}">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{ item.healthInk }}"></span>{{ item.stage }}
+                  </span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;border-left:2px solid #dfa13c;padding-left:12px">
+                  <span style="font-size:16px;font-weight:600;color:#16202b">{{ item.nextAction }}</span>
+                  <span style="font-size:13px;color:#44586a">{{ item.nextNote }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:14px;color:#2b3e4f">{{ item.why }}</span>
+                  <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a4f94;background:#f1f2f9;border:1px solid #acafd6;border-radius:4px;padding:2px 6px">{{ item.rule }}</span>
+                    <span style="font-size:12px;color:#5c7081">Close date {{ item.closeDate }}</span>
+                    <span style="font-size:12px;font-weight:600;color:{{ item.slipInk }}">{{ item.slip }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">
+                <button style="background:#c8862a;border:1px solid #a56f1e;color:#ffffff;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#a56f1e">{{ item.primary }}</button>
+                <button style="background:#ffffff;border:1px solid #c9d2d9;color:#16202b;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#7e909f">Open opportunity</button>
+                <button onClick="{{ item.onToggle }}" style="background:transparent;border:0;color:#235c86;font-size:13px;font-weight:600;cursor:pointer;padding:2px" style-hover="text-decoration:underline">{{ item.toggleLabel }}</button>
+              </div>
+            </div>
+
+            <sc-if value="{{ item.open }}" hint-placeholder-val="{{ false }}">
+              <div style="border-top:1px solid #e1e7eb;background:#f7f9fa;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+                <div style="padding:18px 22px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Milestones · {{ item.milestoneCount }}</div>
+                  <sc-for list="{{ item.milestones }}" as="ms" hint-placeholder-count="6">
+                    <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #eff2f4">
+                      <span style="width:16px;height:16px;border-radius:4px;border:{{ ms.box }};background:{{ ms.fill }};color:#ffffff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 16px">{{ ms.mark }}</span>
+                      <span style="font-size:14px;color:{{ ms.ink }};flex:1">{{ ms.label }}</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;color:{{ ms.whoInk }};border:{{ ms.whoBorder }};border-radius:999px;padding:1px 7px">{{ ms.who }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="font-size:12px;color:#5c7081">Prospect-confirmed milestones are what make the ask qualified. We-said milestones don't count toward it.</div>
+                </div>
+                <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Movement</div>
+                  <sc-for list="{{ item.movement }}" as="mv" hint-placeholder-count="3">
+                    <div style="display:grid;grid-template-columns:76px 1fr;gap:12px;padding:5px 0;border-bottom:1px solid #eff2f4">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7e909f;padding-top:2px">{{ mv.when }}</span>
+                      <span style="font-size:14px;color:#2b3e4f">{{ mv.what }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="font-family:'Newsreader',Georgia,serif;font-size:16px;color:#16202b;padding-top:4px">{{ item.verdict }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;flex-wrap:wrap">
+        <span style="font-size:14px;color:#44586a">{{ tailLabel }}</span>
+        <button style="background:#ffffff;border:1px solid #c9d2d9;color:#16202b;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#7e909f">See the full portfolio</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;coverageMultiple&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;goalAmount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1500000,&quot;min&quot;:250000,&quot;max&quot;:10000000,&quot;step&quot;:250000,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;weeksLeft&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:19,&quot;min&quot;:1,&quot;max&quot;:52,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;defaultScope&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Me&quot;,&quot;Team&quot;],&quot;default&quot;:&quot;Me&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { scope: null, open: null, decompose: false };
+
+  money(n) { return "$" + n.toLocaleString("en-US"); }
+
+  data() {
+    const M = (label, who, done) => ({ label, who, done });
+    return [
+      {
+        id: "hallworth", rank: "#1", name: "The Hallworth Family Foundation", entity: "Foundation",
+        amountN: 250000, initiative: "Everyone in Kamuli — Uganda 2026", horizonInk: "#c8862a",
+        stage: "Follow up & close", health: "red", healthLabel: "At risk",
+        nextAction: "Follow up to close", nextNote: "Ask made Jun 12. Amount agreed. No contact for 81 days.",
+        why: "The largest live ask in your portfolio has gone silent longest — and it is 42 days past its close date.",
+        rule: "RULE · live-ask-silence > 30d", closeDate: "Oct 31, 2026", slip: "slipped 42 days", slipInk: "#a8402f",
+        primary: "Review drafted follow-up",
+        milestones: [M("Ask approved by leader","we said",true),M("Specific ask made","we said",true),M("Amount agreed","they said",true),M("Date confirmed by prospect","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Jun 12",what:"Ask made at the Denver visit — $250,000 over three years."},{when:"Jun 23",what:"Amount agreed verbally by Ellen Hallworth."},{when:"Sep 12",what:"81 days of silence. Close date passed 42 days ago."}],
+        verdict: "Nothing is wrong with this deal except us."
+      },
+      {
+        id: "cordova", rank: "#2", name: "Cordova Beverage Company", entity: "Organization",
+        amountN: 400000, initiative: "Everyone Forever: Bolivia Scale-Up", horizonInk: "#235c86",
+        stage: "Visit & ask", health: "yellow", healthLabel: "Blocked",
+        nextAction: "Get the ask approved before Sep 24", nextNote: "Cordova confirmed the ask meeting. Priya Nair hasn't approved the amount.",
+        why: "They have moved ahead of us: the prospect confirmed a date we are not cleared to walk into.",
+        rule: "RULE · prospect-ahead-of-us", closeDate: "Dec 15, 2026", slip: "on time", slipInk: "#3b7458",
+        primary: "Send to Priya for approval",
+        milestones: [M("Ask approved by leader","we said",false),M("Specific ask made","we said",false),M("Date confirmed by prospect","they said",true),M("Amount agreed","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Aug 30",what:"Sofia Lin opened the door to the giving committee."},{when:"Sep 8",what:"Cordova confirmed Sep 24, 2:00 pm, for the ask."},{when:"Sep 12",what:"Approval request still unsent — 12 days out."}],
+        verdict: "Twelve days to clear an ask they already agreed to hear."
+      },
+      {
+        id: "vega", rank: "#3", name: "Marisol Vega", entity: "Individual",
+        amountN: 500000, initiative: "Everyone Forever: Bolivia Scale-Up", horizonInk: "#235c86",
+        stage: "Visit & ask", health: "red", healthLabel: "Unasked",
+        nextAction: "Make the specific ask", nextNote: "Three visits since March. No amount has ever been named out loud.",
+        why: "This is the biggest amount on your board and the only milestone missing is the one only you can do.",
+        rule: "RULE · visits ≥ 3, no specific ask", closeDate: "Jun 30, 2027", slip: "date never set with her", slipInk: "#a56f1e",
+        primary: "Draft the $500,000 ask",
+        milestones: [M("Ask approved by leader","we said",true),M("Specific ask made","we said",false),M("Date confirmed by prospect","they said",false),M("Amount agreed","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",true)],
+        movement: [{when:"Mar 4",what:"First visit — named Bolivia as the thing she cares about."},{when:"Jun 18",what:"Second visit — asked what full coverage would cost."},{when:"Aug 21",what:"Third visit — no ask made."}],
+        verdict: "Three visits is cultivation. Four without an ask is avoidance."
+      },
+      {
+        id: "osgood", rank: "#4", name: "The Osgood Foundation", entity: "Foundation",
+        amountN: 150000, initiative: "The Forever Promise", horizonInk: "#393e80",
+        stage: "Prep the visit", health: "green", healthLabel: "On track",
+        nextAction: "Prep the visit — Thu Sep 17, 9:00", nextNote: "With Priya Nair. No brief written, no ask amount agreed internally.",
+        why: "The visit is in five days and the ask amount is still blank — prep now or spend the meeting improvising.",
+        rule: "RULE · visit-within-7d-unprepped", closeDate: "Feb 28, 2027", slip: "on time", slipInk: "#3b7458",
+        primary: "Open the prep brief",
+        milestones: [M("Ask approved by leader","we said",false),M("Specific ask made","we said",false),M("Date confirmed by prospect","they said",true),M("Amount agreed","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Aug 14",what:"Program officer requested a sustainability concept note."},{when:"Sep 2",what:"Osgood confirmed Sep 17 for a full review."},{when:"Sep 12",what:"Brief not started."}],
+        verdict: "Five days. Write the number down before they ask for it."
+      },
+      {
+        id: "northwater", rank: "#5", name: "Northwater Capital", entity: "Organization",
+        amountN: 120000, initiative: "Everyone in Kamuli — Uganda 2026", horizonInk: "#c8862a",
+        stage: "Follow up & close", health: "green", healthLabel: "Closing",
+        nextAction: "Get it in writing", nextNote: "Amount agreed verbally Sep 4. Nothing signed, nothing dated.",
+        why: "One prospect-confirmed milestone away from a closed gift — and it is the cheapest one to get.",
+        rule: "RULE · verbal-agreement-unwritten > 7d", closeDate: "Nov 14, 2026", slip: "on time", slipInk: "#3b7458",
+        primary: "Draft the confirmation letter",
+        milestones: [M("Ask approved by leader","we said",true),M("Specific ask made","we said",true),M("Date confirmed by prospect","they said",true),M("Amount agreed","they said",true),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Aug 12",what:"Ask made — $120,000 for the Kamuli district."},{when:"Sep 4",what:"CFO agreed to the amount on a call with Priya Nair."},{when:"Sep 12",what:"Eight days, no paper."}],
+        verdict: "A letter today turns a conversation into a gift."
+      },
+      {
+        id: "whitfield", rank: "#6", name: "James & Eleanor Whitfield", entity: "Individual",
+        amountN: 75000, initiative: "Unrestricted", horizonInk: "#7e909f",
+        stage: "Get the visit", health: "yellow", healthLabel: "Decaying",
+        nextAction: "Get the visit through Tom Bradley", nextNote: "Tom offered the introduction on Aug 28. Unused for 15 days.",
+        why: "A warm introduction that nobody acted on is the fastest asset you own to lose.",
+        rule: "RULE · intro-offered-unused > 14d", closeDate: "Mar 31, 2027", slip: "not yet qualified", slipInk: "#a56f1e",
+        primary: "Draft the ask to Tom",
+        milestones: [M("Ask approved by leader","we said",false),M("Specific ask made","we said",false),M("Date confirmed by prospect","they said",false),M("Amount agreed","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Aug 28",what:"Tom Bradley offered to make the introduction."},{when:"Sep 12",what:"No email sent. Fifteen days elapsed."}],
+        verdict: "Tom will not offer twice."
+      },
+      {
+        id: "cornerstone", rank: "#7", name: "Cornerstone Charitable Trust", entity: "Foundation",
+        amountN: 200000, initiative: "The Forever Promise", horizonInk: "#393e80",
+        stage: "Get the visit", health: "yellow", healthLabel: "Cold",
+        nextAction: "Ask Marcus Webb to open the door", nextNote: "Natural partner on record since 2024. Never once asked.",
+        why: "You have a path in and have not used it — this ask cannot qualify until someone gets the visit.",
+        rule: "RULE · partner-path-unused", closeDate: "Sep 30, 2027", slip: "not yet qualified", slipInk: "#a56f1e",
+        primary: "Draft the ask to Marcus",
+        milestones: [M("Ask approved by leader","we said",false),M("Specific ask made","we said",false),M("Date confirmed by prospect","they said",false),M("Amount agreed","they said",false),M("Confirmed in writing","they said",false),M("Permission to share","they said",false)],
+        movement: [{when:"Nov 2024",what:"Marcus Webb recorded as natural partner."},{when:"Sep 12",what:"No contact attempt on record. 396 days since last touch."}],
+        verdict: "A path you never walk is not a path."
+      }
+    ];
+  }
+
+  fixes() {
+    return [
+      { tag:"01", name:"Sofia Lin", initiative:"Everyone in Kamuli — Uganda 2026", amount:"$90,000",
+        problem:"Amount agreed, but no close date confirmed by the prospect.",
+        impact:"EXCLUDED FROM THE FORECAST · ~30 SEC", action:"Confirm close date" },
+      { tag:"02", name:"The Aldridge Foundation", initiative:"Everyone Forever: Bolivia Scale-Up", amount:"$60,000",
+        problem:"Close date Mar 3, 2026 is in the past while the stage still reads Visit & ask.",
+        impact:"DISTORTS BEST/WORST BY $60,000 · ~1 MIN", action:"Re-date or close out" },
+      { tag:"03", name:"Gerald & Anne Mulvaney", initiative:"Unrestricted", amount:"$25,000",
+        problem:"Marked confirmed in writing with no document attached — counting as qualified on our word alone.",
+        impact:"INFLATES ASKS ON THE TABLE BY $25,000 · ~1 MIN", action:"Attach or uncheck" }
+    ];
+  }
+
+  renderVals() {
+    const mult = this.props.coverageMultiple ?? 3;
+    const goal = this.props.goalAmount ?? 1500000;
+    const weeks = this.props.weeksLeft ?? 19;
+    const scope = this.state.scope ?? (this.props.defaultScope === "Team" ? "team" : "mine");
+    const items = this.data();
+
+    const qualified = [
+      { name:"The Hallworth Family Foundation", initiative:"Kamuli 2026", stage:"Follow up & close", amountN:250000 },
+      { name:"Cordova Beverage Company", initiative:"Bolivia Scale-Up", stage:"Visit & ask", amountN:400000 },
+      { name:"Marisol Vega", initiative:"Bolivia Scale-Up", stage:"Visit & ask", amountN:500000 },
+      { name:"The Osgood Foundation", initiative:"Forever Promise", stage:"Prep the visit", amountN:150000 },
+      { name:"Northwater Capital", initiative:"Kamuli 2026", stage:"Follow up & close", amountN:120000 },
+      { name:"The Aldridge Foundation", initiative:"Bolivia Scale-Up", stage:"Visit & ask", amountN:60000 },
+      { name:"Gerald & Anne Mulvaney", initiative:"Unrestricted", stage:"Follow up & close", amountN:25000 },
+      { name:"Harriet Voss", initiative:"Kamuli 2026", stage:"Follow up & close", amountN:45000 },
+      { name:"Cedar Hollow Group", initiative:"Forever Promise", stage:"Visit & ask", amountN:180000 },
+      { name:"Isaac Yarbrough", initiative:"Unrestricted", stage:"Follow up & close", amountN:35000 },
+      { name:"Everwell Trust", initiative:"Bolivia Scale-Up", stage:"Visit & ask", amountN:150000 }
+    ];
+    const askN = qualified.reduce((s, r) => s + r.amountN, 0);
+    const needed = goal * mult;
+    const gap = Math.max(0, needed - askN);
+    const perWeek = Math.round(gap / weeks / 1000) * 1000;
+
+    const ink = { red:"#a8402f", yellow:"#c8862a", green:"#3b7458" };
+
+    return {
+      boardSummary: scope === "team"
+        ? "4 officers · 3 broken forecasts, 7 moves that change the number today."
+        : "3 broken forecasts, then 7 moves that change the number today. Item #1 is 81 days idle.",
+      mineBg: scope === "mine" ? "#235c86" : "transparent",
+      mineFg: scope === "mine" ? "#ffffff" : "#44586a",
+      teamBg: scope === "team" ? "#235c86" : "transparent",
+      teamFg: scope === "team" ? "#ffffff" : "#44586a",
+      setMine: () => this.setState({ scope: "mine" }),
+      setTeam: () => this.setState({ scope: "team" }),
+
+      askTotal: this.money(askN),
+      askCount: qualified.length,
+      neededTotal: this.money(needed),
+      goalLabel: this.money(goal),
+      multipleLabel: mult + "×",
+      coverageLabel: (goal > 0 ? (askN / goal).toFixed(1) : "0.0") + "×",
+      coverageInk: (goal > 0 && askN / goal >= mult) ? "#2d5c46" : "#a8402f",
+      gapLabel: "−" + this.money(gap),
+      weeksLabel: weeks,
+      perWeek: this.money(perWeek),
+      perDay: this.money(Math.round(perWeek / 5 / 1000) * 1000),
+      showDecompose: this.state.decompose,
+      decomposeLabel: this.state.decompose ? "Hide the " + qualified.length + " opportunities" : "Show the " + qualified.length + " opportunities behind it",
+      toggleDecompose: () => this.setState(s => ({ decompose: !s.decompose })),
+      decomposeRows: qualified.slice().sort((a,b) => b.amountN - a.amountN).map(r => ({ ...r, amount: this.money(r.amountN) })),
+
+      fixSummary: "3 forecasts contradict themselves. They feed every number above — clear them in under three minutes.",
+      fixes: this.fixes(),
+
+      items: items.map(it => ({
+        ...it,
+        amount: this.money(it.amountN),
+        healthInk: ink[it.health],
+        open: this.state.open === it.id,
+        toggleLabel: this.state.open === it.id ? "Hide the evidence" : "Why it ranks here",
+        onToggle: () => this.setState(s => ({ open: s.open === it.id ? null : it.id })),
+        milestoneCount: it.milestones.filter(m => m.done).length + " of 6 · " +
+          it.milestones.filter(m => m.done && m.who === "they said").length + " confirmed by them",
+        milestones: it.milestones.map(m => ({
+          label: m.label,
+          who: m.who,
+          mark: m.done ? "✓" : "",
+          box: m.done ? "1.5px solid " + (m.who === "they said" ? "#3b7458" : "#7e909f") : "1.5px dashed #c9d2d9",
+          fill: m.done ? (m.who === "they said" ? "#3b7458" : "#7e909f") : "transparent",
+          ink: m.done ? "#16202b" : "#7e909f",
+          whoInk: m.who === "they said" ? "#2d5c46" : "#5c7081",
+          whoBorder: m.who === "they said" ? "1.5px solid #3b7458" : "1px dashed #c9d2d9"
+        }))
+      })),
+
+      tailLabel: scope === "team"
+        ? "37 more opportunities across the team are ranked below the cut — none of them change this week's number."
+        : "31 more opportunities are ranked below the cut — none of them change this week's number."
+    };
+  }
+}
+</script>
+</body>
+</html>

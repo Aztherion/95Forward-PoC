@@ -33,6 +33,9 @@ pnpm-debug.log*
 
 # OS / editor
 .DS_Store
+
+# Claude Design export artifact (binary preview, no value in-repo)
+docs/design/export/.thumbnail
 Thumbs.db
 .idea/
 .vscode/*
