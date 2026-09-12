@@ -20,6 +20,7 @@ export default tseslint.config(
       "**/drizzle/**",
       "**/next-env.d.ts",
       "95-forward-design-system-handoff/**",
+      "docs/design/**",
       "**/*.config.js",
       "**/*.config.cjs",
     ],

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f7f9fa;color:#2b3e4f;font-family:'Hanken Grotesk',system-ui,sans-serif;font-size:15px;line-height:1.45;font-feature-settings:"tnum" 1,"lnum" 1}
+  a{color:#235c86;text-decoration:none}
+  a:hover{color:#3878a3;text-decoration:underline}
+  button{font:inherit}
+  :focus-visible{outline:2px solid #3878a3;outline-offset:2px}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;align-items:stretch;background:#f7f9fa">
+
+  <div style="width:232px;flex:0 0 232px;background:#ffffff;border-right:1px solid #e1e7eb;padding:20px 16px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;align-self:flex-start;height:100vh">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:15px;font-weight:700;color:#16202b;letter-spacing:-0.01em">95 Forward</div>
+      <div style="font-size:12px;color:#7e909f">Water For People</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">The Board</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:#eef5fa;color:#1a3f5c;font-size:14px;font-weight:600">
+        <span style="width:6px;height:6px;border-radius:50%;background:#c8862a"></span>Opportunities
+      </div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Prospects</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Initiatives</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Forecast</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Green Sheet</div>
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid #dfa13c;color:#a56f1e;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:600;text-align:center">Enter visit mode</div>
+      <div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #e1e7eb">
+        <span style="width:28px;height:28px;border-radius:50%;background:#dceaf3;color:#1a3f5c;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">DR</span>
+        <span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:500;color:#16202b">Dana Reese</span><span style="font-size:11px;color:#7e909f">Major Gifts Officer</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <div style="background:#ffffff;border-bottom:1px solid #e1e7eb;padding:18px 32px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;color:#5c7081">The Board · <span style="color:#235c86;font-weight:600">#1 of 7</span> · Opportunity</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+          <div style="font-size:32px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;color:#16202b">The Hallworth Family Foundation</div>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px;color:#44586a">
+            <span style="font-size:21px;font-weight:800;color:#16202b;letter-spacing:-0.01em;font-variant-numeric:tabular-nums">{{ amountLabel }}</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #c9d2d9;border-radius:999px;padding:3px 10px;font-size:12px"><span style="width:7px;height:7px;border-radius:50%;background:#c8862a"></span>Everyone in Kamuli — Uganda 2026</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#a8402f"><span style="width:8px;height:8px;border-radius:50%;background:#a8402f"></span>Follow up &amp; close</span>
+            <span>Close date <b style="font-weight:600;color:#16202b">Oct 31, 2026</b> · <span style="color:#a8402f;font-weight:600">42 days past</span></span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button style="background:#ffffff;border:1px solid #c9d2d9;color:#16202b;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#7e909f">Log what happened</button>
+          <button style="background:#ffffff;border:1px solid #c9d2d9;color:#16202b;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#7e909f">Enter visit mode</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:22px 32px 48px;display:flex;flex-direction:column;gap:18px;max-width:1400px">
+
+      <div style="background:#ffffff;border:1px solid #e1e7eb;border-left:3px solid {{ verdict.rail }};border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+        <div style="padding:20px 24px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Qualification state</div>
+          <div style="font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;color:{{ verdict.ink }}">{{ verdict.title }}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5c7081;font-variant-numeric:tabular-nums">{{ verdict.score }}</span>
+            <span style="flex:1;height:6px;border-radius:999px;background:#eff2f4;display:flex;overflow:hidden">
+              <span style="height:6px;width:{{ verdict.theyPct }};background:#3b7458"></span>
+              <span style="height:6px;width:{{ verdict.wePct }};background:#a7b4be"></span>
+            </span>
+          </div>
+          <div style="font-family:'Newsreader',Georgia,serif;font-size:17px;color:#16202b">{{ verdict.line }}</div>
+        </div>
+        <div style="padding:20px 24px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">What this ask counts as</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid #eff2f4;padding-bottom:5px">
+              <span style="font-size:14px;color:#44586a">Qualified asks on the table</span>
+              <span style="font-size:14px;font-weight:600;color:{{ counts.tableInk }}">{{ counts.table }}</span>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid #eff2f4;padding-bottom:5px">
+              <span style="font-size:14px;color:#44586a">In Most likely</span>
+              <span style="font-size:14px;font-weight:600;color:{{ counts.mlInk }}">{{ counts.ml }}</span>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+              <span style="font-size:14px;color:#44586a">In Worst</span>
+              <span style="font-size:14px;font-weight:600;color:{{ counts.worstInk }}">{{ counts.worst }}</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#5c7081">{{ counts.note }}</div>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a56f1e">Next action</div>
+          <div style="font-size:19px;font-weight:600;color:#16202b;line-height:1.25">{{ next.title }}</div>
+          <div style="font-size:13px;color:#44586a">{{ next.note }}</div>
+          <button style="margin-top:2px;background:#c8862a;border:1px solid #a56f1e;color:#ffffff;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:#a56f1e">{{ next.action }}</button>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a4f94;background:#f1f2f9;border:1px solid #acafd6;border-radius:4px;padding:2px 6px;align-self:flex-start">{{ next.rule }}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start">
+
+        <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:20px 22px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">Is this ask real?</div>
+                <div style="font-size:13px;color:#5c7081">Six objective milestones. Only what the prospect said makes it real.</div>
+              </div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">TAP TO RECORD · {{ blockCount }}</div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#2d5c46">They said — this is what counts</span>
+                <span style="flex:1;height:1px;background:#dcebe2"></span>
+              </div>
+              <sc-for list="{{ theySaid }}" as="ms" hint-placeholder-count="4">
+                <button onClick="{{ ms.onToggle }}" style="text-align:left;width:100%;background:{{ ms.bg }};border:{{ ms.border }};border-left:3px solid {{ ms.rail }};border-radius:10px;padding:12px 14px;cursor:pointer;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center" style-hover="border-color:#3b7458">
+                  <span style="width:22px;height:22px;border-radius:6px;border:{{ ms.box }};background:{{ ms.fill }};color:#ffffff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ ms.mark }}</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:16px;font-weight:600;color:{{ ms.ink }}">{{ ms.label }}</span>
+                    <span style="font-size:13px;color:{{ ms.metaInk }}">{{ ms.meta }}</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:10px">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;color:{{ ms.tagInk }};border:{{ ms.tagBorder }};border-radius:999px;padding:2px 8px;white-space:nowrap">{{ ms.tag }}</span>
+                    <span style="font-size:13px;font-weight:600;color:#235c86;white-space:nowrap">{{ ms.cta }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#5c7081">We said — our own claims, worth nothing alone</span>
+                <span style="flex:1;height:1px;background:#e1e7eb"></span>
+              </div>
+              <sc-for list="{{ weSaid }}" as="ms" hint-placeholder-count="2">
+                <button onClick="{{ ms.onToggle }}" style="text-align:left;width:100%;background:{{ ms.bg }};border:{{ ms.border }};border-left:3px solid {{ ms.rail }};border-radius:10px;padding:10px 14px;cursor:pointer;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center" style-hover="border-color:#7e909f">
+                  <span style="width:20px;height:20px;border-radius:6px;border:{{ ms.box }};background:{{ ms.fill }};color:#ffffff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ ms.mark }}</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:15px;font-weight:600;color:{{ ms.ink }}">{{ ms.label }}</span>
+                    <span style="font-size:13px;color:{{ ms.metaInk }}">{{ ms.meta }}</span>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;color:{{ ms.tagInk }};border:{{ ms.tagBorder }};border-radius:999px;padding:2px 8px;white-space:nowrap">{{ ms.tag }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="border-top:1px solid #e1e7eb;padding-top:12px;font-size:13px;color:#44586a">{{ holdback }}</div>
+          </div>
+
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">Movement</div>
+                <div style="font-size:13px;color:#5c7081">What changed, when, and who moved it.</div>
+              </div>
+              <button onClick="{{ toggleAll }}" style="background:transparent;border:0;color:#235c86;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px">{{ movementToggle }}</button>
+            </div>
+
+            <div style="border:1px dashed #c9d2d9;border-left:3px solid #a8402f;border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center">
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-size:16px;font-weight:600;color:#16202b">Close date moved 3 times · +94 days</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a8402f">JUL 29 → AUG 31 → SEP 30 → OCT 31 · ALL THREE MOVES MADE BY US</span>
+                <span style="font-size:13px;color:#44586a">Hallworth has never given a date. A date we invent is not a date.</span>
+              </span>
+              <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#16202b;cursor:pointer;white-space:nowrap" style-hover="border-color:#7e909f">Ask them for a date</button>
+            </div>
+
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ movement }}" as="mv" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:92px 14px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #eff2f4;align-items:start">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7e909f;padding-top:3px;text-align:right">{{ mv.date }}</span>
+                  <span style="display:flex;justify-content:center;padding-top:6px"><span style="width:9px;height:9px;border-radius:50%;background:{{ mv.dot }}"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:15px;color:#16202b">{{ mv.what }}</span>
+                    <span style="font-size:12px;color:{{ mv.byInk }}">{{ mv.by }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:18px;min-width:0;max-width:400px">
+
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">The facts</div>
+            <sc-for list="{{ facts }}" as="f" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:minmax(0,112px) minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px solid #eff2f4;align-items:baseline">
+                <span style="font-size:12px;color:#7e909f">{{ f.k }}</span>
+                <span style="font-size:14px;font-weight:500;color:{{ f.ink }}">{{ f.v }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:8px;padding-top:4px;flex-wrap:wrap">
+              <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#16202b;cursor:pointer" style-hover="border-color:#7e909f">Change amount</button>
+              <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#16202b;cursor:pointer" style-hover="border-color:#7e909f">Move close date</button>
+            </div>
+          </div>
+
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Where this sits in Kamuli 2026</div>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#16202b;line-height:1.1;font-variant-numeric:tabular-nums">{{ share }}</span>
+              <span style="font-size:13px;color:#44586a">of the initiative's qualified asks — the largest single ask in it.</span>
+            </div>
+            <div style="height:8px;border-radius:999px;background:#eff2f4;overflow:hidden;display:flex">
+              <span style="height:8px;width:{{ share }};background:#c8862a"></span>
+            </div>
+            <div style="font-size:13px;color:#44586a">Lose this one and Kamuli drops from 1.4× to 0.9× coverage.</div>
+            <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:#16202b;cursor:pointer;align-self:flex-start" style-hover="border-color:#7e909f">See Kamuli 2026 forecast</button>
+          </div>
+
+          <div style="background:#ffffff;border:1px solid #e1e7eb;border-left:3px solid #a8402f;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a8402f">Silence</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#a8402f;line-height:1.1;font-variant-numeric:tabular-nums">81 days</div>
+            <div style="font-size:13px;color:#44586a">Last contact Jun 23 — the verbal agreement call. Longest silence on any live ask in your portfolio.</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">CADENCE FOR THIS STAGE · EVERY 14 DAYS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;askAmount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:250000,&quot;min&quot;:10000,&quot;max&quot;:2000000,&quot;step&quot;:10000,&quot;tsType&quot;:&quot;number&quot;},&quot;compactMovement&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">class Component extends DCLogic {
+  state = { done: null, showAll: false };
+
+  base() {
+    return { approved: true, asked: true, amount: true, date: false, written: false, permission: false };
+  }
+
+  renderVals() {
+    const amount = this.props.askAmount ?? 250000;
+    const money = n => "$" + n.toLocaleString("en-US");
+    const done = this.state.done ?? this.base();
+    const set = k => () => this.setState(s => {
+      const cur = s.done ?? this.base();
+      return { done: { ...cur, [k]: !cur[k] } };
+    });
+
+    const defs = [
+      { k:"date", who:"they", label:"Close date confirmed by the prospect", blocking:true,
+        metaDone:"Confirmed just now · you recorded it",
+        metaOpen:"Never given. All three close dates were set by us.",
+        cta:"Record their date" },
+      { k:"amount", who:"they", label:"Amount agreed", blocking:false,
+        metaDone:"Jun 23 · Ellen Hallworth, verbally — nothing in writing",
+        metaOpen:"No amount agreed by the prospect.",
+        cta:"Record what they agreed" },
+      { k:"written", who:"they", label:"Confirmed in writing", blocking:true,
+        metaDone:"Confirmed just now · you recorded it",
+        metaOpen:"81 days since the verbal yes. No letter, no email, no signature.",
+        cta:"Draft the letter" },
+      { k:"permission", who:"they", label:"Permission to share publicly", blocking:false,
+        metaDone:"Confirmed just now · you recorded it",
+        metaOpen:"Not asked. Not blocking the gift.",
+        cta:"Ask at close" },
+      { k:"approved", who:"we", label:"Ask approved by leader", blocking:false,
+        metaDone:"Jun 2 · Priya Nair approved $250,000 over three years",
+        metaOpen:"Not approved. You cannot make this ask yet.", cta:"" },
+      { k:"asked", who:"we", label:"Specific ask made", blocking:false,
+        metaDone:"Jun 12 · $250,000 over three years, Denver visit",
+        metaOpen:"No specific amount has been named out loud.", cta:"" }
+    ];
+
+    const shape = d => {
+      const isDone = !!done[d.k];
+      const they = d.who === "they";
+      return {
+        label: d.label,
+        meta: isDone ? d.metaDone : d.metaOpen,
+        mark: isDone ? "✓" : "",
+        onToggle: set(d.k),
+        bg: isDone ? (they ? "#edf5f0" : "#ffffff") : (d.blocking ? "#fdf7f6" : "#ffffff"),
+        border: isDone ? "1px solid " + (they ? "#9cc6b1" : "#e1e7eb") : (d.blocking ? "1px solid #a8402f" : "1px dashed #c9d2d9"),
+        rail: isDone ? (they ? "#3b7458" : "#a7b4be") : (d.blocking ? "#a8402f" : "#c9d2d9"),
+        box: isDone ? "1.5px solid " + (they ? "#3b7458" : "#7e909f") : "1.5px dashed " + (d.blocking ? "#a8402f" : "#c9d2d9"),
+        fill: isDone ? (they ? "#3b7458" : "#7e909f") : "transparent",
+        ink: isDone ? "#16202b" : (d.blocking ? "#a8402f" : "#5c7081"),
+        metaInk: isDone ? "#44586a" : (d.blocking ? "#a8402f" : "#7e909f"),
+        tag: isDone ? (they ? "they said" : "we said") : (d.blocking ? "blocking" : "not asked"),
+        tagInk: isDone ? (they ? "#2d5c46" : "#5c7081") : (d.blocking ? "#a8402f" : "#7e909f"),
+        tagBorder: isDone ? (they ? "1.5px solid #3b7458" : "1px solid #c9d2d9") : (d.blocking ? "1.5px solid #a8402f" : "1px dashed #c9d2d9"),
+        cta: isDone ? "" : d.cta
+      };
+    };
+
+    const theyDefs = defs.filter(d => d.who === "they");
+    const weDefs = defs.filter(d => d.who === "we");
+    const theyDone = theyDefs.filter(d => done[d.k]).length;
+    const weDone = weDefs.filter(d => done[d.k]).length;
+    const blockers = defs.filter(d => d.blocking && !done[d.k]);
+    const qualified = done.approved && done.asked && done.amount && done.date;
+    const inWorst = qualified && done.written;
+
+    const verdict = qualified
+      ? (inWorst
+        ? { title:"Real. Confirmed by them.", ink:"#2d5c46", rail:"#3b7458",
+            line:"Everything that makes a gift a gift is on paper. Stop selling, start stewarding." }
+        : { title:"Qualified — but not in writing", ink:"#a56f1e", rail:"#c8862a",
+            line:"They agreed to the amount and the date. Until it is written, Worst case does not count a dollar of it." })
+      : { title:"Not a real ask yet", ink:"#a8402f", rail:"#a8402f",
+          line: blockers.length ? "Missing: " + blockers.map(b => b.label.toLowerCase()).join(" and ") + ". Everything else is us talking to ourselves." : "One prospect confirmation short." };
+
+    const movementAll = [
+      { date:"Sep 12", what:"81 days of silence — cadence for this stage is 14 days.", by:"No contact logged", dot:"#a8402f", byInk:"#a8402f" },
+      { date:"Aug 21", what:"Close date moved Sep 30 → Oct 31 (+31 days).", by:"Dana Reese · no prospect input", dot:"#c8862a", byInk:"#a8402f" },
+      { date:"Jul 30", what:"Close date moved Aug 31 → Sep 30 (+30 days).", by:"Dana Reese · no prospect input", dot:"#c8862a", byInk:"#a8402f" },
+      { date:"Jun 29", what:"Close date moved Jul 29 → Aug 31 (+33 days).", by:"Dana Reese · no prospect input", dot:"#c8862a", byInk:"#a8402f" },
+      { date:"Jun 23", what:"Amount agreed verbally — $250,000 over three years.", by:"Ellen Hallworth, on a call with Priya Nair", dot:"#3b7458", byInk:"#2d5c46" },
+      { date:"Jun 12", what:"Specific ask made at the Denver visit.", by:"Dana Reese", dot:"#a7b4be", byInk:"#5c7081" },
+      { date:"Jun 2", what:"Ask approved by leader at $250,000.", by:"Priya Nair", dot:"#a7b4be", byInk:"#5c7081" },
+      { date:"May 14", what:"Stage advanced: Prep the visit → Visit & ask.", by:"Dana Reese", dot:"#a7b4be", byInk:"#5c7081" },
+      { date:"Apr 3", what:"Amount raised $150,000 → $250,000 after capacity research.", by:"Dana Reese · foundation 990 review", dot:"#a7b4be", byInk:"#5c7081" },
+      { date:"Feb 18", what:"Opportunity created against Everyone in Kamuli — Uganda 2026.", by:"Dana Reese", dot:"#a7b4be", byInk:"#5c7081" }
+    ];
+    const compact = this.props.compactMovement ?? true;
+    const movement = (compact && !this.state.showAll) ? movementAll.slice(0, 5) : movementAll;
+
+    return {
+      amountLabel: money(amount),
+      verdict: {
+        ...verdict,
+        score: theyDone + "/4 they said · " + weDone + "/2 we said",
+        theyPct: Math.round((theyDone / 6) * 100) + "%",
+        wePct: Math.round((weDone / 6) * 100) + "%"
+      },
+      counts: {
+        table: qualified ? money(amount) : "not counted",
+        tableInk: qualified ? "#2d5c46" : "#a8402f",
+        ml: qualified ? money(amount) : "not counted",
+        mlInk: qualified ? "#235c86" : "#a8402f",
+        worst: inWorst ? money(amount) : "$0",
+        worstInk: inWorst ? "#2d5c46" : "#a8402f",
+        note: inWorst
+          ? "Fully confirmed — this ask holds in every scenario."
+          : qualified
+            ? "Worst case excludes anything not confirmed in writing. That is " + money(amount) + " of this initiative's floor."
+            : "Until the prospect confirms a date, this amount is a claim, not an ask."
+      },
+      next: blockers.length
+        ? { title: blockers[0].k === "date" ? "Get a date out of Ellen Hallworth" : "Get the agreement in writing",
+            note: blockers[0].k === "date"
+              ? "One call. Ask her when the board decides, and write down her answer — not ours."
+              : "She agreed to $250,000 on Jun 23. Send the confirmation letter today.",
+            action: blockers[0].k === "date" ? "Review drafted follow-up script" : "Review drafted confirmation letter",
+            rule: blockers[0].k === "date" ? "RULE · live-ask-silence > 30d" : "RULE · verbal-agreement-unwritten > 7d" }
+        : { title:"Thank her, then plan the renewal ask",
+            note:"Confirmed in writing. Move to Celebrate / steward and set the repeat conversation.",
+            action:"Advance to Celebrate / steward", rule:"RULE · closed-won-steward" },
+      blockCount: blockers.length ? blockers.length + " BLOCKING" : "NOTHING BLOCKING",
+      theySaid: theyDefs.map(shape),
+      weSaid: weDefs.map(shape),
+      holdback: blockers.length
+        ? blockers.length + " unconfirmed milestone" + (blockers.length > 1 ? "s hold" : " holds") + " " + money(amount) + " out of the numbers your leader reads on Monday."
+        : "Nothing is holding this ask back. " + money(amount) + " counts in every scenario.",
+      movement,
+      movementToggle: (compact && !this.state.showAll) ? "Show all " + movementAll.length + " changes" : "Show recent only",
+      toggleAll: () => this.setState(s => ({ showAll: !s.showAll })),
+      share: "58%",
+      facts: [
+        { k:"Prospect", v:"The Hallworth Family Foundation · Foundation", ink:"#16202b" },
+        { k:"Initiative", v:"Everyone in Kamuli — Uganda 2026 · Today", ink:"#16202b" },
+        { k:"Ask amount", v:money(amount) + " over three years", ink:"#16202b" },
+        { k:"Close date", v:"Oct 31, 2026 · 42 days past, set by us", ink:"#a8402f" },
+        { k:"Stage", v:"Follow up & close", ink:"#a8402f" },
+        { k:"Relationship mgr", v:"Dana Reese", ink:"#16202b" },
+        { k:"Natural partner", v:"Tom Bradley · board member", ink:"#2d5c46" },
+        { k:"Last contact", v:"Jun 23, 2026 · call with Priya Nair", ink:"#16202b" }
+      ]
+    };
+  }
+}</script>
+</body>
+</html>

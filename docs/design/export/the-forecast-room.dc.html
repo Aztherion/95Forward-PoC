@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f7f9fa;color:#2b3e4f;font-family:'Hanken Grotesk',system-ui,sans-serif;font-size:15px;line-height:1.45;font-feature-settings:"tnum" 1,"lnum" 1}
+  a{color:#235c86;text-decoration:none}
+  a:hover{color:#3878a3;text-decoration:underline}
+  button{font:inherit}
+  :focus-visible{outline:2px solid #3878a3;outline-offset:2px}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;align-items:stretch;background:#f7f9fa">
+
+  <div style="width:232px;flex:0 0 232px;background:#ffffff;border-right:1px solid #e1e7eb;padding:20px 16px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;align-self:flex-start;height:100vh">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:15px;font-weight:700;color:#16202b;letter-spacing:-0.01em">95 Forward</div>
+      <div style="font-size:12px;color:#7e909f">Water For People</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">The Board</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Opportunities</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Prospects</div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Initiatives</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:#eef5fa;color:#1a3f5c;font-size:14px;font-weight:600">
+        <span style="width:6px;height:6px;border-radius:50%;background:#c8862a"></span>Forecast
+      </div>
+      <div style="padding:9px 12px;border-radius:10px;font-size:14px;color:#44586a">Green Sheet</div>
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid #dfa13c;color:#a56f1e;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:600;text-align:center">Enter visit mode</div>
+      <div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #e1e7eb">
+        <span style="width:28px;height:28px;border-radius:50%;background:#dceaf3;color:#1a3f5c;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">DR</span>
+        <span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:500;color:#16202b">Dana Reese</span><span style="font-size:11px;color:#7e909f">Major Gifts Officer</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <div style="background:#ffffff;border-bottom:1px solid #e1e7eb;padding:18px 32px 0;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#235c86">95 Forward · Monday 14 September · week 38 of 52</div>
+          <div style="font-size:32px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;color:#16202b">The Forecast Room</div>
+          <div style="font-size:13px;color:#5c7081">{{ headline }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid #c9d2d9;border-radius:999px;padding:3px">
+          <button onClick="{{ setMine }}" style="border:0;background:{{ mineBg }};color:{{ mineFg }};font-size:13px;font-weight:600;padding:6px 16px;border-radius:999px;cursor:pointer">My portfolio</button>
+          <button onClick="{{ setTeam }}" style="border:0;background:{{ teamBg }};color:{{ teamFg }};font-size:13px;font-weight:600;padding:6px 16px;border-radius:999px;cursor:pointer">All reps</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;margin-bottom:-1px">
+        <sc-for list="{{ scopeTabs }}" as="tab" hint-placeholder-count="5">
+          <button onClick="{{ tab.onPick }}" style="background:transparent;border:0;border-bottom:2px solid {{ tab.rule }};color:{{ tab.ink }};font-size:14px;font-weight:600;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ tab.dot }}"></span>{{ tab.label }}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding:22px 32px 48px;display:flex;flex-direction:column;gap:18px;max-width:1440px">
+
+      <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+          <div style="padding:18px 22px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Won so far</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#16202b;line-height:1.1;font-variant-numeric:tabular-nums">{{ wonLabel }}</div>
+            <button onClick="{{ showWon }}" style="align-self:flex-start;background:transparent;border:0;padding:0;color:#235c86;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left">{{ wonCount }} closed gifts</button>
+          </div>
+          <div style="padding:18px 22px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">Qualified asks on the table</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#16202b;line-height:1.1;font-variant-numeric:tabular-nums">{{ askLabel }}</div>
+            <button onClick="{{ showAsks }}" style="align-self:flex-start;background:transparent;border:0;padding:0;color:#235c86;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left">{{ askCount }} opportunities · see the names</button>
+          </div>
+          <div style="padding:18px 22px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">{{ goalLabelText }}</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#16202b;line-height:1.1;font-variant-numeric:tabular-nums">{{ goalLabel }}</div>
+            <div style="font-size:12px;color:#5c7081">{{ coverageLabel }} coverage of the {{ remainingLabel }} still to raise</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7e909f">{{ basisLine }}</div>
+          </div>
+          <div style="padding:18px 22px;border-right:1px solid #e1e7eb;display:flex;flex-direction:column;gap:3px;background:#fdf7f6">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a8402f">Coverage gap</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#a8402f;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap">{{ gapLabel }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a8402f">{{ gapBasis }}</div>
+            <button onClick="{{ showGap }}" style="align-self:flex-start;background:transparent;border:0;padding:0;color:#a8402f;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left">who could close it</button>
+          </div>
+          <div style="padding:18px 22px;display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a56f1e">New asks needed</div>
+            <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;color:#16202b;line-height:1.1;font-variant-numeric:tabular-nums">{{ perWeek }}</div>
+            <div style="font-size:12px;color:#5c7081">per week · {{ perDay }} a day · {{ perHour }} an hour in the chair</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid #e1e7eb;padding:16px 22px 20px;display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:8px;flex-wrap:wrap">
+              <div style="font-size:13px;font-weight:600;color:#16202b">{{ drawerTitle }}</div>
+              <button onClick="{{ closeDrawer }}" style="background:transparent;border:0;color:#5c7081;font-size:12px;font-weight:600;cursor:pointer">Close</button>
+            </div>
+            <sc-for list="{{ drawerRows }}" as="row" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,90px) minmax(0,110px);gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #eff2f4">
+                <span style="font-size:14px;font-weight:500;color:#16202b">{{ row.name }}</span>
+                <span style="font-size:13px;color:#5c7081">{{ row.initiative }}</span>
+                <span style="font-size:13px;color:{{ row.stageInk }};font-weight:500">{{ row.stage }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">{{ row.meta }}</span>
+                <span style="text-align:right;font-size:14px;font-weight:600;color:#16202b;font-variant-numeric:tabular-nums">{{ row.amount }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:18px">
+        <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+
+          <div style="padding:20px 22px;border-right:1px solid #e1e7eb;border-bottom:1px solid #e1e7eb;display:flex;flex-direction:column;gap:12px;min-width:0">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">BMW forecast · {{ scopeName }}</div>
+                <div style="font-size:13px;color:#5c7081">10,000 simulated years. Every dollar closes in full or not at all.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#44586a;flex-wrap:wrap">
+                <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:#16202b;display:inline-block"></span>Actual</span>
+                <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:#235c86;display:inline-block"></span>Most likely</span>
+                <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:10px;background:#dceaf3;border:1px solid #8fb7d2;display:inline-block"></span>Best–Worst</span>
+                <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:#a56f1e;display:inline-block"></span>Goal</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;min-width:0">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7e909f;padding:2px 0 20px;text-align:right;flex:0 0 auto">
+                <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5">
+                  <span>{{ t.label }}</span>
+                </sc-for>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <div style="position:relative;width:100%;min-width:0">
+                  <svg viewBox="0 0 1000 320" style="width:100%;height:auto;display:block">
+                    <path d="{{ chart.grid }}" stroke="#eff2f4" stroke-width="1" fill="none"></path>
+                    <path d="{{ chart.band }}" fill="#dceaf3" fill-opacity="0.8" stroke="#8fb7d2" stroke-width="1"></path>
+                    <line x1="{{ chart.todayX }}" y1="0" x2="{{ chart.todayX }}" y2="320" stroke="#c9d2d9" stroke-width="1" stroke-dasharray="4 4"></line>
+                    <line x1="0" y1="{{ chart.goalY }}" x2="1000" y2="{{ chart.goalY }}" stroke="#a56f1e" stroke-width="2" stroke-dasharray="7 5"></line>
+                    <polyline points="{{ chart.ml }}" fill="none" stroke="#235c86" stroke-width="2.5"></polyline>
+                    <polyline points="{{ chart.actual }}" fill="none" stroke="#16202b" stroke-width="3"></polyline>
+                    <circle cx="{{ chart.todayX }}" cy="{{ chart.todayY }}" r="5" fill="#16202b"></circle>
+                  </svg>
+                  <div style="position:absolute;inset:0;pointer-events:none;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.02em">
+                    <span style="position:absolute;left:4px;top:{{ chart.goalTop }};color:#a56f1e;background:#ffffff;padding:0 4px">GOAL {{ goalLabel }}</span>
+                    <span style="position:absolute;right:4px;top:{{ chart.bestTop }};color:#235c86;background:#ffffff;padding:0 4px">BEST {{ bestLabel }}</span>
+                    <span style="position:absolute;right:4px;top:{{ chart.mlTop }};color:#235c86;background:#ffffff;padding:0 4px">MOST LIKELY {{ mlLabel }}</span>
+                    <span style="position:absolute;right:4px;top:{{ chart.worstTop }};color:#a8402f;background:#ffffff;padding:0 4px">WORST {{ worstLabel }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7e909f">
+                  <sc-for list="{{ months }}" as="m" hint-placeholder-count="12">
+                    <span>{{ m.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid #e1e7eb;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="font-family:'Newsreader',Georgia,serif;font-size:17px;color:#16202b;max-width:62ch">{{ verdict }}</div>
+              <button style="background:#c8862a;border:1px solid #a56f1e;color:#ffffff;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:#a56f1e">{{ verdictAction }}</button>
+            </div>
+          </div>
+
+          <div style="padding:20px 22px;display:flex;flex-direction:column;gap:10px;min-width:0">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7e909f">What the simulation stands on</div>
+              <div style="font-size:12px;color:#5c7081">Every opportunity, and which scenario it lands in.</div>
+            </div>
+            <sc-for list="{{ scenarioRows }}" as="row" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #eff2f4">
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:14px;font-weight:500;color:#16202b">{{ row.name }}</span>
+                  <span style="display:flex;align-items:center;gap:6px">
+                    <span style="width:6px;height:6px;border-radius:50%;background:{{ row.healthInk }};flex:0 0 6px"></span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.03em;text-transform:uppercase;color:{{ row.scenarioInk }}">{{ row.scenario }}</span>
+                  </span>
+                </span>
+                <span style="text-align:right;font-size:14px;font-weight:600;color:#16202b;font-variant-numeric:tabular-nums">{{ row.amount }}</span>
+              </div>
+            </sc-for>
+            <div style="font-size:12px;color:#5c7081;padding-top:2px">{{ scenarioFoot }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e1e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="font-size:21px;font-weight:600;color:#16202b;letter-spacing:-0.01em">Stage board · {{ scopeName }}</div>
+            <div style="font-size:13px;color:#5c7081">Every open opportunity, one chip, colored by health. Left is work; right is money.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#44586a">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#3b7458"></span>Moving</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#c8862a"></span>Slowing</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#a8402f"></span>Stuck</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+          <sc-for list="{{ stages }}" as="col" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;background:{{ col.bg }};border-left:{{ col.edge }};border-radius:8px;padding:8px">
+              <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:2px solid {{ col.rule }}">
+                <span style="font-size:13px;font-weight:600;color:{{ col.ink }};line-height:1.25">{{ col.label }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081;font-variant-numeric:tabular-nums">{{ col.count }} · {{ col.sum }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;color:{{ col.tagInk }}">{{ col.tag }}</span>
+              </div>
+              <sc-for list="{{ col.items }}" as="chip" hint-placeholder-count="2">
+                <button style="text-align:left;background:#ffffff;border:1px solid #e1e7eb;border-left:3px solid {{ chip.healthInk }};border-radius:8px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0" style-hover="border-color:#7e909f">
+                  <span style="font-size:13px;font-weight:600;color:#16202b;line-height:1.2">{{ chip.name }}</span>
+                  <span style="font-size:13px;color:#44586a;font-variant-numeric:tabular-nums">{{ chip.amount }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ chip.flagInk }}">{{ chip.flag }}</span>
+                </button>
+              </sc-for>
+              <sc-if value="{{ col.empty }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed #c9d2d9;border-radius:8px;padding:10px;font-size:12px;color:#7e909f;text-align:center">Nothing here</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top:1px solid #e1e7eb;padding-top:12px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <span style="font-size:14px;color:#16202b">Get the visit → Follow up &amp; close = <b style="font-weight:700">{{ qualifiedSubtotal }}</b> — the qualified asks on the table above.</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">CLOSED WORK RIGHT OF THE DIVIDER · {{ closedSubtotal }} · NOT IN THE HEADLINE NUMBER</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px">
+        <div style="background:#ffffff;border:1px solid #e1e7eb;border-left:3px solid #c8862a;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <span style="font-size:18px;font-weight:600;color:#16202b">Untouched 30+ days</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">{{ staleSummary }}</span>
+          </div>
+          <sc-for list="{{ stale }}" as="row" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 118px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eff2f4">
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:600;color:#16202b">{{ row.name }}</span>
+                <span style="font-size:12px;color:#5c7081">{{ row.initiative }} · {{ row.stage }}</span>
+              </span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a8402f;text-align:right;font-variant-numeric:tabular-nums">{{ row.days }}d silent</span>
+              <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;color:#16202b;cursor:pointer;white-space:nowrap" style-hover="border-color:#7e909f">{{ row.action }}</button>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e1e7eb;border-left:3px solid #a8402f;border-radius:14px;box-shadow:0 1px 2px rgba(22,32,43,.06);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <span style="font-size:18px;font-weight:600;color:#16202b">Close date pushed twice or more</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5c7081">{{ pushSummary }}</span>
+          </div>
+          <sc-for list="{{ pushed }}" as="row" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 122px 118px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eff2f4">
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:600;color:#16202b">{{ row.name }}</span>
+                <span style="font-size:12px;color:#5c7081">{{ row.initiative }} · {{ row.amount }}</span>
+              </span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a8402f;text-align:right">{{ row.trail }}</span>
+              <button style="background:#ffffff;border:1px solid #c9d2d9;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;color:#16202b;cursor:pointer;white-space:nowrap" style-hover="border-color:#7e909f">{{ row.action }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;coverageMultiple&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;weeksLeft&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:15,&quot;min&quot;:1,&quot;max&quot;:52,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;sellingHoursPerWeek&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:20,&quot;min&quot;:4,&quot;max&quot;:40,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Coverage math&quot;},&quot;defaultInitiative&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;All&quot;,&quot;kamuli&quot;,&quot;bolivia&quot;,&quot;forever&quot;,&quot;unrestricted&quot;],&quot;default&quot;:&quot;All&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { scope: null, team: false, drawer: null };
+
+  money(n) {
+    if (Math.abs(n) >= 1000000) return "$" + (n / 1000000).toFixed(n % 1000000 === 0 ? 1 : 2).replace(/\.0$/, "") + "M";
+    if (Math.abs(n) >= 10000) return "$" + Math.round(n / 1000) + "K";
+    return "$" + n.toLocaleString("en-US");
+  }
+  exact(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+
+  inits() {
+    return [
+      { id: "kamuli", label: "Kamuli 2026", name: "Everyone in Kamuli — Uganda 2026", goal: 450000, dot: "#c8862a", won: [0,0,40000,0,62000,0,120000,0,80000] },
+      { id: "bolivia", label: "Bolivia Scale-Up", name: "Everyone Forever: Bolivia Scale-Up", goal: 1200000, dot: "#235c86", won: [0,25000,0,0,0,45000,0,75000,0] },
+      { id: "forever", label: "Forever Promise", name: "The Forever Promise", goal: 800000, dot: "#393e80", won: [0,0,0,0,0,0,0,0,0] },
+      { id: "unrestricted", label: "Unrestricted", name: "Unrestricted", goal: 250000, dot: "#7e909f", won: [8000,0,12000,15000,0,18000,0,20000,15000] }
+    ];
+  }
+
+  opps() {
+    return [
+      { name:"The Hallworth Family Foundation", init:"kamuli", amount:250000, stage:"close", health:"red", days:81, pushes:2, scenario:"ml", trail:"Jun → Aug → Oct 31", rep:"Dana Reese" },
+      { name:"Northwater Capital", init:"kamuli", amount:120000, stage:"close", health:"green", days:8, pushes:0, scenario:"all", trail:"", rep:"Priya Nair" },
+      { name:"Harriet Voss", init:"kamuli", amount:45000, stage:"close", health:"green", days:12, pushes:0, scenario:"all", trail:"", rep:"Dana Reese" },
+      { name:"Sofia Lin", init:"kamuli", amount:90000, stage:"prep", health:"yellow", days:38, pushes:1, scenario:"best", trail:"", rep:"Dana Reese" },
+      { name:"Marisol Vega", init:"bolivia", amount:500000, stage:"ask", health:"red", days:22, pushes:0, scenario:"ml", trail:"", rep:"Dana Reese" },
+      { name:"Cordova Beverage Company", init:"bolivia", amount:400000, stage:"ask", health:"green", days:4, pushes:0, scenario:"all", trail:"", rep:"Dana Reese" },
+      { name:"Everwell Trust", init:"bolivia", amount:150000, stage:"ask", health:"red", days:47, pushes:3, scenario:"best", trail:"Feb → May → Aug → Dec", rep:"Priya Nair" },
+      { name:"The Aldridge Foundation", init:"bolivia", amount:60000, stage:"ask", health:"yellow", days:11, pushes:2, scenario:"best", trail:"Nov → Mar → Mar (past)", rep:"Dana Reese" },
+      { name:"Lena Petrov", init:"bolivia", amount:80000, stage:"visit", health:"yellow", days:9, pushes:0, scenario:"best", trail:"", rep:"Priya Nair" },
+      { name:"The Osgood Foundation", init:"forever", amount:150000, stage:"prep", health:"green", days:10, pushes:0, scenario:"ml", trail:"", rep:"Priya Nair" },
+      { name:"Cornerstone Charitable Trust", init:"forever", amount:200000, stage:"visit", health:"red", days:396, pushes:0, scenario:"best", trail:"", rep:"Priya Nair" },
+      { name:"Cedar Hollow Group", init:"forever", amount:180000, stage:"ask", health:"green", days:6, pushes:1, scenario:"all", trail:"", rep:"Dana Reese" },
+      { name:"Gerald & Anne Mulvaney", init:"unrestricted", amount:25000, stage:"close", health:"green", days:3, pushes:0, scenario:"all", trail:"", rep:"Dana Reese" },
+      { name:"The Brannigan Fund", init:"kamuli", amount:70000, stage:"close", health:"yellow", days:9, pushes:2, scenario:"ml", trail:"May → Aug → Nov 30", rep:"Dana Reese" },
+      { name:"Isaac Yarbrough", init:"unrestricted", amount:35000, stage:"close", health:"yellow", days:34, pushes:1, scenario:"ml", trail:"", rep:"Marcus Webb" },
+      { name:"James & Eleanor Whitfield", init:"unrestricted", amount:75000, stage:"visit", health:"yellow", days:15, pushes:0, scenario:"best", trail:"", rep:"Dana Reese" },
+      { name:"Theo Yarbrough", init:"kamuli", amount:30000, stage:"steward", health:"green", days:5, pushes:0, scenario:"none", trail:"", rep:"Dana Reese" },
+      { name:"Owen Lindqvist", init:"unrestricted", amount:18000, stage:"repeat", health:"green", days:19, pushes:0, scenario:"none", trail:"", rep:"Dana Reese" }
+    ];
+  }
+
+  stageDefs() {
+    return [
+      { id:"visit", label:"Get the visit", rule:"#c9d2d9" },
+      { id:"prep", label:"Prep the visit", rule:"#c9d2d9" },
+      { id:"ask", label:"Visit & ask", rule:"#c8862a" },
+      { id:"close", label:"Follow up & close", rule:"#c8862a" },
+      { id:"steward", label:"Celebrate / steward", rule:"#3b7458" },
+      { id:"repeat", label:"Repeat", rule:"#3b7458" }
+    ];
+  }
+
+  renderVals() {
+    const mult = this.props.coverageMultiple ?? 3;
+    const weeks = this.props.weeksLeft ?? 15;
+    const hours = this.props.sellingHoursPerWeek ?? 20;
+    const inits = this.inits();
+    const scopeId = this.state.scope ?? (this.props.defaultInitiative && this.props.defaultInitiative !== "All" ? this.props.defaultInitiative : "all");
+    const active = inits.find(i => i.id === scopeId);
+    const stageLabel = {}, stageRule = {};
+    this.stageDefs().forEach(s => { stageLabel[s.id] = s.label; stageRule[s.id] = s.rule; });
+    const ink = { red:"#a8402f", yellow:"#c8862a", green:"#3b7458" };
+    const initLabel = {};
+    inits.forEach(i => { initLabel[i.id] = i.label; });
+
+    const all = this.opps();
+    const scoped = all.filter(o => (scopeId === "all" || o.init === scopeId) && (this.state.team || o.rep === "Dana Reese"));
+    const open = scoped.filter(o => o.scenario !== "none");
+    const goal = scopeId === "all" ? inits.reduce((s,i) => s + i.goal, 0) : active.goal;
+    const monthly = (scopeId === "all" ? inits : [active]).reduce((acc, i) => acc.map((v, k) => v + i.won[k]), new Array(9).fill(0));
+    const teamFactor = this.state.team ? 1 : 0.72;
+    const monthlyScoped = monthly.map(v => Math.round(v * teamFactor));
+    const won = monthlyScoped.reduce((s,v) => s + v, 0);
+    const wonCount = this.state.team ? (scopeId === "all" ? 24 : 6) : (scopeId === "all" ? 17 : 4);
+
+    const askN = open.reduce((s,o) => s + o.amount, 0);
+    const remaining = Math.max(0, goal - won);
+    const needed = remaining * mult;
+    const gap = Math.max(0, needed - askN);
+    const coverage = remaining > 0 ? (askN / remaining) : 0;
+    const perWeek = Math.round(gap / weeks / 1000) * 1000;
+
+    const sumBy = f => open.filter(f).reduce((s,o) => s + o.amount, 0);
+    const worst = won + sumBy(o => o.scenario === "all");
+    const mostLikely = won + sumBy(o => o.scenario === "all" || o.scenario === "ml");
+    const best = won + askN;
+
+    const W = 1000, H = 320, top = 14, bot = 300;
+    const yMax = Math.max(best, goal) * 1.1;
+    const x = i => Math.round((i / 11) * W);
+    const y = v => Math.round(bot - (v / yMax) * (bot - top));
+    let cum = 0;
+    const actual = monthlyScoped.map((v, i) => { cum += v; return x(i) + "," + y(cum); }).join(" ");
+    const ramp = (endV) => {
+      const pts = [];
+      for (let i = 8; i <= 11; i++) {
+        const t = (i - 8) / 3;
+        pts.push(x(i) + "," + y(won + (endV - won) * t * t));
+      }
+      return pts;
+    };
+    const bestPts = ramp(best), worstPts = ramp(worst);
+    const band = "M " + bestPts.join(" L ") + " L " + worstPts.slice().reverse().join(" L ") + " Z";
+    let grid = "";
+    for (let k = 0; k <= 4; k++) { const gy = Math.round(top + (bot - top) * (k / 4)); grid += "M 0 " + gy + " L " + W + " " + gy + " "; }
+    const yTicks = [4,3,2,1,0].map(k => ({ label: this.money(Math.round(yMax * (k / 4) / 10000) * 10000) }));
+
+    const scenarioInk = { all:"#2d5c46", ml:"#235c86", best:"#a56f1e" };
+    const scenarioWord = { all:"in all three", ml:"most likely +", best:"best only" };
+
+    const drawerSets = {
+      won: { title: "Closed gifts inside " + (scopeId === "all" ? "the total goal" : active.name) + " — " + this.exact(won),
+             rows: scoped.filter(o => o.scenario === "none").map(o => ({ name:o.name, initiative:initLabel[o.init], stage:"Celebrate / steward", stageInk:"#3b7458", meta:"CLOSED", amount:this.exact(o.amount) })) },
+      asks: { title: open.length + " qualified asks on the table — " + this.exact(askN),
+              rows: open.slice().sort((a,b) => b.amount - a.amount).map(o => ({ name:o.name, initiative:initLabel[o.init], stage:stageLabel[o.stage], stageInk:ink[o.health], meta:o.days + "D SILENT", amount:this.exact(o.amount) })) },
+      gap: { title: "Closing the " + this.exact(gap) + " gap: these are unqualified or best-case only — qualify them first",
+             rows: open.filter(o => o.scenario === "best").sort((a,b) => b.amount - a.amount).map(o => ({ name:o.name, initiative:initLabel[o.init], stage:stageLabel[o.stage], stageInk:ink[o.health], meta:"NOT QUALIFIED", amount:this.exact(o.amount) })) }
+    };
+    const drawer = this.state.drawer ? drawerSets[this.state.drawer] : null;
+
+    const stale = scoped.filter(o => o.days >= 30 && o.scenario !== "none").sort((a,b) => b.days - a.days).map(o => ({
+      name:o.name, initiative:initLabel[o.init], stage:stageLabel[o.stage], days:o.days,
+      action: o.stage === "close" ? "Draft follow-up" : o.stage === "ask" ? "Draft the ask" : o.stage === "prep" ? "Write the prep brief" : "Draft intro ask"
+    }));
+    const pushed = scoped.filter(o => o.pushes >= 2).sort((a,b) => b.pushes - a.pushes).map(o => ({
+      name:o.name, initiative:initLabel[o.init], amount:this.exact(o.amount), trail:o.trail,
+      action: o.pushes >= 3 ? "Requalify or drop" : "Re-date with them"
+    }));
+
+    const shortfall = goal - mostLikely;
+
+    return {
+      headline: (this.state.team ? "4 reps · " : "") + (scopeId === "all" ? "Everything" : active.name) + " · most likely " + this.money(mostLikely) + " against a " + this.money(goal) + " goal — " + (shortfall > 0 ? this.money(shortfall) + " short" : this.money(-shortfall) + " clear") + " on today's numbers.",
+      mineBg: this.state.team ? "transparent" : "#235c86",
+      mineFg: this.state.team ? "#44586a" : "#ffffff",
+      teamBg: this.state.team ? "#235c86" : "transparent",
+      teamFg: this.state.team ? "#ffffff" : "#44586a",
+      setMine: () => this.setState({ team: false }),
+      setTeam: () => this.setState({ team: true }),
+
+      scopeTabs: [{ id:"all", label:"Everything", dot:"#16202b" }].concat(inits.map(i => ({ id:i.id, label:i.label, dot:i.dot }))).map(t => ({
+        label: t.label, dot: t.dot,
+        rule: scopeId === t.id ? "#235c86" : "transparent",
+        ink: scopeId === t.id ? "#16202b" : "#5c7081",
+        onPick: () => this.setState({ scope: t.id, drawer: null })
+      })),
+      scopeName: scopeId === "all" ? "everything" : active.name,
+
+      wonLabel: this.exact(won),
+      wonCount: wonCount,
+      askLabel: this.exact(askN),
+      askCount: open.length,
+      goalLabelText: (this.state.team ? "Org FY26 goal · 4 reps" : "Dana's FY26 goal") + (scopeId === "all" ? " · all initiatives" : " · " + active.label),
+      goalLabel: this.exact(goal),
+      coverageLabel: coverage.toFixed(1) + "×",
+      remainingLabel: this.exact(remaining),
+      basisLine: this.exact(goal) + " GOAL − " + this.exact(won) + " WON = " + this.exact(remaining) + " BASIS",
+      multipleLabel: mult + "×",
+      gapLabel: "−" + this.exact(gap),
+      gapBasis: mult + "× × " + this.exact(remaining) + " REMAINING = " + this.exact(needed) + " NEEDED",
+      perWeek: this.exact(perWeek),
+      perDay: this.exact(Math.round(perWeek / 5 / 1000) * 1000),
+      perHour: this.exact(Math.round(perWeek / hours / 100) * 100),
+
+      showWon: () => this.setState(s => ({ drawer: s.drawer === "won" ? null : "won" })),
+      showAsks: () => this.setState(s => ({ drawer: s.drawer === "asks" ? null : "asks" })),
+      showGap: () => this.setState(s => ({ drawer: s.drawer === "gap" ? null : "gap" })),
+      closeDrawer: () => this.setState({ drawer: null }),
+      drawerOpen: !!drawer,
+      drawerTitle: drawer ? drawer.title : "",
+      drawerRows: drawer ? drawer.rows : [],
+
+      chart: {
+        grid, band, actual, ml: ramp(mostLikely).join(" "),
+        todayX: x(8), todayY: y(won), goalY: y(goal),
+        goalTop: "calc(" + ((y(goal) / H) * 100).toFixed(1) + "% - 17px)",
+        bestTop: "calc(" + ((y(best) / H) * 100).toFixed(1) + "% - 16px)",
+        mlTop: "calc(" + ((y(mostLikely) / H) * 100).toFixed(1) + "% - 6px)",
+        worstTop: "calc(" + ((y(worst) / H) * 100).toFixed(1) + "% + 3px)"
+      },
+      yTicks,
+      months: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map(m => ({ label: m })),
+      bestLabel: this.money(best),
+      mlLabel: this.money(mostLikely),
+      worstLabel: this.money(worst),
+
+      verdict: shortfall > 0
+        ? "Most likely lands " + this.money(shortfall) + " short. Only " + this.money(best - mostLikely) + " of best-case sits outside it — and it is all unqualified."
+        : "Most likely clears the goal by " + this.money(-shortfall) + ". Protect the " + this.money(mostLikely - worst) + " that worst-case drops.",
+      verdictAction: shortfall > 0 ? "Qualify the best-case asks" : "Lock the at-risk asks",
+
+      scenarioRows: open.slice().sort((a,b) => b.amount - a.amount).map(o => ({
+        name: o.name, amount: this.exact(o.amount), healthInk: ink[o.health],
+        scenario: scenarioWord[o.scenario], scenarioInk: scenarioInk[o.scenario]
+      })),
+      scenarioFoot: open.filter(o => o.scenario === "best").length + " of these " + open.length + " only appear in Best. " + this.exact(sumBy(o => o.scenario === "best")) + " of hope, nothing prospect-confirmed behind it.",
+
+      qualifiedSubtotal: this.exact(scoped.filter(o => ["visit","prep","ask","close"].indexOf(o.stage) > -1).reduce((t,o) => t + o.amount, 0)),
+      closedSubtotal: this.exact(scoped.filter(o => ["steward","repeat"].indexOf(o.stage) > -1).reduce((t,o) => t + o.amount, 0)),
+
+      stages: this.stageDefs().map(s => {
+        const items = scoped.filter(o => o.stage === s.id);
+        const closedWork = s.id === "steward" || s.id === "repeat";
+        return {
+          label: s.label, rule: s.rule, count: items.length,
+          bg: closedWork ? "#f7f9fa" : "transparent",
+          edge: s.id === "steward" ? "2px dashed #a7b4be" : "0px solid transparent",
+          ink: closedWork ? "#5c7081" : "#16202b",
+          tag: closedWork ? "outside the headline" : "counts as qualified asks",
+          tagInk: closedWork ? "#7e909f" : "#a56f1e",
+          sum: this.money(items.reduce((t,o) => t + o.amount, 0)),
+          empty: items.length === 0,
+          items: items.sort((a,b) => b.amount - a.amount).map(o => ({
+            name: o.name, amount: this.exact(o.amount), healthInk: ink[o.health],
+            flag: o.days >= 30 ? o.days + "d silent" : o.pushes >= 2 ? "pushed " + o.pushes + "×" : o.days + "d ago",
+            flagInk: o.days >= 30 || o.pushes >= 2 ? "#a8402f" : "#7e909f"
+          }))
+        };
+      }),
+
+      stale, pushed,
+      staleSummary: stale.length + " opportunities · " + this.exact(scoped.filter(o => o.days >= 30 && o.scenario !== "none").reduce((s,o) => s + o.amount, 0)) + " frozen",
+      pushSummary: pushed.length + " opportunities · " + this.exact(scoped.filter(o => o.pushes >= 2).reduce((s,o) => s + o.amount, 0)) + " slipping"
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -9,3 +9,4 @@ playwright-report/
 test-results/
 **/drizzle/meta/**
 95-forward-design-system-handoff/
+docs/design/
