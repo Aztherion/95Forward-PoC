@@ -94,10 +94,12 @@ One dominant metric, three subordinate. Item #1 of the queue must remain above t
 | Label | Value | Computed as |
 | --- | --- | --- |
 | `NEEDED AT 3× COVERAGE` | $4,500,000 | `coverageMultiple × (goal − won)` |
-| `COVERAGE GAP` | −$2,585,000 | `needed − qualifiedAsks`; alert treatment when negative |
-| `NEW ASKS TO QUALIFY` | $136,000/wk | `coverageGap ÷ weeksLeft`; sub-line `$27,000 a day · 19 weeks left` |
+| `COVERAGE GAP` | computed | `qualifiedAsks − needed`; **negative means short**, alert treatment when negative |
+| `NEW ASKS TO QUALIFY` | computed | `|coverageGap| ÷ weeksLeft`; sub-line `<perDay> a day · <weeksLeft> weeks left` |
 
-Sub-lines must state the basis (e.g. `to land the $1,500,000 FY26 goal`, `of qualified asks missing to reach 3×`). Never show a ratio without its denominator — see the Forecast Room for the fuller treatment.
+Sub-lines must state the basis (e.g. `to land the $2,700,000 FY26 goal`, `of qualified asks missing to reach 3×`). Never show a ratio without its denominator — see the Forecast Room for the fuller treatment.
+
+> **Figures here are illustrative, not targets.** The values in this table were plugged during design and were computed from the superseded $1,500,000 goal. Every one of them is now derived by the metrics service (I19) — render what it returns. `weeksLeft` in particular is computed from the clock and the scope's fiscal period; the `19 weeks left` above and the `WEEK 38 OF 52` on the Forecast Room were both plugs and disagree with each other. Neither is authoritative.
 
 ### Section — "Fix first"
 
@@ -147,7 +149,7 @@ Footer: *"31 more opportunities are ranked below the cut — none of them change
 
 ### Header
 
-- Eyebrow: `95 FORWARD · MONDAY 14 SEPTEMBER · WEEK 38 OF 52`
+- Eyebrow: `95 FORWARD · <weekday> <day> <month> · WEEK <n> OF <total>` — **rendered from the clock**, not hardcoded. The day name and week number in the design are illustrative and do not correspond to the demo anchor; `weeksLeft` and the week number both come from the metrics service (I19).
 - Title: **The Forecast Room**
 - Subtitle: *"Everything · most likely $1.86M against a $2.70M goal — $845K short on today's numbers."*
 - Scope toggle: `My portfolio` / `All reps` — **All reps is undesigned**; disable or hide.
@@ -239,8 +241,10 @@ Both are **computed from the event log** — see the Opportunity model. Threshol
 
 ### Header
 
-`The Hallworth Family Foundation` · `$250,000` · initiative chip · stage · `Close date Oct 31, 2026 · 42 days past`
+`The Hallworth Family Foundation` · `$250,000` · initiative chip · stage · `Close date Oct 31, 2026`
 Actions: `Log what happened` · `Enter visit mode`
+
+> **Do not "fix" this back to `42 days past`.** The original header read `Close date Oct 31, 2026 · 42 days past`, which is internally contradictory: the slippage chain quoted below (`JUL 29 → AUG 31 → SEP 30 → OCT 31`) ends at Oct 31, which is in the **future** relative to the demo anchor — and that anchor is pinned exactly by the 81-day silence (last contact 23 June + 81 days = 12 September). The chain is load-bearing copy and was kept; I18 moved the past-close-date pathology to a different seeded opportunity instead. Hallworth's close date is ahead of today, and the story — largest live ask, silent longest, pushed three times by us, never confirmed by them — is unaffected.
 
 ### Verdict row (3 panels)
 
@@ -318,8 +322,10 @@ Timeline entries — date · health dot · what changed · **who moved it and wh
 
 Verify these after building; they are what make the numbers credible under demo scrutiny.
 
-1. `Qualified asks on the table` is identical on The Board and the Forecast Room for the same scope, and equals the sum of the stage board's first four columns.
-2. `Coverage gap = coverageMultiple × (goal − won) − qualifiedAsks`, everywhere.
+1. `Qualified asks on the table` is identical on The Board and the Forecast Room for the same scope, and equals the **qualified** portion of the stage board's four pre-close columns. The pre-close total and the qualified total are different numbers; the stage board shows both and the reconciliation footer states both.
+   _(Amended by I18: qualification is milestone-derived, so an opportunity can sit in a pre-close column and still not count. The original wording — "equals the sum of the first four columns" — is false by construction.)_
+2. `Coverage gap = qualifiedAsks − coverageMultiple × (goal − won)`, everywhere. **Signed: negative means short.**
+   _(Amended by I19: the original was written the other way round and so produced a positive number for a shortfall, contradicting the negative figures the designs themselves display. The service returns the signed value; the UI renders the sign.)_
 3. BMW figures decompose against the names ledger: Worst = won + IN ALL THREE; Most likely = + MOST LIKELY&nbsp;+; Best = + BEST ONLY.
 4. An opportunity's "what this ask counts as" agrees with its membership in the ledger and its stage-board column.
 5. A milestone recorded on detail immediately changes qualification, the headline metric, the simulation, and the board ranking. One edit, one recompute, all surfaces.
