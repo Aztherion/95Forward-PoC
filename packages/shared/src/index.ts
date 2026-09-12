@@ -9,3 +9,5 @@ export * from "./constants";
 export * from "./search-filters";
 export * from "./forward";
 export * from "./forward-events";
+export * from "./forward-settings";
+export * from "./forward-metrics";

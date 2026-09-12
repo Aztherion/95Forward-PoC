@@ -683,6 +683,14 @@ const FORWARD_OPPORTUNITIES: OpportunitySpec[] = [
 
 /** Dana's FY26 goal — ONE value, read by both the Board and the Forecast Room (Contradiction 2). */
 const DANA_FY26_GOAL_CENTS = 270_000_000;
+/**
+ * The org x all-initiatives FY26 goal.
+ *
+ * Equal to Dana's because this demo is Dana-centric — the Forecast Room labels the same $2,700,000
+ * "DANA'S FY26 GOAL · ALL INITIATIVES". Both scopes exist and both resolve strictly; that they
+ * currently carry the same figure is a demo-data choice, not a fallback.
+ */
+const ORG_FY26_GOAL_CENTS = 270_000_000;
 const FISCAL_PERIOD = "FY26";
 
 export async function seedForward(
@@ -754,17 +762,19 @@ export async function seedForward(
       scope: "org",
       scopeRefId: tenantId,
       fiscalPeriod: FISCAL_PERIOD,
-      amountCents: 900_000_00,
+      // The org x all-initiatives goal. This is the scope the whole-portfolio view resolves
+      // against, and it is the $2,700,000 the Forecast Room's arithmetic chain is built on.
+      amountCents: ORG_FY26_GOAL_CENTS,
     })
-    .onConflictDoUpdate({ target: goals.id, set: { amountCents: 900_000_00 } });
+    .onConflictDoUpdate({ target: goals.id, set: { amountCents: ORG_FY26_GOAL_CENTS } });
 
   // Per-initiative goals, so a scoped Forecast Room view has its own goal — except Forever Promise,
   // which is deliberately left WITHOUT one so I19 can exercise "no goal defined for this view"
   // rather than silently falling back to the org goal.
   const initiativeGoals: { key: string; amountCents: number }[] = [
-    { key: "kamuli", amountCents: 120_000_00 },
-    { key: "bolivia", amountCents: 90_000_00 },
-    { key: "unrestricted", amountCents: 40_000_00 },
+    { key: "kamuli", amountCents: 120_000_000 },
+    { key: "bolivia", amountCents: 90_000_000 },
+    { key: "unrestricted", amountCents: 40_000_000 },
   ];
   for (const goal of initiativeGoals) {
     await db
