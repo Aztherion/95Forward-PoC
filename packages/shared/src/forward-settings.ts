@@ -9,7 +9,15 @@
 // The chip on The Board reads `3× IS THE RULE` because somebody authored that rule — not because
 // it is compiled in. Keep it that way: never inline these numbers.
 
-export type SettingUnit = "multiple" | "days" | "hours" | "weeks" | "date-range";
+export type SettingUnit =
+  | "multiple"
+  | "days"
+  | "hours"
+  | "weeks"
+  | "date-range"
+  | "seconds"
+  | "band"
+  | "enum-list";
 
 export interface SettingDescriptor<TValue> {
   readonly key: string;
@@ -42,12 +50,111 @@ export interface ForwardSettings {
   /** Selling hours in a day — the divisor behind "an hour in the chair". */
   readonly sellingHoursPerDay: number;
   readonly fiscalPeriods: readonly FiscalPeriod[];
+  /** Thresholds and effort estimates for the consistency checks (I20). */
+  readonly checks: CheckSettings;
   /**
    * DOCUMENTED, NOT IMPLEMENTED. See ASK_MATURATION_WEEKS below.
    * Leave undefined; nothing reads it.
    */
   readonly askMaturationWeeks?: number;
 }
+
+// -------------------------------------------------------------------------------------------
+// Consistency checks (I20)
+// -------------------------------------------------------------------------------------------
+
+export interface CheckSettings {
+  /** Seconds to resolve, per check id. Constants, never computed — they sum into "three minutes". */
+  readonly effortSeconds: Readonly<Record<string, number>>;
+  /**
+   * A QUALIFIED opportunity reading below this band is a contradiction, not a judgement.
+   * Set at "high": every blocking milestone confirmed while the rep still reads "medium" or
+   * "longshot" is indefensible, but holding at "high" rather than "lock" is a defensible call and
+   * must not fire. This is the Rules of Robb row "amount agreed and confirmed in writing, but
+   * probability still reads Medium".
+   */
+  readonly probabilityEvidenceFloor: string;
+  /** Visit ratings that contradict an optimistic band. */
+  readonly concerningVisitRatings: readonly string[];
+  /** Bands at or above which a concerning visit rating is a contradiction. */
+  readonly probabilityOptimismCeiling: string;
+  /**
+   * Stages at which missing forecast inputs are a contradiction rather than a normal early state.
+   * A prospect you have not asked yet legitimately has no close date — flagging that would be the
+   * false positive that teaches users to skip the whole block.
+   */
+  readonly forecastInputRequiredStages: readonly string[];
+}
+
+export const CHECK_EFFORT_SECONDS: SettingDescriptor<Readonly<Record<string, number>>> = {
+  key: "checks.effortSeconds",
+  label: "Effort to resolve, per check",
+  description:
+    "How long each contradiction takes to clear. Summed across the findings to make the 'clear " +
+    "them in under three minutes' claim, so these are a promise to the user — keep them honest.",
+  unit: "seconds",
+  defaultValue: {
+    "amount-agreed-no-confirmed-date": 30,
+    "close-date-past-stage-open": 60,
+    "written-confirmation-no-evidence": 60,
+    "probability-below-evidence": 30,
+    "probability-above-visit-rating": 30,
+    "amount-agreed-no-ask-made": 30,
+    "missing-forecast-inputs": 30,
+    "status-stage-disagreement": 60,
+  },
+  implemented: true,
+};
+
+export const PROBABILITY_EVIDENCE_FLOOR: SettingDescriptor<string> = {
+  key: "checks.probabilityEvidenceFloor",
+  label: "Minimum band for a qualified ask",
+  description:
+    "A qualified opportunity reading below this band contradicts its own evidence. 'high' lets a " +
+    "rep hold short of 'lock' without being nagged.",
+  unit: "band",
+  defaultValue: "high",
+  implemented: true,
+};
+
+export const CONCERNING_VISIT_RATINGS: SettingDescriptor<readonly string[]> = {
+  key: "checks.concerningVisitRatings",
+  label: "Visit ratings that undercut optimism",
+  description: "A visit rated this badly contradicts a confident likelihood band.",
+  unit: "enum-list",
+  defaultValue: ["poor"],
+  implemented: true,
+};
+
+export const PROBABILITY_OPTIMISM_CEILING: SettingDescriptor<string> = {
+  key: "checks.probabilityOptimismCeiling",
+  label: "Band that a poor visit contradicts",
+  description:
+    "At or above this band, a concerning visit rating is a contradiction rather than a judgement.",
+  unit: "band",
+  defaultValue: "high",
+  implemented: true,
+};
+
+export const FORECAST_INPUT_REQUIRED_STAGES: SettingDescriptor<readonly string[]> = {
+  key: "checks.forecastInputRequiredStages",
+  label: "Stages that require forecast inputs",
+  description:
+    "Stages by which an opportunity must have an amount and a close date. Deliberately excludes " +
+    "the early stages: a prospect you have not asked yet has no date to give, and flagging that " +
+    "would be a false positive.",
+  unit: "enum-list",
+  defaultValue: ["visit_and_ask", "follow_up_and_close"],
+  implemented: true,
+};
+
+export const DEFAULT_CHECK_SETTINGS: CheckSettings = {
+  effortSeconds: CHECK_EFFORT_SECONDS.defaultValue,
+  probabilityEvidenceFloor: PROBABILITY_EVIDENCE_FLOOR.defaultValue,
+  concerningVisitRatings: CONCERNING_VISIT_RATINGS.defaultValue,
+  probabilityOptimismCeiling: PROBABILITY_OPTIMISM_CEILING.defaultValue,
+  forecastInputRequiredStages: FORECAST_INPUT_REQUIRED_STAGES.defaultValue,
+};
 
 export const COVERAGE_MULTIPLE: SettingDescriptor<number> = {
   key: "coverageMultiple",
@@ -134,6 +241,11 @@ export const FORWARD_SETTING_DESCRIPTORS = [
   SELLING_HOURS_PER_DAY,
   FISCAL_PERIODS,
   ASK_MATURATION_WEEKS,
+  CHECK_EFFORT_SECONDS,
+  PROBABILITY_EVIDENCE_FLOOR,
+  CONCERNING_VISIT_RATINGS,
+  PROBABILITY_OPTIMISM_CEILING,
+  FORECAST_INPUT_REQUIRED_STAGES,
 ] as const;
 
 export const DEFAULT_FORWARD_SETTINGS: ForwardSettings = {
@@ -141,6 +253,7 @@ export const DEFAULT_FORWARD_SETTINGS: ForwardSettings = {
   sellingDaysPerWeek: SELLING_DAYS_PER_WEEK.defaultValue,
   sellingHoursPerDay: SELLING_HOURS_PER_DAY.defaultValue,
   fiscalPeriods: FISCAL_PERIODS.defaultValue,
+  checks: DEFAULT_CHECK_SETTINGS,
   // askMaturationWeeks intentionally omitted — see ASK_MATURATION_WEEKS.
 };
 

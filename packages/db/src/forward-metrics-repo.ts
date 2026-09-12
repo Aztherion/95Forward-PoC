@@ -16,13 +16,58 @@ import {
   type MetricScope,
   type MetricsOverrides,
   type MetricsSnapshot,
+  type MilestoneEvidence,
   type SnapshotGoal,
   type SnapshotOpportunity,
   type WhatIfResult,
 } from "@95forward/shared";
 import type { Database } from "./client";
-import { forwardOpportunities, goals, milestoneDefinitions } from "./schema/forward";
+import {
+  forwardOpportunities,
+  goals,
+  milestoneDefinitions,
+  opportunityMilestones,
+} from "./schema/forward";
 import { confirmedMilestoneKeys, listMilestoneDefinitions } from "./forward-repo";
+import { and, inArray } from "drizzle-orm";
+
+/** Evidence for each CONFIRMED milestone, so the checks can spot a claim with nothing behind it. */
+async function milestoneEvidenceByOpportunity(
+  db: Database,
+  tenantId: string,
+  opportunityIds: readonly string[],
+): Promise<Map<string, Record<string, MilestoneEvidence>>> {
+  const byOpportunity = new Map<string, Record<string, MilestoneEvidence>>();
+  if (opportunityIds.length === 0) return byOpportunity;
+
+  const rows = await db
+    .select({
+      opportunityId: opportunityMilestones.opportunityId,
+      key: milestoneDefinitions.key,
+      confirmed: opportunityMilestones.confirmed,
+      evidence: opportunityMilestones.evidence,
+      documentUrl: opportunityMilestones.documentUrl,
+    })
+    .from(opportunityMilestones)
+    .innerJoin(
+      milestoneDefinitions,
+      eq(milestoneDefinitions.id, opportunityMilestones.milestoneDefinitionId),
+    )
+    .where(
+      and(
+        eq(opportunityMilestones.tenantId, tenantId),
+        inArray(opportunityMilestones.opportunityId, [...opportunityIds]),
+      ),
+    );
+
+  for (const row of rows) {
+    if (!row.confirmed) continue;
+    const existing = byOpportunity.get(row.opportunityId) ?? {};
+    existing[row.key] = { evidence: row.evidence, documentUrl: row.documentUrl };
+    byOpportunity.set(row.opportunityId, existing);
+  }
+  return byOpportunity;
+}
 
 /**
  * Load everything the metric set needs, in three queries.
@@ -46,6 +91,11 @@ export async function loadMetricsSnapshot(
     tenantId,
     opportunityRows.map((row) => row.id),
   );
+  const evidence = await milestoneEvidenceByOpportunity(
+    db,
+    tenantId,
+    opportunityRows.map((row) => row.id),
+  );
 
   const opportunities: SnapshotOpportunity[] = opportunityRows.map((row) => ({
     id: row.id,
@@ -57,6 +107,10 @@ export async function loadMetricsSnapshot(
     status: row.status,
     closeDate: row.closeDate,
     confirmedMilestoneKeys: confirmed.get(row.id) ?? [],
+    dateConfidence: row.dateConfidence,
+    probability: row.probability,
+    visitRating: row.visitRating,
+    milestoneEvidence: evidence.get(row.id) ?? {},
   }));
 
   const snapshotGoals: SnapshotGoal[] = goalRows.map((row) => ({
