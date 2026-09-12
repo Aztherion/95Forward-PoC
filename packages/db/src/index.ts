@@ -10,3 +10,9 @@ export { loadMetricsSnapshot, ForwardMetricsService } from "./forward-metrics-re
 export type { MetricsServiceOptions } from "./forward-metrics-repo";
 export { DEMO_TODAY, daysBeforeAnchor, daysAfterAnchor, anchorDateOffset } from "./demo-clock";
 export { seedForward, FORWARD_SEED_FACTS } from "./seed-forward";
+export {
+  ForwardSimulationService,
+  dataVersion,
+  simulationCacheKey,
+} from "./forward-simulation-repo";
+export type { SimulationServiceOptions, SimulationRunStats } from "./forward-simulation-repo";
