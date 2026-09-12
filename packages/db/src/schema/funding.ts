@@ -1,4 +1,4 @@
-import { date, index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
 import { fundingFrameEnum } from "./enums";
 import { prospects } from "./prospects";
@@ -14,6 +14,14 @@ export const fundingInitiatives = pgTable(
     frame: fundingFrameEnum("frame").notNull(),
     timelineStart: date("timeline_start"),
     timelineEnd: date("timeline_end"),
+    // I18 additions ------------------------------------------------------------------------
+    // Categorical token KEY for the initiative dot, never a hex value — the palette itself is
+    // defined by I17b. Storing a key keeps the colour decision in the design system.
+    colourKey: text("colour_key"),
+    // "Unrestricted" is an ordinary initiative with restricted = false, not a special case.
+    restricted: boolean("restricted").notNull().default(true),
+    // The period this initiative's goal is scoped to, e.g. "FY26".
+    fiscalPeriod: text("fiscal_period"),
     ...timestamps,
   },
   (table) => [

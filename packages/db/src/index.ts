@@ -5,3 +5,6 @@ export * from "./schema";
 export * from "./tenancy";
 export { seed } from "./seed";
 export { reset, truncateAllTenantData, assertResetAllowed, ResetNotAllowedError } from "./reset";
+export * from "./forward-repo";
+export { DEMO_TODAY, daysBeforeAnchor, daysAfterAnchor, anchorDateOffset } from "./demo-clock";
+export { seedForward, FORWARD_SEED_FACTS } from "./seed-forward";

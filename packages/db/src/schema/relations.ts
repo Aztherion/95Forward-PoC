@@ -16,6 +16,13 @@ import {
 } from "./engagement";
 import { fundingInitiatives, prospectFundingInitiatives } from "./funding";
 import {
+  forwardOpportunities,
+  goals,
+  milestoneDefinitions,
+  opportunityEvents,
+  opportunityMilestones,
+} from "./forward";
+import {
   knowledgeBase,
   naturalPartners,
   prospects,
@@ -210,6 +217,7 @@ export const fundingInitiativesRelations = relations(fundingInitiatives, ({ one,
   asks: many(asks),
   discoveryTasks: many(discoveryTasks),
   prospectAssociations: many(prospectFundingInitiatives),
+  forwardOpportunities: many(forwardOpportunities),
 }));
 
 export const prospectFundingInitiativesRelations = relations(
@@ -415,4 +423,57 @@ export const researchJobsRelations = relations(researchJobs, ({ one }) => ({
     fields: [researchJobs.requestedByUserId],
     references: [users.id],
   }),
+}));
+
+// ---------------------------------------------------------------------------------------------
+// 95 Forward — opportunity-centric model (Initiative 18)
+// ---------------------------------------------------------------------------------------------
+
+export const forwardOpportunitiesRelations = relations(forwardOpportunities, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [forwardOpportunities.tenantId], references: [tenants.id] }),
+  prospect: one(prospects, {
+    fields: [forwardOpportunities.prospectId],
+    references: [prospects.id],
+  }),
+  initiative: one(fundingInitiatives, {
+    fields: [forwardOpportunities.initiativeId],
+    references: [fundingInitiatives.id],
+  }),
+  owner: one(users, { fields: [forwardOpportunities.ownerUserId], references: [users.id] }),
+  milestones: many(opportunityMilestones),
+  events: many(opportunityEvents),
+}));
+
+export const milestoneDefinitionsRelations = relations(milestoneDefinitions, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [milestoneDefinitions.tenantId], references: [tenants.id] }),
+  states: many(opportunityMilestones),
+}));
+
+export const opportunityMilestonesRelations = relations(opportunityMilestones, ({ one }) => ({
+  tenant: one(tenants, { fields: [opportunityMilestones.tenantId], references: [tenants.id] }),
+  opportunity: one(forwardOpportunities, {
+    fields: [opportunityMilestones.opportunityId],
+    references: [forwardOpportunities.id],
+  }),
+  definition: one(milestoneDefinitions, {
+    fields: [opportunityMilestones.milestoneDefinitionId],
+    references: [milestoneDefinitions.id],
+  }),
+  confirmedBy: one(users, {
+    fields: [opportunityMilestones.confirmedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export const opportunityEventsRelations = relations(opportunityEvents, ({ one }) => ({
+  tenant: one(tenants, { fields: [opportunityEvents.tenantId], references: [tenants.id] }),
+  opportunity: one(forwardOpportunities, {
+    fields: [opportunityEvents.opportunityId],
+    references: [forwardOpportunities.id],
+  }),
+  actor: one(users, { fields: [opportunityEvents.actorUserId], references: [users.id] }),
+}));
+
+export const goalsRelations = relations(goals, ({ one }) => ({
+  tenant: one(tenants, { fields: [goals.tenantId], references: [tenants.id] }),
 }));

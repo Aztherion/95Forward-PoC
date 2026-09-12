@@ -13,6 +13,7 @@ import { seedFundingInitiatives } from "./seed-funding-initiatives";
 import { seedExecution } from "./seed-execution";
 import { seedJobs } from "./seed-jobs";
 import { seedDiscovery } from "./seed-discovery";
+import { seedForward } from "./seed-forward";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -78,6 +79,9 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
   await seedExecution(db, tenantId);
   await seedJobs(db, tenantId);
   await seedDiscovery(db, tenantId);
+  // I18 — the opportunity-centric model. Runs last: it depends on prospects, users and
+  // initiatives, and it anchors its backdated history to DEMO_TODAY rather than the wall clock.
+  await seedForward(db, tenantId);
 
   return { tenantId };
 }
