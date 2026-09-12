@@ -17,7 +17,10 @@ export type SettingUnit =
   | "date-range"
   | "seconds"
   | "band"
-  | "enum-list";
+  | "enum-list"
+  | "count"
+  | "percentile"
+  | "fraction";
 
 export interface SettingDescriptor<TValue> {
   readonly key: string;
@@ -52,6 +55,8 @@ export interface ForwardSettings {
   readonly fiscalPeriods: readonly FiscalPeriod[];
   /** Thresholds and effort estimates for the consistency checks (I20). */
   readonly checks: CheckSettings;
+  /** Monte Carlo forecast parameters (I21). */
+  readonly simulation: SimulationSettings;
   /**
    * DOCUMENTED, NOT IMPLEMENTED. See ASK_MATURATION_WEEKS below.
    * Leave undefined; nothing reads it.
@@ -156,6 +161,120 @@ export const DEFAULT_CHECK_SETTINGS: CheckSettings = {
   forecastInputRequiredStages: FORECAST_INPUT_REQUIRED_STAGES.defaultValue,
 };
 
+// -------------------------------------------------------------------------------------------
+// Monte Carlo forecast (I21)
+// -------------------------------------------------------------------------------------------
+
+export interface SimulationPercentiles {
+  /** Deliberately asymmetric — 90/50/5, from the source model. Not a typo for 95. */
+  readonly best: number;
+  readonly mostLikely: number;
+  readonly worst: number;
+}
+
+export interface SimulationSettings {
+  readonly trialCount: number;
+  readonly percentiles: SimulationPercentiles;
+  /** Fraction of trials taken as the neighbourhood around each percentile for membership. */
+  readonly membershipNeighbourhoodFraction: number;
+  /** Inclusion rate at or above which an opportunity counts as "in" a scenario. */
+  readonly membershipThreshold: number;
+  /** Reduced trial count for I20 consequence estimates — they run once per finding. */
+  readonly consequenceTrialCount: number;
+  /** The +/- day band each date-confidence value maps to. */
+  readonly dateConfidenceDays: Readonly<Record<string, number>>;
+  /** Probability band -> percentage. The rep's judgement, drawn against per trial. */
+  readonly probabilityPct: Readonly<Record<string, number>>;
+}
+
+export const TRIAL_COUNT: SettingDescriptor<number> = {
+  key: "simulation.trialCount",
+  label: "Simulated years",
+  description:
+    "Trials per run. The chart subtitle states this number ('10,000 simulated years'), so it must " +
+    "be read from here rather than hardcoded in the UI.",
+  unit: "count",
+  defaultValue: 10_000,
+  implemented: true,
+};
+
+export const SIMULATION_PERCENTILES: SettingDescriptor<SimulationPercentiles> = {
+  key: "simulation.percentiles",
+  label: "Best / Most likely / Worst percentiles",
+  description:
+    "Read per month across trials. The asymmetry (90/50/5) is intentional and comes from the " +
+    "source model: the downside is cut further out than the upside.",
+  unit: "percentile",
+  defaultValue: { best: 90, mostLikely: 50, worst: 5 },
+  implemented: true,
+};
+
+export const MEMBERSHIP_NEIGHBOURHOOD_FRACTION: SettingDescriptor<number> = {
+  key: "simulation.membershipNeighbourhoodFraction",
+  label: "Scenario neighbourhood size",
+  description:
+    "Fraction of trials taken as the neighbourhood around each percentile when deciding scenario " +
+    "membership. Nearest-k rather than a fixed window so the set is never empty.",
+  unit: "fraction",
+  defaultValue: 0.05,
+  implemented: true,
+};
+
+export const MEMBERSHIP_THRESHOLD: SettingDescriptor<number> = {
+  key: "simulation.membershipThreshold",
+  label: "Scenario inclusion threshold",
+  description:
+    "An opportunity is 'in' a scenario when it closed within the period in at least this fraction " +
+    "of that scenario's neighbourhood trials.",
+  unit: "fraction",
+  defaultValue: 0.5,
+  implemented: true,
+};
+
+export const CONSEQUENCE_TRIAL_COUNT: SettingDescriptor<number> = {
+  key: "simulation.consequenceTrialCount",
+  label: "Trials for consistency-check consequences",
+  description:
+    "Reduced trial count for I20's distorts-simulation consequences. These are estimates and run " +
+    "once per finding, so full fidelity is not worth the time.",
+  unit: "count",
+  defaultValue: 2_000,
+  implemented: true,
+};
+
+export const DATE_CONFIDENCE_DAYS: SettingDescriptor<Readonly<Record<string, number>>> = {
+  key: "simulation.dateConfidenceDays",
+  label: "Date confidence bands",
+  description:
+    "The +/- days each date-confidence value varies by in a trial. Semi-firm is ~21 days, per the " +
+    "source spreadsheet. Moved here from the model in I21 — the model stores the enum, the rules " +
+    "layer owns what it means.",
+  unit: "days",
+  defaultValue: { firm: 7, semi_firm: 21, loose: 60 },
+  implemented: true,
+};
+
+export const PROBABILITY_PCT: SettingDescriptor<Readonly<Record<string, number>>> = {
+  key: "simulation.probabilityPct",
+  label: "Probability band percentages",
+  description:
+    "The chance each band represents. Used ONLY as the per-trial draw threshold — never as a " +
+    "multiplier. A 50% chance of $1M books $1M or nothing, never $500,000.",
+  unit: "percentile",
+  defaultValue: { longshot: 10, medium: 40, high: 65, bookable: 85, lock: 95 },
+  implemented: true,
+};
+
+export const DEFAULT_SIMULATION_SETTINGS: SimulationSettings = {
+  trialCount: TRIAL_COUNT.defaultValue,
+  percentiles: SIMULATION_PERCENTILES.defaultValue,
+  membershipNeighbourhoodFraction: MEMBERSHIP_NEIGHBOURHOOD_FRACTION.defaultValue,
+  membershipThreshold: MEMBERSHIP_THRESHOLD.defaultValue,
+  consequenceTrialCount: CONSEQUENCE_TRIAL_COUNT.defaultValue,
+  dateConfidenceDays: DATE_CONFIDENCE_DAYS.defaultValue,
+  probabilityPct: PROBABILITY_PCT.defaultValue,
+};
+
 export const COVERAGE_MULTIPLE: SettingDescriptor<number> = {
   key: "coverageMultiple",
   label: "Coverage multiple",
@@ -246,6 +365,13 @@ export const FORWARD_SETTING_DESCRIPTORS = [
   CONCERNING_VISIT_RATINGS,
   PROBABILITY_OPTIMISM_CEILING,
   FORECAST_INPUT_REQUIRED_STAGES,
+  TRIAL_COUNT,
+  SIMULATION_PERCENTILES,
+  MEMBERSHIP_NEIGHBOURHOOD_FRACTION,
+  MEMBERSHIP_THRESHOLD,
+  CONSEQUENCE_TRIAL_COUNT,
+  DATE_CONFIDENCE_DAYS,
+  PROBABILITY_PCT,
 ] as const;
 
 export const DEFAULT_FORWARD_SETTINGS: ForwardSettings = {
@@ -254,6 +380,7 @@ export const DEFAULT_FORWARD_SETTINGS: ForwardSettings = {
   sellingHoursPerDay: SELLING_HOURS_PER_DAY.defaultValue,
   fiscalPeriods: FISCAL_PERIODS.defaultValue,
   checks: DEFAULT_CHECK_SETTINGS,
+  simulation: DEFAULT_SIMULATION_SETTINGS,
   // askMaturationWeeks intentionally omitted — see ASK_MATURATION_WEEKS.
 };
 
