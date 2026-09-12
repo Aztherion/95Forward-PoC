@@ -8,6 +8,7 @@ export * from "./engagement";
 export * from "./funding";
 export * from "./prospects";
 export * from "./execution";
+export * from "./forward";
 export * from "./discovery";
 export * from "./jobs";
 export * from "./config";

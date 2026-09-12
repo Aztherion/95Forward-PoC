@@ -91,3 +91,51 @@ export const savedListRecordTypeEnum = pgEnum("saved_list_record_type", [
   "gift",
   "interaction",
 ]);
+
+// ---------------------------------------------------------------------------------------------
+// 95 Forward — the opportunity-centric model (Initiative 18).
+//
+// NOTE the deliberate distinction from `opportunityStageEnum` above: that is the HOST CRM's
+// four-value stage on its constituent-grain `opportunities` table. These are the add-on's six
+// war-room stages on `forward_opportunities`. The two are different entities at different grains
+// and must not be merged.
+// ---------------------------------------------------------------------------------------------
+
+export const forwardStageEnum = pgEnum("forward_stage", [
+  "get_the_visit",
+  "prep_the_visit",
+  "visit_and_ask",
+  "follow_up_and_close",
+  "celebrate_steward",
+  "repeat",
+]);
+
+export const dateConfidenceEnum = pgEnum("date_confidence", ["firm", "semi_firm", "loose"]);
+
+export const probabilityBandEnum = pgEnum("probability_band", [
+  "longshot",
+  "medium",
+  "high",
+  "bookable",
+  "lock",
+]);
+
+export const visitRatingEnum = pgEnum("visit_rating", ["poor", "mixed", "good", "strong"]);
+
+export const forwardOpportunityStatusEnum = pgEnum("forward_opportunity_status", [
+  "open",
+  "won",
+  "lost",
+]);
+
+export const milestoneSourceEnum = pgEnum("milestone_source", ["they_said", "we_said"]);
+
+export const opportunityEventTypeEnum = pgEnum("opportunity_event_type", [
+  "field_change",
+  "contact_logged",
+  "milestone_confirmed",
+  "stage_change",
+  "note",
+]);
+
+export const goalScopeEnum = pgEnum("goal_scope", ["org", "rep", "initiative"]);

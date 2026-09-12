@@ -734,13 +734,33 @@ describe("seed: funding initiatives (I9)", () => {
     const rows = await db.query.fundingInitiatives.findMany({
       where: eq(fundingInitiatives.tenantId, tenantId),
     });
-    expect(rows).toHaveLength(3);
-    const byFrame = Object.fromEntries(rows.map((r) => [r.frame, r]));
+    // I18 added a fourth, Unrestricted, which is modelled as an ordinary initiative. It shares the
+    // "today" frame with Kamuli, so the three grounded ones are the restricted subset.
+    expect(rows).toHaveLength(4);
+    const grounded = rows.filter((r) => r.restricted);
+    expect(grounded).toHaveLength(3);
+    const byFrame = Object.fromEntries(grounded.map((r) => [r.frame, r]));
     expect(byFrame.today?.name).toContain("Kamuli");
     expect(byFrame.tomorrow?.name).toContain("Bolivia");
     expect(byFrame.tomorrow?.goalAmountCents).toBe(320_000_000);
     expect(byFrame.forever?.name).toContain("Forever Promise");
     expect(rows.every((r) => (r.story ?? "").length > 0)).toBe(true);
+  });
+
+  it("models Unrestricted as an ordinary initiative, not a special case (I18)", async () => {
+    if (!handle) {
+      return;
+    }
+    const rows = await db.query.fundingInitiatives.findMany({
+      where: eq(fundingInitiatives.tenantId, tenantId),
+    });
+    const unrestricted = rows.find((r) => r.name === "Unrestricted");
+    expect(unrestricted).toBeDefined();
+    expect(unrestricted?.restricted).toBe(false);
+    // A colour KEY, never a hex value — the palette itself is defined by I17b.
+    expect(unrestricted?.colourKey).toBe("initiative-4");
+    expect(rows.every((r) => (r.colourKey ?? "").startsWith("initiative-"))).toBe(true);
+    expect(rows.every((r) => r.fiscalPeriod === "FY26")).toBe(true);
   });
 
   it("seeds cultivation associations (Hallworth -> Bolivia) without a frame column on prospects", async () => {
