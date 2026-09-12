@@ -1,3 +1,29 @@
+/* The background-job tray.
+ *
+ * It is a fixed floater over page content, so two things have to be true at once: it must be
+ * noticeable, and it must never swallow a click meant for the page underneath. Before H2 it was
+ * neither small nor click-transparent, and it demonstrably ate clicks on the bottom-right of the
+ * Master Prospect List — Playwright named it as intercepting pointer events, and a real user would
+ * have hit the same silent no-op with no keyboard path around it.
+ *
+ * Two rules fix it, and both are deliberate:
+ *
+ *  1. COLLAPSED BY DEFAULT AT EVERY WIDTH. The pill treatment already existed below 640px — someone
+ *     judged the expanded bar too intrusive on small screens. Desktop was never revisited. It is
+ *     the same judgement, so it is now the base rule and the media query keeps only its tighter
+ *     offsets.
+ *
+ *  2. THE COLLAPSED TRAY IS TRANSPARENT TO POINTER EVENTS, except its own controls. A small pill
+ *     still overlaps whatever happens to be scrolled beneath it — a fixed element always does — so
+ *     shrinking it reduces the problem without removing it. Passing clicks through the pill's
+ *     background, padding and gaps leaves only the toggle and the ready link intercepting, which is
+ *     correct: those are controls, and a control is supposed to take its own clicks.
+ *
+ * Expansion is CLICK, not hover. Hover expansion would re-introduce the bug: the panel grows
+ * leftward over the content, stays hovered while the pointer is inside it, and a click intended for
+ * the row underneath would land on the tray instead.
+ */
+
 .f95-jobtray {
   position: fixed;
   right: 24px;
@@ -14,6 +40,23 @@
   box-shadow: var(--elevation-sm, 0 2px 8px rgba(20, 30, 50, 0.1));
   font: var(--text-label);
   color: var(--ai-ink);
+  /* See (2) above. Re-enabled on the controls below, and on the whole tray once expanded. */
+  pointer-events: none;
+}
+
+/* The controls stay clickable while the surface around them does not. */
+.f95-jobtray__toggle,
+.f95-jobtray__ready {
+  pointer-events: auto;
+}
+
+/* Expanding is an explicit user action, so an expanded tray behaves like any other panel. */
+.f95-jobtray--expanded {
+  pointer-events: auto;
+  flex-wrap: wrap;
+  /* Wrapped rows clip against a full pill radius; a rounded square holds them. The collapsed pill
+     above keeps --radius-pill. */
+  border-radius: var(--radius-lg);
 }
 
 .f95-jobtray__toggle {
@@ -34,8 +77,9 @@
   flex: none;
 }
 
+/* The count is the collapsed tray's whole payload, so it shows whenever the tray is collapsed. */
 .f95-jobtray__count {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 18px;
@@ -47,11 +91,23 @@
   font-weight: 600;
 }
 
+.f95-jobtray--expanded .f95-jobtray__count {
+  display: none;
+}
+
 .f95-jobtray__content {
   display: inline-flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
+}
+
+.f95-jobtray:not(.f95-jobtray--expanded) .f95-jobtray__content {
+  display: none;
+}
+
+.f95-jobtray--expanded .f95-jobtray__content {
+  flex-wrap: wrap;
 }
 
 .f95-jobtray__item {
@@ -62,6 +118,11 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Expanded, the tray wraps rather than truncating — there is room for the full sentence. */
+.f95-jobtray--expanded .f95-jobtray__item {
+  white-space: normal;
 }
 
 .f95-jobtray__pulse {
@@ -91,41 +152,13 @@
   background: var(--iris-100);
 }
 
-/* On narrow (mobile) viewports the bar can't fit its content, so it collapses to a
-   compact icon+count pill by default and expands to the full content when tapped. */
+/* Narrow viewports keep only tighter offsets — the collapse behaviour is now the base rule, so the
+   desktop and mobile treatments have converged rather than being maintained twice. */
 @media (max-width: 640px) {
   .f95-jobtray {
     right: 16px;
     bottom: 16px;
     max-width: calc(100vw - 32px);
-  }
-
-  .f95-jobtray__count {
-    display: inline-flex;
-  }
-
-  .f95-jobtray:not(.f95-jobtray--expanded) .f95-jobtray__content {
-    display: none;
-  }
-
-  .f95-jobtray--expanded {
-    flex-wrap: wrap;
-    /* Once expanded the tray wraps to multiple rows, so the pill radius rounds the
-       corners in past the wrapped items and clips them. Use a moderate rounded-square
-       radius here; the collapsed pill above keeps its circular --radius-pill. */
-    border-radius: var(--radius-lg);
-  }
-
-  .f95-jobtray--expanded .f95-jobtray__content {
-    flex-wrap: wrap;
-  }
-
-  .f95-jobtray--expanded .f95-jobtray__count {
-    display: none;
-  }
-
-  .f95-jobtray__item {
-    white-space: normal;
   }
 }
 

@@ -71,7 +71,76 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     await page.goto("/95-forward/today");
     const tray = page.locator('[data-testid="job-tray"]');
     await expect(tray).toBeVisible();
-    await expect(page.locator('[data-testid="job-tray-ready"]')).toContainText("ready to review");
+
+    // H2: the tray is a collapsed pill at every width now, not just on mobile, so the ready link
+    // lives behind the toggle rather than being on screen permanently.
+    const toggle = page.locator('[data-testid="job-tray-toggle"]');
+    const ready = page.locator('[data-testid="job-tray-ready"]');
+    await expect(ready).toBeHidden();
+    await toggle.click();
+    await expect(ready).toBeVisible();
+    await expect(ready).toContainText("ready to review");
+  });
+
+  test("the collapsed tray does not intercept clicks meant for the page beneath it", async ({
+    page,
+  }) => {
+    // The regression this guards: the tray is fixed over the bottom-right of every 95 Forward
+    // screen, and it used to swallow clicks on whatever was scrolled underneath it — the Master
+    // Prospect List's rows, in practice. Playwright named it as "intercepts pointer events" and it
+    // cost two CI runs before the mechanism was understood.
+    await page.goto("/95-forward/prospects");
+    const tray = page.locator('[data-testid="job-tray"]');
+    await expect(tray).toBeVisible();
+
+    const box = await tray.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+
+    // A point inside the tray's own box, in its padding rather than on the toggle. Whatever is
+    // underneath must be what receives the click.
+    const probe = { x: box.x + box.width - 4, y: box.y + box.height - 4 };
+    const hit = await page.evaluate(
+      ({ x, y }) =>
+        document.elementFromPoint(x, y)?.closest('[data-testid="job-tray"]') ? "tray" : "page",
+      probe,
+    );
+    expect(hit).toBe("page");
+
+    // Collapsed, the tray must be small: a large transparent overlay would still block hover and
+    // look wrong even if clicks passed through.
+    expect(box.height).toBeLessThan(60);
+    expect(box.width).toBeLessThan(140);
+
+    // ...and its own control must still work, which is the thing pointer-events: none would break
+    // if it were applied naively to the whole tray.
+    const toggle = page.locator('[data-testid="job-tray-toggle"]');
+    await toggle.click();
+    await expect(tray).toHaveClass(/f95-jobtray--expanded/);
+  });
+
+  test("the tray toggle is reachable and operable by keyboard", async ({ page }) => {
+    await page.goto("/95-forward/today");
+    const toggle = page.locator('[data-testid="job-tray-toggle"]');
+    const ready = page.locator('[data-testid="job-tray-ready"]');
+    await expect(toggle).toBeVisible();
+
+    // Focus without a mouse, open with the keyboard, and close again. A pill that can only be
+    // opened by pointer would be a worse bug than the one H2 fixes.
+    await toggle.focus();
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await page.keyboard.press("Enter");
+    await expect(ready).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Space");
+    await expect(ready).toBeHidden();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    // The live region survives the collapse — status changes are still announced.
+    await expect(page.locator('[data-testid="job-tray"]')).toHaveAttribute("aria-live", "polite");
   });
 
   test("on a mobile viewport the job tray collapses to a pill and expands on tap", async ({
@@ -83,7 +152,7 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     const tray = page.locator('[data-testid="job-tray"]');
     await expect(tray).toBeVisible();
 
-    // Collapsed by default on mobile: the toggle shows but the full content is hidden.
+    // Same behaviour as every other width since H2; mobile keeps only its tighter offsets.
     const toggle = page.locator('[data-testid="job-tray-toggle"]');
     const ready = page.locator('[data-testid="job-tray-ready"]');
     await expect(toggle).toBeVisible();
