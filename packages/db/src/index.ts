@@ -6,5 +6,7 @@ export * from "./tenancy";
 export { seed } from "./seed";
 export { reset, truncateAllTenantData, assertResetAllowed, ResetNotAllowedError } from "./reset";
 export * from "./forward-repo";
+export { loadMetricsSnapshot, ForwardMetricsService } from "./forward-metrics-repo";
+export type { MetricsServiceOptions } from "./forward-metrics-repo";
 export { DEMO_TODAY, daysBeforeAnchor, daysAfterAnchor, anchorDateOffset } from "./demo-clock";
 export { seedForward, FORWARD_SEED_FACTS } from "./seed-forward";
