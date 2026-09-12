@@ -101,8 +101,15 @@ means "works in the live demo." Never weaken a mock or a seam just to make a tes
 
 - One pre-existing ESLint warning in `apps/web/.../Avatar.tsx` (`<img>` vs `next/image`). 0 errors.
 - Benign webpack "Critical dependency" warnings from `graphile-worker` / `@auth0/nextjs-auth0`.
-- Under heavy parallel load, `prospect-overview.spec.ts` and `demo-journey.spec.ts` can flake; they
-  pass in isolation and are not real regressions.
+- `constituents.spec.ts` ("browses, searches, filters, and saves a view") can flake: it saves a view
+  through a server action, then relies on `networkidle` before expecting it on a freshly rendered
+  page, against a database shared with the other worker. Seen failing on `main` twice. Not yet
+  fixed — it needs its own ticket, not a retry.
+- The `prospect-overview.spec.ts` / `demo-journey.spec.ts` flake was the **job tray intercepting
+  pointer events**: `.f95-jobtray` is fixed over the bottom-right of every 95 Forward screen, and
+  `jobs.spec.ts` expands it from the other worker while these specs are clicking a row underneath.
+  **Fixed in H2** — the tray is a collapsed pill at every width and is click-transparent except for
+  its own controls. If either spec flakes again, it is something new; do not write it off as this.
 
 ## When you cannot safely fix it
 
