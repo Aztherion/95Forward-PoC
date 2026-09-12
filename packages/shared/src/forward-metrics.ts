@@ -14,9 +14,12 @@
 import {
   computeQualification,
   isPreCloseStage,
+  type DateConfidence,
   type ForwardStage,
   type MilestoneDefinition,
   type OpportunityStatus,
+  type ProbabilityBand,
+  type VisitRating,
 } from "./forward";
 import {
   resolveFiscalPeriod,
@@ -62,6 +65,22 @@ export interface SnapshotOpportunity {
   readonly closeDate: string | null;
   /** Keys of the milestones confirmed on this opportunity. */
   readonly confirmedMilestoneKeys: readonly string[];
+
+  // -- I20 additions. No metric reads these; the consistency checks do. -------------------------
+  readonly dateConfidence: DateConfidence;
+  /** The rep's stored band. Compare against suggestProbabilityBand() — that gap is a check. */
+  readonly probability: ProbabilityBand;
+  readonly visitRating: VisitRating | null;
+  /**
+   * Supporting evidence per CONFIRMED milestone, keyed by milestone key. A confirmed milestone with
+   * neither evidence text nor a document is what `written-confirmation-no-evidence` detects.
+   */
+  readonly milestoneEvidence: Readonly<Record<string, MilestoneEvidence>>;
+}
+
+export interface MilestoneEvidence {
+  readonly evidence: string | null;
+  readonly documentUrl: string | null;
 }
 
 export interface SnapshotGoal {

@@ -38,6 +38,10 @@ function opportunity(partial: Partial<SnapshotOpportunity> & { id: string }): Sn
     status: "open",
     closeDate: "2026-11-30",
     confirmedMilestoneKeys: [],
+    dateConfidence: "semi_firm",
+    probability: "medium",
+    visitRating: null,
+    milestoneEvidence: {},
     ...partial,
   };
 }
