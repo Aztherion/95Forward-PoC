@@ -7,7 +7,7 @@ original Claude Design project is no longer accessible and the surviving export 
 This document describes **what exists**, not what should. Where the code is inconsistent, §8 says so
 rather than picking a winner. If you change the UI, update this file in the same PR.
 
-Every claim carries a file path. Counts are grep-verified as of this commit — treat them as a
+Every claim carries a file path. Counts are grep-verified against `f1f06ba` — treat them as a
 snapshot, not a guarantee.
 
 ---
@@ -192,7 +192,7 @@ stylesheet generation — §8.3.
 `--space-0 0` · `1 4` · `2 8` · `3 12` · `4 16` · `5 20` · `6 24` · `7 32` · `8 40` · `9 48` ·
 `10 64` · `11 80` · `12 96` (px).
 
-**`--space-2 / 3 / 4 / 5 / 7` account for 148 of 161 total references.** Use them first:
+**`--space-2 / 3 / 4 / 5 / 7` account for 147 of 160 total references.** Use them first:
 
 > Counting rule: these figures count bare `var(--token)` references. Two `var(--token, fallback)`
 > forms in `feedback.css` (`:28`, `:57`) are excluded; include them and `--space-5` and
@@ -284,8 +284,8 @@ Nav is data-driven from one static array, `components/shell/nav.ts:62-193`: 4 se
 group containing the current route is force-expanded. The 95 Forward group is `branded` — it renders
 the `Mark` SVG instead of a lucide icon.
 
-**`Topbar` is not rendered by the shell.** It is imported per-page by **12 of 79 `page.tsx`** files —
-11 of 13 under `95-forward`, **1 of 63** under `(host)` (Settings). 14 call sites in total
+**`Topbar` is not rendered by the shell.** It is imported per-page by **12 of 80 `page.tsx`** files —
+11 of 13 under `95-forward`, **1 of 64** under `(host)` (Settings). 14 call sites in total
 (`search/loading.tsx` and `PagePlaceholder.tsx` are the other two). The remaining host pages build
 their header from `.f95-page__header` markup instead. See §8.4.
 
@@ -301,7 +301,7 @@ their header from `.f95-page__header` markup instead. See §8.4.
 ```
 
 **Layout primitives are bare CSS classes** in `ds-data.css`, with no React wrapper except `FormRow`:
-`.f95-page` (68 files), `.f95-stack` (+`--sm`; 106 elements / 51 files), `.f95-cluster` (132),
+`.f95-page` (69 files), `.f95-stack` (+`--sm`; 106 elements / 51 files), `.f95-cluster` (132),
 `.f95-page__header` (32), `.f95-record-head` (10), `.f95-tilegrid` (+`--wide`), `.f95-statgrid`,
 `.f95-deflist` (114 occurrences / 29 files), `.f95-inline-form` (22), `.f95-overview` (2).
 
@@ -363,15 +363,15 @@ link-as-button pattern (§8.2).
 
 ### 5.6 Badges, chips and pills — six distinct components, different jobs
 
-| Component    | Class            | Shape                       | Variants                                                                                                                 | Uses                      |
-| ------------ | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
-| `Badge`      | `.f95-badge`     | 22px pill, 11px semibold    | `neutral` `info` `success` `attention` `danger` `go` `ai` `unknown`; `dot`; `solid` _(0 uses)_                           | the status pill in tables |
-| `Tag`        | `.f95-tag`       | 26px, `radius-sm`, outlined | free-form `color` dot, `selected`, `onRemove` _(0 uses)_                                                                 | 6                         |
-| `HorizonTag` | `.f95-horizon`   | 24px pill                   | `today`/`tomorrow`/`forever`, each with its own glyph; `solid`                                                           | 5                         |
-| `RoleChip`   | `.f95-role`      | pill                        | `manager` (filled blue) vs `partner` (**dashed sage + door glyph**)                                                      | —                         |
-| `SourceTag`  | `.f95-src`       | 11px mono chip              | `--grounded` (iris tint, doc icon) / `--unknown` (dashed, sans, "Unknown — worth researching")                           | 12                        |
-| `Heartbeat`  | `.f95-heartbeat` | pill + animated dot         | `status`: `on-track` sage / `due-soon` gold / `overdue` brick, plus `label` for the text                                 | 3                         |
-| `Avatar`     | `.f95-avatar`    | 28/36/48px circle           | `size` (always emitted), `kind="org"` → rounded square, `src` → `<img alt={name}>`, `ringColor` → double box-shadow halo | 6 (none pass `src`)       |
+| Component    | Class            | Shape                       | Variants                                                                                                                 | Uses                         |
+| ------------ | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| `Badge`      | `.f95-badge`     | 22px pill, 11px semibold    | `neutral` `info` `success` `attention` `danger` `go` `ai` `unknown`; `dot`; `solid` _(0 uses)_                           | the status pill in tables    |
+| `Tag`        | `.f95-tag`       | 26px, `radius-sm`, outlined | free-form `color` dot, `selected`, `onRemove` _(0 uses)_                                                                 | 6                            |
+| `HorizonTag` | `.f95-horizon`   | 24px pill                   | `today`/`tomorrow`/`forever`, each with its own glyph; `solid`                                                           | 8 (5 outside the styleguide) |
+| `RoleChip`   | `.f95-role`      | pill                        | `manager` (filled blue) vs `partner` (**dashed sage + door glyph**)                                                      | —                            |
+| `SourceTag`  | `.f95-src`       | 11px mono chip              | `--grounded` (iris tint, doc icon) / `--unknown` (dashed, sans, "Unknown — worth researching")                           | 13                           |
+| `Heartbeat`  | `.f95-heartbeat` | pill + animated dot         | `status`: `on-track` sage / `due-soon` gold / `overdue` brick, plus `label` for the text                                 | 3                            |
+| `Avatar`     | `.f95-avatar`    | 28/36/48px circle           | `size` (always emitted), `kind="org"` → rounded square, `src` → `<img alt={name}>`, `ringColor` → double box-shadow halo | 6 (none pass `src`)          |
 
 ```tsx
 // apps/web/src/app/(host)/constituents/page.tsx:71
@@ -410,7 +410,7 @@ Each control's invalid and disabled treatment differs, and sibling APIs diverge 
 
 Link-based tabs, 2px `--reg-accent` underline on the active item, horizontally scrollable. **4 call
 sites.** Six hand-rolled `*Nav` components reuse the same classes with different ARIA and are the
-dominant variant at 16 call sites (§8.2).
+dominant variant at 17 call sites (§8.2).
 
 ### 5.9 Modal — one instance, not a primitive
 
@@ -423,7 +423,7 @@ component**.
 ### 5.10 Empty and loading states
 
 - **`EmptyState`** (`.f95-empty`) — dashed border, sunk background, 44px circular icon chip, title +
-  line (max 420px) + optional action. **38 call sites** — the dominant whole-list empty.
+  line (max 420px) + optional action. **39 call sites** — the dominant whole-list empty.
 - **Inline empties** — `.f95-table__muted` (table cells), `.f95-deflist__desc--empty` (**41
   occurrences / 27 files**, in every case standalone as a de facto muted-text utility, §8.4),
   `.f95-foil__value--empty`, `.f95-mg-likelihood__empty`.
@@ -447,7 +447,7 @@ component**.
 These are house patterns, not components, but a new screen that skips them will not look or test like
 the rest of the app.
 
-**Page skeleton.** 73 of 79 `page.tsx` files export `const dynamic = "force-dynamic"`; 72 of 79 are
+**Page skeleton.** 72 of 80 `page.tsx` files export `const dynamic = "force-dynamic"`; 73 of 80 are
 `export default async function` server components. In Next 15, `params` and `searchParams` arrive as
 **Promises** (`params: Promise<{ id: string }>`, `searchParams: Promise<RawSearchParams>` — 22 pages
 take searchParams). Every page opens with the same null-guard preamble:
@@ -486,7 +486,7 @@ affordance — a `<form action={formAction}>` wrapping `<Button type="submit" va
 size="sm" disabled={isPending} iconLeft={…}>`, icon defaulting to `<Sparkle size={15}
 strokeWidth={1.8} />`, `pendingLabel` defaulting to `"Working…"`, plus a hidden subject-id input.
 
-**Icons.** `lucide-react` is the only icon source (103 files). **170 of 171 icon renders use
+**Icons.** `lucide-react` is the only icon source (104 files). **171 of 172 icon renders use
 `strokeWidth={1.8}`.** Size is keyed to the slot, not chosen freely:
 
 | Slot                          | Size                       |
@@ -498,7 +498,7 @@ strokeWidth={1.8} />`, `pendingLabel` defaulting to `"Working…"`, plus a hidde
 | `Select` chevron              | 16                         |
 | `DataTable` sort arrow        | 13                         |
 
-**Test IDs.** 91 `data-testid` attributes across 39 files, kebab-case. 11 sit on the `.f95-page` root
+**Test IDs.** 92 `data-testid` attributes across 39 files, kebab-case. 11 sit on the `.f95-page` root
 and name the screen (`<div className="f95-page" data-testid="today">`), with more on each meaningful
 region and on every form. **The Playwright suite pins these** — a screen that omits them is
 untestable in the house style.
@@ -520,7 +520,7 @@ components fall short.
 1. **Composition.** Every authenticated screen is `AppShell` → (optional `<Topbar/>`) → one
    `.f95-page` container. `.f95-page` (`ds-data.css:435-441`) = `padding: var(--space-7)`,
    `max-width: var(--container-max)` (1320px), **left-aligned, not centred**, flex column, `gap:
-var(--space-4)`. Used in **68 files**.
+var(--space-4)`. Used in **69 files** (57 host, 12 95-forward).
 2. **Narrower variants.** `.f95-settings` caps at 760px; Visit mode's reading column at 680px.
 3. **Grid is rare.** Layout is overwhelmingly flexbox — only **9 selectors declare `display:grid`**
    and there are **11 `grid-template-columns` declarations** in the whole stylesheet set. Intrinsic
@@ -533,12 +533,15 @@ var(--space-4)`. Used in **68 files**.
    variables (`register.css`): `--reg-accent`, `-accent-strong`, `-accent-surface` _(0 refs)_,
    `-nav-active-bg`, `-nav-active-fg`, `-nav-active-icon`, `-eyebrow`. Consumers: active tab, table
    sort icon, cell-link hover, checkbox, switch, fieldgroup legend, page eyebrow, nav active row.
-6. **Breakpoints — there are exactly three layout media queries in the source tree:**
-   `max-width: 720px` (form rows → 1 column, `ds-data.css:349`) and `min-width: 960px` twice
-   (`.f95-overview` grid and its sticky rail, `ds-data.css:1000,1017`). Plus 4
-   `prefers-reduced-motion` blocks.
-7. **Mobile is undefined.** `shell.css` contains **zero** media queries — the 264px sidebar never
-   collapses. There is no JS viewport handling anywhere, and Playwright runs Desktop Chrome only.
+6. **Breakpoints — there are exactly four layout media queries in the source tree:**
+   `max-width: 640px` (the job tray collapses to an icon, `jobtray.css:96`), `max-width: 720px`
+   (form rows → 1 column, `ds-data.css:349`), and `min-width: 960px` twice (`.f95-overview` grid and
+   its sticky rail, `ds-data.css:1000,1017`). Plus 4 `prefers-reduced-motion` blocks.
+7. **Mobile is barely handled.** `shell.css` contains **zero** media queries — the 264px sidebar
+   never collapses at any width, and `.f95-page` keeps its 32px gutter. The app's only
+   mobile-specific rule is the job tray's `max-width: 640px` block (`jobtray.css:96`), which
+   collapses that one floating pill to an icon. There is no JS viewport handling anywhere, and
+   Playwright runs Desktop Chrome only.
 8. **Visit mode** is a `position: fixed; inset: 0; z-index: 60` overlay above the shell
    (`visit.css`), low chrome, large serif type.
 9. **Z-index ladder** — six hard-coded literals, no token: sticky table header `1`, feedback menu
@@ -606,8 +609,8 @@ variant with more call sites, not the better one.
    `role="tablist"`/`role="tab"` (4 sites). Six hand-rolled `*Nav` components use `role="navigation"`
    but still set `aria-selected` on plain links — **they must**, because `.f95-tab[aria-selected="true"]`
    is the only rule that styles an active tab and nothing targets `aria-current`.
-   **`*Nav` is dominant: 16 call sites across 6 near-verbatim duplicate files** (Analysis,
-   MajorGiving, Marketing, Memberships, Revenue, Volunteers), none shared.
+   **`*Nav` is dominant: 17 call sites across 6 near-verbatim duplicate files** (Analysis 3,
+   MajorGiving 4, Marketing 2, Memberships 4, Revenue 2, Volunteers 2), none shared.
 7. **`Card accent` is a silent no-op outside AI cards.** The only rule is the compound
    `.f95-card--ai.f95-card--accent` (`ds.css:324-326`). Of 12 `accent` call sites, 7 are `tone="ai"`
    (works) and **5 are `tone="go"` (renders nothing)**.
@@ -656,7 +659,7 @@ variant with more call sites, not the better one.
     `.f95-tilegrid` (10), bare inside `.f95-statgrid` (12), Card-wrapped inside `.f95-statgrid` (1),
     and Card-wrapped in no grid at all (2). Counts inside `.f95-stat__value` also disagree — 6 sites
     apply `toLocaleString`, 4 render a raw integer.
-18. **Three page-header treatments coexist** (`.f95-page__header` 32 uses, `.f95-record-head` 10,
+18. **Three page-header treatments coexist** (`.f95-page__header` 33 uses, `.f95-record-head` 10,
     `Topbar` 14) — and **12 pages render two `<h1>` elements**, one from `Topbar` and one from the
     page body.
 19. **Five eyebrow treatments, two byte-identical.** `.f95-page__eyebrow` and
@@ -690,7 +693,7 @@ variant with more call sites, not the better one.
     has 20 — and 5 of those sit inside a **column** flex container where `flex: 1` does nothing.
     `.f95-deflist__desc--empty` is used **41 times across 27 files, every one standalone** with no
     `.f95-deflist` parent — it has become the generic muted-text utility.
-    `.f95-table__cell-link` has **77 occurrences, only 1 inside `DataTable`** — 39 pair it with
+    `.f95-table__cell-link` has **79 occurrences, only 1 inside `DataTable`** — 39 pair it with
     `.f95-cluster` as an undocumented breadcrumb back-link.
 28. **Dead component API**: `QpiBreakdown` is exported but has no call sites outside `QpiScore`;
     `Badge.solid`, `Tag.onRemove`, `SourceTag.onClick`, `Card.elevation`, `Card.pad="sm"|"none"`,
