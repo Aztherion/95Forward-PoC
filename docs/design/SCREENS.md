@@ -34,7 +34,8 @@ The designs render as a standalone app. **They are not.** 95 Forward is an add-o
 - The **95 Forward** section holds: The Board · Opportunities · Prospects · Initiatives · Forecast · Green Sheet. This section is the visually active one.
 - `Enter visit mode` and the user block sit **inside** the 95 Forward section, not in global chrome.
 - Do **not** auto-collapse the Keystone nav on 95 Forward screens — that undoes the "lives inside a CRM" impression.
-- **Vertical budget:** if Keystone has a top bar, that height was not accounted for in the designs. The constraint that must survive: on The Board, **item #1 of the queue is visible without scrolling**. Tighten the header block if needed.
+- **Vertical budget:** if Keystone has a top bar, that height was not accounted for in the designs. The constraint that must survive: on The Board, **item #1 of the queue is visible without scrolling at 1280×800** — not merely at 1440×900.
+  _(Amended by I17b, from I24's measurement against the real shell. The header block plus item #1 **fails at 1280×800 by ~66px** and is marginal at 1440×900, and both figures are optimistic: a real queue card runs 160–190px against the 134px floor used, and the Fix-first estimate assumed a two-line analogue where the design specifies 3–4 lines. See "Fix first" below for the fix, which recovers ~210px and clears both viewports on its own. Keystone's 92px topbar stays as it is — trimming the host's chrome works against the argument the shell exists to make.)_
 - Add a small number of `Open in Keystone →` links where the boundary is real (full giving history, pledge schedule on opportunity detail). Cheap, and demonstrates the boundary rather than asserting it.
 
 ### Naming and vocabulary
@@ -82,7 +83,9 @@ Every displayed number is either **stored** (a field on an entity) or **computed
 
 ### Metric block
 
-One dominant metric, three subordinate. Item #1 of the queue must remain above the fold.
+One dominant metric, three subordinate. Item #1 of the queue must remain above the fold **at 1280×800**.
+
+Per I24's measurements, the page container on The Board runs `padding-top: 24px` (not the standard 40) and a stack gap of 12px (not 16). Those two trims plus the collapsed Fix-first block below are what buy the constraint; do not spend the recovered space on something else.
 
 **Primary — QUALIFIED ASKS ON THE TABLE**
 - Value: sum of `Sale` across opportunities that are *qualified* and in a pre-close stage. **Computed.**
@@ -105,7 +108,13 @@ Sub-lines must state the basis (e.g. `to land the $2,700,000 FY26 goal`, `of qua
 
 Data-integrity items rank above all relationship work: bad data undermines every other number, and these are quick.
 
-Header: **Fix first** · *"3 forecasts contradict themselves. They feed every number above — clear them in under three minutes."*
+**Collapsed by default.** _(Amended by I17b.)_ The section renders as a **compact summary line plus one review action**, and expands on demand:
+
+> *"3 forecasts contradict themselves · clear them in under three minutes"* + `Review`
+
+Two reasons, and the second is the better one. It recovers ~210px — Fix-first is 52% of the header block, and its removal alone fixes both viewports. And the count and the time cost are what persuade; the detail belongs one click away, at the moment you act on it. Expanded, it renders exactly what follows.
+
+Header when expanded: **Fix first** · *"3 forecasts contradict themselves. They feed every number above — clear them in under three minutes."*
 
 Each item (numbered `01`, `02`, `03`):
 - `Prospect · Initiative · Amount`
@@ -131,7 +140,17 @@ Ranked cards. Per card:
 
 **Hierarchy requirement:** name and amount dominate; action verbs are subordinate. If the cards read as a task list rather than a board, it is wrong.
 
-Footer: *"31 more opportunities are ranked below the cut — none of them change this week's number."* + `See the full portfolio`
+Footer — **conditional on what the engine returns**, not a fixed string. _(Amended by I17b.)_ The designed copy assumed the remainder is always inert; against I18b's expanded seed the ranking engine computes `belowCut.changesTheNumber: true` — 9 items holding $540,000 demonstrably would change it. Render the branch:
+
+| `belowCut.changesTheNumber` | Copy |
+| --- | --- |
+| `false` | *"9 more opportunities are ranked below the cut — none of them change this week's number."* |
+| `true` | *"9 more opportunities are ranked below the cut — together they hold $540,000."* |
+| `null` | *"9 more opportunities are ranked below the cut — together they hold $540,000."* — the amount, with **no verdict**. Null means no goal is defined for the scope, so there is nothing to measure "changes the number" against and neither claim has been earned. |
+
+The `true` branch is arguably the more useful one: it tells a rep there is real money below the fold, rather than reassuring them there isn't. Counts and amounts are the engine's (`belowCut.count`, `belowCut.cents`); the figures above are illustrative.
+
+Plus `See the full portfolio`
 
 ### Interactions
 
@@ -160,11 +179,13 @@ Footer: *"31 more opportunities are ranked below the cut — none of them change
 
 | Label | Value | Notes |
 | --- | --- | --- |
-| `WON SO FAR` | $385,200 | **Stored** (closed gifts). Link: `17 closed gifts` |
+| `WON SO FAR` | $385,200 | **Stored.** Link: `6 closed this year · see them` — _(relabelled by I17b; see below)_ |
 | `QUALIFIED ASKS ON THE TABLE` | $1,695,000 | **Computed.** Link: `10 opportunities · see the names` |
 | `DANA'S FY26 GOAL · ALL INITIATIVES` | $2,700,000 | **Stored.** Scope named explicitly in the label |
 | `COVERAGE GAP` | −$5,249,400 | **Computed.** Link: `who could close it` |
 | `NEW ASKS NEEDED` | $350,000 | **Computed**, per week |
+
+> **`WON SO FAR` is opportunity-derived, and the link counts opportunities.** _(Amended by I17b.)_ A won opportunity produces many gift records — Hallworth's ask is "$250,000 over three years": one commitment and a schedule of payments — so "17 closed gifts" counts the wrong universe and will disagree with the figure above it. `won` stays opportunity-derived so the coverage arithmetic stays inside one universe, and because the forecast asks *"did we secure it,"* not *"has the cash arrived."* The seed currently holds **6** won opportunities; render the live count. Gift-level reconciliation is **deferred** — it is a finance view, not a war-room one.
 
 **Show the basis — this is the fix that matters most here.** Coverage is measured against goal *minus won*, not the goal. Because the goal is the number displayed directly above it, a reader doing mental arithmetic gets a different ratio and concludes the tool is broken. So:
 
@@ -293,7 +314,18 @@ Footer: *"2 unconfirmed milestones hold $250,000 out of the numbers your leader 
 
 **THE FACTS** — Prospect · Initiative · Ask amount (`$250,000 over three years`) · Close date (`Oct 31, 2026 · 42 days past, set by us`) · Stage · Relationship mgr · Natural partner (`Tom Bradley · board member`) · Last contact. Actions: `Change amount` · `Move close date`. Add `Open in Keystone →` for full giving history.
 
-**WHERE THIS SITS IN KAMULI 2026** — `58%` *"of the initiative's qualified asks — the largest single ask in it."* + bar + *"Lose this one and Kamuli drops from 1.4× to 0.9× coverage."* + `See Kamuli 2026 forecast`. **Computed**; re-runs the simulation excluding this opportunity.
+**WHERE THIS SITS IN KAMULI 2026** — share + bar + coverage consequence + `See Kamuli 2026 forecast`. **Computed.**
+
+> **Both lines are conditional on qualification, and the designed copy is only the qualified branch.** _(Amended by I17b, from I19's finding.)_ `coverageWithout()` returns a delta of **zero** for an unqualified opportunity — it was never in the numerator — so *"Lose this one and Kamuli drops from 1.4× to 0.9×"*, written about Hallworth, **cannot be true**: Hallworth is not a real ask yet, which is the whole argument of the screen above it. Likewise `58% of the initiative's qualified asks` is **0%** for an unqualified record. Invert by state — I19 already returns `counted` for exactly this:
+>
+> | | Coverage line | Share line |
+> | --- | --- | --- |
+> | **Unqualified** | *"Qualify this and Kamuli goes from 0.61× to 0.87×."* | *"Would be the largest single qualified ask in it."* |
+> | **Qualified** | *"Lose this and Kamuli drops from X to Y."* | *"58% of the initiative's qualified asks — the largest single ask in it."* + bar |
+>
+> The unqualified framing is the better of the two: forward-looking, actionable, and exactly the argument this screen exists to make — *this isn't real yet, here's what it's worth if you make it real.*
+>
+> **I26 needs a `coverageWith(opportunityId)` inverse** on the metrics service. `coverageWithout()` answers the qualified branch; nothing today answers *"what would coverage be if this one qualified."*
 
 **SILENCE** — `81 days` · *"Last contact Jun 23 — the verbal agreement call. Longest silence on any live ask in your portfolio."* · `CADENCE FOR THIS STAGE · EVERY 14 DAYS` (cadence from the rules layer).
 
