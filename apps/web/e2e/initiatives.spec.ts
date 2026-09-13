@@ -63,24 +63,12 @@ async function gotoBolivia(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="initiative-detail"]')).toBeVisible();
 }
 
-async function submitServerAction(
-  page: Page,
-  button: ReturnType<Page["getByRole"]>,
-): Promise<void> {
-  const done = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" && response.url().includes("/initiatives/"),
-  );
-  await button.click();
-  await done;
-}
-
 async function askRationale(page: Page) {
   const panel = page.locator('[data-testid="initiative-copilot"]');
-  await submitServerAction(
-    page,
-    panel.getByRole("button", { name: "Ask the copilot to draft the rationale" }),
-  );
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    panel.getByRole("button", { name: "Ask the copilot to draft the rationale" }).click(),
+  ]);
   const suggestion = panel.locator(".f95-prov").first();
   await expect(suggestion).toBeVisible();
   await expect(suggestion.locator(".f95-prov__acts")).toBeVisible();
@@ -207,7 +195,10 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     const form = page.locator('[data-testid="attach-prospect-form"]');
     await expect(form).toBeVisible();
     await form.locator("select[name=prospectId]").selectOption(BELLO_ID);
-    await submitServerAction(page, form.getByRole("button", { name: "Add to the pipeline" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Add to the pipeline" }).click(),
+    ]);
 
     const rows = pipeline.locator('[data-testid="pipeline-prospect"]');
     await expect(rows).toHaveCount(before + 1);
@@ -222,14 +213,20 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     await pipeline.getByRole("button", { name: "Cultivate a prospect" }).click();
     const form = page.locator('[data-testid="attach-prospect-form"]');
     await form.locator("select[name=prospectId]").selectOption(BELLO_ID);
-    await submitServerAction(page, form.getByRole("button", { name: "Add to the pipeline" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Add to the pipeline" }).click(),
+    ]);
 
     const belloRow = pipeline.locator('[data-testid="pipeline-prospect"]').filter({
       hasText: "Bello",
     });
     await expect(belloRow).toBeVisible();
 
-    await submitServerAction(page, belloRow.getByRole("button", { name: "Remove" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      belloRow.getByRole("button", { name: "Remove" }).click(),
+    ]);
 
     await expect(
       pipeline.locator('[data-testid="pipeline-prospect"]').filter({ hasText: "Bello" }),
@@ -252,7 +249,10 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     await expect(story).toContainText("patient, multi-year commitment");
 
     const { panel, suggestion } = await askRationale(page);
-    await submitServerAction(page, suggestion.getByRole("button", { name: "Approve" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Approve" }).click(),
+    ]);
     await page.reload();
 
     await expect(panel.getByRole("button", { name: "Approve" })).toHaveCount(0);
@@ -271,7 +271,10 @@ test.describe.serial("95 Forward — Funding Initiatives (Initiative 9)", () => 
     await expect(story).toContainText("patient, multi-year commitment");
 
     const { suggestion } = await askRationale(page);
-    await submitServerAction(page, suggestion.getByRole("button", { name: "Dismiss" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Dismiss" }).click(),
+    ]);
     await page.reload();
 
     await expect(story).toContainText("patient, multi-year commitment");

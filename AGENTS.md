@@ -77,6 +77,52 @@ Run from the repo root with **pnpm 9.15.4** and **Node 22**.
 | `pnpm --filter @95forward/db seed` | Seed Water For People + users + demo data |
 | `pnpm --filter @95forward/ai embed` | Embed the seed (mock) |
 
+### Writing an e2e spec: wait for the server action, never for the clock
+
+If a spec clicks something that runs a server action and then asserts on the result, it **must** wait
+for the action. This exact form, at every such site:
+
+```ts
+await Promise.all([
+  page.waitForResponse((r) => r.request().method() === "POST"),
+  form.getByRole("button", { name: "Save" }).click(),
+]);
+await expect(form).toHaveCount(0);
+```
+
+The array order matters and is not style: elements evaluate left to right, so the listener is armed
+**before** the click. Arm it after and a fast action can answer before anyone is listening, and the
+wait hangs until it times out.
+
+**Why.** The assertion after a click carries Playwright's 5-second default, and the round trip it
+races is action → database → `revalidatePath` → flight response → re-render. Unloaded that fits
+easily; under `fullyParallel` with two workers against one shared database — how the suite actually
+runs — it sometimes does not, and the spec fails on timing rather than behaviour. H3 found this at
+**53 sites across 16 files**, including three separately-invented private helpers that had already
+begun to drift apart.
+
+**It is inline rather than a shared helper, deliberately.** Playwright's loader cannot resolve a
+relative import from a spec in this repo — the app's tsconfig sets `moduleResolution: "Bundler"` for
+Next.js, and every spec then fails to parse with `TypeError: context.conditions?.includes is not a
+function`. A `.js` helper, an explicit extension and a scoped `e2e/tsconfig.json` were each tried and
+none worked. So the pattern is byte-identical everywhere instead, which keeps it greppable:
+`grep -rn "waitForResponse" apps/web/e2e` finds all of it.
+
+**None of these count as a fix:** raising the global timeout (hides genuinely slow paths and makes
+every real failure take six times longer to surface), `waitForTimeout` (non-deterministic *and*
+permanently slower), lowering `workers` (the parallelism is what exposes the race), or leaning on
+`retries` (masks it, and a retry inherits whatever the failed attempt left behind).
+
+**Two things this is not for.** A click that only changes client state — expanding a panel, opening a
+form, toggling the nav — makes no request, and waiting for one would hang; leave those alone. And a
+test whose subject is the *pending* state must not wait, or the state it asserts has already cleared.
+`copilot-pending.spec.ts` is the worked example and says so in place.
+
+**Cleanups must be retry-safe.** A cleanup that drives the browser can only work if the page is
+healthy, which is exactly what it is not after the test it is cleaning up behind has failed. Restore
+through the database where you can, make it idempotent, and never let one cleanup's failure skip the
+others — `prospect-overview.spec.ts` shows both.
+
 ### E2E is disabled in CI — run it locally before you merge
 
 ```

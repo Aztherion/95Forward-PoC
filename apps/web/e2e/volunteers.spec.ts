@@ -62,7 +62,10 @@ test.describe("volunteers — roster", () => {
 
     await page.getByRole("button", { name: "Mark a constituent as a volunteer" }).click();
     await page.getByLabel("Constituent", { exact: true }).selectOption({ label: name });
-    await page.getByRole("button", { name: "Mark as volunteer" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Mark as volunteer" }).click(),
+    ]);
 
     const markedRow = page.locator(".f95-table tbody tr", { hasText: name });
     await expect(markedRow).toHaveCount(1);
@@ -123,7 +126,10 @@ test.describe("volunteers — opportunities", () => {
     await page.getByLabel("Volunteer", { exact: true }).selectOption({ label: volunteerName });
     await page.getByLabel("Hours", { exact: true }).fill("3.50");
     await page.getByLabel("Date", { exact: true }).fill("2026-06-20");
-    await page.getByRole("button", { name: "Log hours" }).last().click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Log hours" }).last().click(),
+    ]);
 
     const newRow = page.locator(".f95-itemrow", { hasText: volunteerName });
     await expect(newRow).toHaveCount(1);

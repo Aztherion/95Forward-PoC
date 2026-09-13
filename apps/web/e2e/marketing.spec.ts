@@ -78,7 +78,10 @@ test.describe("marketing — communications", () => {
 
     const sendButton = page.getByRole("button", { name: "Send now" });
     await expect(sendButton).toBeEnabled();
-    await sendButton.click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      sendButton.click(),
+    ]);
 
     await expect(page.getByRole("button", { name: "Send now" })).toBeDisabled();
     await expect(page.locator(".f95-record-head__meta")).toContainText("Sent");

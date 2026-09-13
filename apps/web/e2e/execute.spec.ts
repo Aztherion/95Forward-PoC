@@ -90,12 +90,6 @@ async function gotoVisitsTab(page: Page, prospectId: string): Promise<void> {
   await expect(page.locator('[data-testid="prospect-detail"]')).toBeVisible();
 }
 
-async function submitAndWait(page: Page, button: ReturnType<Page["getByRole"]>): Promise<void> {
-  const done = page.waitForResponse((response) => response.request().method() === "POST");
-  await button.click();
-  await done;
-}
-
 test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () => {
   const cleanups: (() => Promise<void>)[] = [];
 
@@ -158,7 +152,10 @@ test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () 
     await form.locator("select[name=fundingInitiativeId]").selectOption(FOREVER_ID);
     await form.locator("select[name=outcome]").selectOption("commitment");
     await form.locator("input[name=commitmentAmountDollars]").fill("25000");
-    await submitAndWait(page, form.getByRole("button", { name: "Log the ask" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Log the ask" }).click(),
+    ]);
 
     await expect(asksList.locator('[data-testid="ask-row"]')).toHaveCount(asksBefore + 1);
 
@@ -184,7 +181,10 @@ test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () 
     await expect(heartbeat).toBeVisible();
     await expect(heartbeat.locator(".f95-heartbeat")).toBeVisible();
 
-    await submitAndWait(page, heartbeat.getByRole("button", { name: "Mark done" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      heartbeat.getByRole("button", { name: "Mark done" }).click(),
+    ]);
     await expect(page.locator('[data-testid="follow-up-heartbeat"]')).toHaveCount(0);
   });
 
@@ -204,7 +204,10 @@ test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () 
     await referrals.getByRole("button", { name: "Capture a referral" }).click();
     const form = page.locator('[data-testid="referral-form"]');
     await form.locator("input[name=referredName]").fill(referredName);
-    await submitAndWait(page, form.getByRole("button", { name: "Capture the referral" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Capture the referral" }).click(),
+    ]);
 
     const newRow = referrals.locator('[data-testid="referral-row"]').filter({
       hasText: referredName,

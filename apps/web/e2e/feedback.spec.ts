@@ -30,9 +30,10 @@ test.describe("in-app feedback widget (mock mode)", () => {
     await modal.getByLabel("Where were you testing?").selectOption("Local dev");
     await modal.getByLabel("How bad is it? (your best guess)").selectOption("Low — cosmetic / minor");
 
-    const sent = page.waitForResponse((r) => r.request().method() === "POST");
-    await modal.getByRole("button", { name: "Send" }).click();
-    await sent;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      modal.getByRole("button", { name: "Send" }).click(),
+    ]);
 
     await expect(page.locator('[data-testid="feedback-confirmation"]')).toBeVisible({
       timeout: 15000,
@@ -61,9 +62,10 @@ test.describe("in-app feedback widget (mock mode)", () => {
       .getByLabel("What would you like, and why?")
       .fill("I'd like to filter so that I can prioritise.");
 
-    const sent = page.waitForResponse((r) => r.request().method() === "POST");
-    await modal.getByRole("button", { name: "Send" }).click();
-    await sent;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      modal.getByRole("button", { name: "Send" }).click(),
+    ]);
 
     await expect(page.locator('[data-testid="feedback-confirmation"]')).toBeVisible({
       timeout: 15000,
