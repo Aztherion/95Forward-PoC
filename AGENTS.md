@@ -77,6 +77,24 @@ Run from the repo root with **pnpm 9.15.4** and **Node 22**.
 | `pnpm --filter @95forward/db seed` | Seed Water For People + users + demo data |
 | `pnpm --filter @95forward/ai embed` | Embed the seed (mock) |
 
+### E2E is disabled in CI — run it locally before you merge
+
+```
+pnpm --filter @95forward/web test:e2e
+```
+
+CI runs build, lint, typecheck and the unit suite. It does **not** run Playwright. The suite runs two
+workers against one shared database, and about twenty specs mutate through a server action and then
+assert on the result immediately, on Playwright's 5-second default; only `forward-settings.spec.ts`
+waits for the action to respond first. Those races were survivable while the seed was small — I18b
+took the portfolio from 13 opportunities to 34, and on a GitHub runner that is enough to lose them.
+Three consecutive runs produced three **disjoint** sets of hard failures, none reproducible locally.
+
+Turning the step off does not make the races go away; it moves the gate to a machine that can still
+win them. **H3 fixes the class** by awaiting the server action at each mutation site, and the CI step
+goes straight back in. Until then, a local full-suite run is the merge condition and belongs in the
+PR description.
+
 ### Verify the RELEVANT subset, not the whole suite
 
 In an automated fix session the database is already migrated, seeded, and embedded, and a

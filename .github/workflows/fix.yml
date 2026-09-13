@@ -198,4 +198,6 @@ jobs:
           ${OUTCOME}${LABEL_NOTE}
 
           ---
-          Closes #${ISSUE}. The full CI e2e suite runs on this PR as the merge gate; a maintainer reviews and merges (Phase 1 — no auto-merge)."
+          Closes #${ISSUE}. CI runs build, lint, typecheck and the unit suite. The e2e suite is
+          currently DISABLED in CI and must be run locally before merge — see the comment in
+          .github/workflows/ci.yml. A maintainer reviews and merges (Phase 1 — no auto-merge)."
