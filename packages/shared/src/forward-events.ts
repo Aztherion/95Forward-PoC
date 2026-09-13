@@ -15,6 +15,9 @@ export const OPPORTUNITY_EVENT_TYPES = [
   "milestone_confirmed",
   "stage_change",
   "note",
+  // I23: pin and dismiss are logged like any other movement — see schema/queue.ts.
+  "guidance_pinned",
+  "guidance_dismissed",
 ] as const;
 
 export type OpportunityEventType = (typeof OPPORTUNITY_EVENT_TYPES)[number];

@@ -18,3 +18,4 @@ export {
 } from "./forward-simulation-repo";
 export type { SimulationServiceOptions, SimulationRunStats } from "./forward-simulation-repo";
 export * from "./rules-repo";
+export * from "./forward-ranking-repo";

@@ -136,6 +136,13 @@ export const opportunityEventTypeEnum = pgEnum("opportunity_event_type", [
   "milestone_confirmed",
   "stage_change",
   "note",
+  // I23: a rep dismissing coaching is information, not a gap. It is what lets a leader see that
+  // guidance was seen and rejected rather than never shown.
+  "guidance_pinned",
+  "guidance_dismissed",
 ]);
 
 export const goalScopeEnum = pgEnum("goal_scope", ["org", "rep", "initiative"]);
+
+/** I23: a human either forces guidance to the top or waves it away. */
+export const queueDecisionKindEnum = pgEnum("queue_decision_kind", ["pin", "dismiss"]);

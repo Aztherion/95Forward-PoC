@@ -29,6 +29,14 @@ function opportunity(partial: Partial<SnapshotOpportunity> & { id: string }): Sn
     probability: "medium",
     visitRating: null,
     milestoneEvidence: {},
+    lastContactAt: null,
+    milestoneConfirmedAt: {},
+    visitCount: 0,
+    nextVisitAt: null,
+    nextVisitPrepared: false,
+    closeDateMoves: 0,
+    closeDateMovesProspectSourced: false,
+    partners: [],
     ...partial,
   };
 }

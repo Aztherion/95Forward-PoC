@@ -71,7 +71,10 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
     await expect(row).toContainText("Firing on");
 
     await page.locator('[data-testid="rule-probability-below-evidence"]').click();
-    await expect(page).toHaveURL(/\/rules\/probability-below-evidence$/);
+    // Wait for the navigation rather than polling the URL on the default assertion timeout: the
+    // detail page renders the rule's findings server-side, and under two workers on a shared
+    // database that can outlast five seconds.
+    await page.waitForURL(/\/rules\/probability-below-evidence$/, { timeout: 30_000 });
     await expect(page.locator('[data-testid="rule-firing"]')).toContainText("Firing on");
   });
 

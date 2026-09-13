@@ -76,6 +76,43 @@ export interface SnapshotOpportunity {
    * neither evidence text nor a document is what `written-confirmation-no-evidence` detects.
    */
   readonly milestoneEvidence: Readonly<Record<string, MilestoneEvidence>>;
+
+  // -- I23 additions. No metric and no check reads these; the ranking rules do. ------------------
+  /** Last `contact_logged` event, ISO datetime. Null when nobody has ever logged one. */
+  readonly lastContactAt: string | null;
+  /** When each CONFIRMED milestone was confirmed, ISO datetime, keyed by milestone key. */
+  readonly milestoneConfirmedAt: Readonly<Record<string, string>>;
+  /** Visits with this prospect that have already happened. */
+  readonly visitCount: number;
+  /** The next scheduled visit with this prospect, ISO datetime. */
+  readonly nextVisitAt: string | null;
+  /** That visit has a prep brief: a stated goal AND discovery questions. */
+  readonly nextVisitPrepared: boolean;
+  /** How many times the close date has moved, and whether the prospect ever drove one. */
+  readonly closeDateMoves: number;
+  readonly closeDateMovesProspectSourced: boolean;
+  /** Who could open this door. */
+  readonly partners: readonly SnapshotPartner[];
+}
+
+/**
+ * A person who can open a door to this prospect.
+ *
+ * The three timestamps are a deliberately small state machine — offered, used, asked — because two
+ * of the seven ranking rules are about a warm path nobody walked, and that fact is not derivable
+ * from anything else on the record. A partner who exists is not the same as a partner who offered,
+ * and a partner who offered is not the same as one we took up.
+ */
+export interface SnapshotPartner {
+  readonly id: string;
+  readonly name: string;
+  readonly role: string | null;
+  /** They offered to make an introduction. ISO datetime. */
+  readonly introOfferedAt: string | null;
+  /** We took it up. ISO datetime. */
+  readonly introUsedAt: string | null;
+  /** We asked them to open the door (whether or not they had offered). ISO datetime. */
+  readonly askedToOpenDoorAt: string | null;
 }
 
 export interface MilestoneEvidence {
