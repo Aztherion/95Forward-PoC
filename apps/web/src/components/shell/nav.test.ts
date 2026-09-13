@@ -64,6 +64,7 @@ describe("nav configuration", () => {
         ["Candidates", "/95-forward/prospects/candidates"],
         ["Green Sheet", "/95-forward/green-sheet"],
         ["Initiatives", "/95-forward/initiatives"],
+        ["Rules", "/rules"],
       ]);
     }
 

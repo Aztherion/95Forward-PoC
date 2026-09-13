@@ -14,3 +14,6 @@ export * from "./forward-metrics";
 export * from "./forward-checks";
 export * from "./forward-simulation";
 export * from "./forward-simulation-evaluator";
+export * from "./rules-catalogue";
+export * from "./rules-registrations";
+export * from "./rules-firing";

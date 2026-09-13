@@ -56,11 +56,14 @@ const maybe = (name: string, fn: () => void | Promise<void>) =>
     await fn();
   });
 
+const RULES_VERSION = "1";
+
 function service(settings: ForwardSettings = SETTINGS, cache?: Map<string, never>) {
   return new ForwardSimulationService(snapshot, {
     settings,
     clock: CLOCK,
     dataVersion: version,
+    rulesVersion: RULES_VERSION,
     cache: cache as never,
   });
 }
@@ -116,6 +119,7 @@ describe("determinism", () => {
       settings: SETTINGS,
       clock: CLOCK,
       dataVersion: version,
+      rulesVersion: RULES_VERSION,
     }).run(ALL);
     expect(second.meta.seed).toBe(first.meta.seed);
     expect(second.months).toEqual(first.months);
@@ -127,6 +131,7 @@ describe("determinism", () => {
       settings: SETTINGS,
       clock: fixedClock(new Date("2026-09-13T12:00:00.000Z")),
       dataVersion: version,
+      rulesVersion: RULES_VERSION,
     }).run(ALL);
     expect(tomorrow.meta.seed).not.toBe(service().run(ALL).meta.seed);
   });
@@ -142,6 +147,7 @@ describe("determinism", () => {
       settings: SETTINGS,
       clock: CLOCK,
       dataVersion: version,
+      rulesVersion: RULES_VERSION,
     }).run(ALL);
     expect(changed.meta.seed).not.toBe(service().run(ALL).meta.seed);
   });
@@ -232,6 +238,7 @@ describe("caching", () => {
       settings: SETTINGS,
       clock: CLOCK,
       dataVersion: version,
+      rulesVersion: RULES_VERSION,
       cache,
     });
     before.run(ALL);
@@ -240,6 +247,7 @@ describe("caching", () => {
       settings: SETTINGS,
       clock: CLOCK,
       dataVersion: `${version}|changed`,
+      rulesVersion: RULES_VERSION,
       cache,
     });
     after.run(ALL);
@@ -256,16 +264,21 @@ describe("caching", () => {
   });
 
   maybe("the cache key moves with settings, not just data", () => {
-    const a = simulationCacheKey(ALL, version, SETTINGS, 2_000);
-    const b = simulationCacheKey(ALL, version, SETTINGS, 500);
+    const a = simulationCacheKey(ALL, version, SETTINGS, 2_000, RULES_VERSION);
+    const b = simulationCacheKey(ALL, version, SETTINGS, 500, RULES_VERSION);
     const c = simulationCacheKey(
       ALL,
       version,
       { ...SETTINGS, simulation: { ...SETTINGS.simulation, membershipThreshold: 0.9 } },
       2_000,
+      RULES_VERSION,
     );
+    // I22: a rule switched off or a statement rewritten changes no simulation parameter, so only
+    // the rules version distinguishes these two keys.
+    const d = simulationCacheKey(ALL, version, SETTINGS, 2_000, "7");
     expect(b).not.toBe(a);
     expect(c).not.toBe(a);
+    expect(d).not.toBe(a);
   });
 
   maybe("the data version moves when the portfolio moves", async () => {
