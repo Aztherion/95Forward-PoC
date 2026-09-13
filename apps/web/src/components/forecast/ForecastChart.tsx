@@ -161,7 +161,7 @@ export function ForecastChart({
       <span className="f95-forecast__key">
         <span
           className="f95-forecast__swatch"
-          style={{ background: "var(--brand-primary)" }}
+          style={{ background: "var(--text-strong)" }}
           aria-hidden
         />
         Actual

@@ -15,19 +15,24 @@ export interface MilestoneBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   label?: string;
 }
 
-/** Filled for what the prospect said; hollow for what we said. Same glyph, opposite weight. */
-function QuoteGlyph({ filled }: { filled: boolean }) {
+/**
+ * A filled disc for what the prospect said; a ring for what we said.
+ *
+ * It was a quote mark first. At 9px a stroked quote path is a smudge — the gallery showed it
+ * plainly, and a glyph that has to be squinted at is not a second channel. Disc against ring is
+ * unmistakable at this size, and it borrows a vocabulary the system already has in the health dot.
+ */
+function SourceGlyph({ filled }: { filled: boolean }) {
   return (
-    <svg
-      className="f95-msbadge__glyph"
-      viewBox="0 0 9 9"
-      aria-hidden
-      fill={filled ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={filled ? 0 : 1.2}
-      strokeLinejoin="round"
-    >
-      <path d="M1 1h3v3.2L2.4 8H1V4.2h1.6zM5 1h3v3.2L6.4 8H5V4.2h1.6z" />
+    <svg className="f95-msbadge__glyph" viewBox="0 0 10 10" aria-hidden>
+      <circle
+        cx="5"
+        cy="5"
+        r={filled ? 4 : 3.2}
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={filled ? 0 : 1.6}
+      />
     </svg>
   );
 }
@@ -49,7 +54,7 @@ export function MilestoneBadge({ kind, label, className = "", ...rest }: Milesto
   return (
     <span className={cls} data-kind={kind} {...rest}>
       {kind === "they-said" || kind === "we-said" ? (
-        <QuoteGlyph filled={kind === "they-said"} />
+        <SourceGlyph filled={kind === "they-said"} />
       ) : null}
       {label ?? MILESTONE_BADGE_TEXT[kind]}
     </span>

@@ -13,7 +13,11 @@
 
 /** Every token the chart draws with. One entry here, one `var()` nowhere else. */
 export const CHART_TOKEN_NAMES = {
-  actual: "--brand-primary",
+  // Ink for what happened, iris for what the model says. --brand-primary was the first choice and
+  // the gallery showed why it was wrong: blue-600 beside iris-600 is two shades of the same blue at
+  // 2px, and the legend could not separate them. Iris is also the reserved AI colour, so the
+  // simulated line now says what it is.
+  actual: "--text-strong",
   mostLikely: "--ai-ink",
   band: "--ai-tint",
   bandStroke: "--ai-border",

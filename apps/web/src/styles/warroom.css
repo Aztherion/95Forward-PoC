@@ -20,8 +20,14 @@
    Colour is not the only channel on the chip — the word is. It is the only channel on the bare
    dot, which is why the dot carries an accessible name.
    ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
 .f95-status {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 5px;
   height: 22px;
@@ -86,8 +92,14 @@
    Letter-spacing is --ls-wide, not --ls-caps. Mono is already wide; 0.08em on top of a monospaced
    face reads as spaced-out rather than as a label.
    ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
 .f95-rulechip {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 5px;
   max-width: 100%;
@@ -98,7 +110,6 @@
   color: var(--ai-ink);
   font: var(--fw-medium) var(--fs-micro) / 1.3 var(--font-mono);
   letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -110,9 +121,13 @@ a.f95-rulechip:focus-visible {
   outline: none;
   box-shadow: var(--ring);
 }
+/* Only the prefix is uppercase. SCREENS.md writes `RULE · live-ask-silence > 30d`, and rendering
+   the identifier in caps turns something you scan into something that shouts — LIVE-ASK-SILENCE is
+   measurably harder to read at 11px than live-ask-silence. Verified in the gallery. */
 .f95-rulechip__kind {
   color: var(--ai-ink);
   opacity: 0.7;
+  text-transform: uppercase;
 }
 
 /* Consequence lines, column subtitles and inline arithmetic. Text, not a chip. */
@@ -141,8 +156,14 @@ a.f95-rulechip:focus-visible {
    dashed outline, and each carries a different quote glyph. Turn the page greyscale and the
    distinction survives.
    ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
 .f95-msbadge {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 5px;
   height: 20px;
@@ -197,8 +218,14 @@ a.f95-rulechip:focus-visible {
    reader that the colours mean nothing. Documented in docs/design-system.md and noted in
    SCREENS.md; the copy is untouched.
    ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
 .f95-scenario {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   height: 20px;
   padding: 0 8px;
@@ -260,8 +287,14 @@ a.f95-rulechip:focus-visible {
 .f95-initdot--5 {
   background: var(--initiative-5);
 }
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
 .f95-initchip {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 6px;
   height: 22px;
@@ -436,9 +469,14 @@ a.f95-rulechip:focus-visible {
   border-radius: var(--radius-xs);
 }
 .f95-forecast__swatch--goal {
-  height: 0;
-  border-top: 2px dashed var(--text-muted);
+  /* A gradient rather than `border-top: dashed`, because a browser's dash length is derived from
+     the border width and at this size it drew one dash — a swatch that reads solid, for the one
+     line in the chart that is dashed. The 5/4 pattern is the chart's own strokeDasharray. */
+  width: 20px;
+  height: 2px;
+  border: 0;
   border-radius: 0;
+  background: repeating-linear-gradient(to right, var(--text-muted) 0 5px, transparent 5px 9px);
 }
 .f95-forecast__empty {
   padding: var(--space-7) var(--space-5);
