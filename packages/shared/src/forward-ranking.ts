@@ -551,7 +551,8 @@ export function rationaleFor(
     }
 
     case "visits-without-specific-ask": {
-      return `You have been in front of them ${dayPhrase(o.visitCount).replace(/days?/, plural(o.visitCount, "time", "times"))} and never asked for anything specific.`;
+      const times = `${o.visitCount} ${plural(o.visitCount, "time", "times")}`;
+      return `You have been in front of them ${times} and never asked for anything specific.`;
     }
 
     case "visit-within-7d-unprepped": {

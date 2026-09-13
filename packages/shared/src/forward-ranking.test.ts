@@ -378,6 +378,81 @@ describe("rationales", () => {
     expect(item.rationale).toContain("Partner p1");
   });
 
+  // Three of the seven are never PRIMARY on the seeded portfolio — they fire, but a heavier rule
+  // always declares the sentence. Their templates would otherwise ship unread, so they are
+  // exercised here directly, one opportunity each.
+  it("read correctly for the rules the seed never makes primary", () => {
+    const unwritten = run([
+      opportunity({
+        id: "unwritten",
+        confirmedMilestoneKeys: ["amount_agreed"],
+        milestoneConfirmedAt: { amount_agreed: daysAgo(30) },
+      }),
+    ]).queue[0]!;
+    expect(unwritten.primaryRuleId).toBe("verbal-agreement-unwritten");
+    expect(unwritten.statusText).toBe("CLOSING");
+    expect(unwritten.rationale).toBe(
+      "They agreed to the amount 30 days ago and nothing has been put in writing.",
+    );
+
+    const unasked = run([opportunity({ id: "unasked", visitCount: 3 })]).queue[0]!;
+    expect(unasked.primaryRuleId).toBe("visits-without-specific-ask");
+    expect(unasked.statusText).toBe("UNASKED");
+    expect(unasked.rationale).toBe(
+      "You have been in front of them 3 times and never asked for anything specific.",
+    );
+
+    const unprepped = run([
+      opportunity({
+        id: "unprepped",
+        // Already cleared internally, so only the missing brief is left to complain about — and
+        // `prospect-ahead-of-us` stays quiet, which is what makes this rule primary.
+        confirmedMilestoneKeys: ["ask_approved_by_leader", "specific_ask_made"],
+        nextVisitAt: daysAhead(3),
+        nextVisitPrepared: false,
+      }),
+    ]).queue[0]!;
+    expect(unprepped.primaryRuleId).toBe("visit-within-7d-unprepped");
+    expect(unprepped.statusText).toBe("ON TRACK");
+    expect(unprepped.rationale).toBe("The visit is in 3 days and there is no prep brief.");
+  });
+
+  it("never shows the no-agreed-amount branch, because a heavier rule always covers it", () => {
+    // `visit-within-7d-unprepped` has two branches: no brief, or no internally agreed amount. The
+    // SECOND one can never be the rationale a user sees — a meeting in the diary with no approved
+    // ask is exactly what `prospect-ahead-of-us` fires on, and at 1.8 it always declares the
+    // sentence instead. The branch is still correct; it is just permanently second in line.
+    const item = run([
+      opportunity({
+        id: "no-number",
+        confirmedMilestoneKeys: ["specific_ask_made"],
+        nextVisitAt: daysAhead(1),
+        nextVisitPrepared: true,
+      }),
+    ]).queue[0]!;
+    expect(item.firingRuleIds).toContain("visit-within-7d-unprepped");
+    expect(item.primaryRuleId).toBe("prospect-ahead-of-us");
+    expect(item.rationale).not.toContain("ask amount");
+  });
+
+  it("singularises a one-day and one-visit sentence", () => {
+    const oneDay = run([
+      opportunity({
+        id: "one-day",
+        confirmedMilestoneKeys: ["amount_agreed"],
+        milestoneConfirmedAt: { amount_agreed: daysAgo(15) },
+      }),
+    ]).queue[0]!;
+    expect(oneDay.rationale).toContain("15 days ago");
+
+    const oneVisit = run([
+      opportunity({ id: "one-visit", visitCount: 1 }),
+    ]).queue;
+    // The default threshold is two visits, so one does not fire at all — the rule does not nag
+    // somebody for having had a single meeting.
+    expect(oneVisit).toHaveLength(0);
+  });
+
   it("are identical across runs on identical data", () => {
     const rows = [
       opportunity({
