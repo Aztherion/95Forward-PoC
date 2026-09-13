@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, PhoneCall } from "lucide-react";
-import { Badge, Button, Card, QpiScore, RoleChip, SourceTag, Tabs } from "@/components/ds";
+import {
+  Badge,
+  Button,
+  Card,
+  OpenInKeystone,
+  QpiScore,
+  RoleChip,
+  SourceTag,
+  Tabs,
+} from "@/components/ds";
 import type { TabItem } from "@/components/ds";
 import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -164,7 +173,7 @@ function ProspectHeader({ detail }: { detail: ProspectDetail }) {
   return (
     <div className="f95-record-head">
       <div className="f95-record-head__main">
-        <h1 className="f95-record-head__title">{detail.name}</h1>
+        <h2 className="f95-record-head__title">{detail.name}</h2>
         <div className="f95-record-head__meta">
           <Badge tone={typeTone(detail.type)}>{typeLabel(detail.type)}</Badge>
           <span>#{detail.rank} on the list</span>
@@ -259,6 +268,14 @@ function KnowledgeSummary({ detail }: { detail: ProspectDetail }) {
             </div>
           ))}
         </div>
+
+        {/* The boundary, where it is genuinely real. 95 Forward summarises gift history in a
+            sentence because that is all the coaching needs; the transaction-level record — every
+            gift, every pledge instalment, every soft credit — lives in the host CRM and stays
+            there. This is the link across, not a claim that there is nothing on the other side. */}
+        <OpenInKeystone href={`/constituents/${detail.constituentId}`}>
+          Full giving history, pledges and soft credits
+        </OpenInKeystone>
       </div>
     </Card>
   );

@@ -211,8 +211,6 @@ export default async function SearchPage({
       <div className="f95-page" data-testid="prospect-search">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Search prospects</h1>
             <p className="f95-page__count">
               Ask in plain language. Every answer is grounded — it carries the source it came from,
               and says so when it does not know.

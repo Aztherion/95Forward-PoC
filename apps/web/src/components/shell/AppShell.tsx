@@ -19,6 +19,8 @@ import {
   ListOrdered,
   LogOut,
   Megaphone,
+  Flag,
+  LayoutDashboard,
   Radio,
   Scale,
   Settings,
@@ -55,6 +57,8 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   radio: Radio,
   compass: Compass,
   scale: Scale,
+  "layout-dashboard": LayoutDashboard,
+  flag: Flag,
 };
 
 function isActive(pathname: string, href: string): boolean {
@@ -121,6 +125,17 @@ function NavGroupRow({ group, pathname, branded }: NavGroupRowProps) {
           ))}
         </div>
       ) : null}
+      {/* INSIDE the group but OUTSIDE the collapsible children, deliberately.
+          Entering visit mode is the product's most time-critical affordance — a rep does it on the
+          way out of the door. Putting it among the children would hide it whenever the group is
+          collapsed, which is every host page, so it would be least reachable exactly when somebody
+          is elsewhere in the CRM and about to leave. */}
+      {group.cta ? (
+        <Link href={group.cta.href} className="shell-visit">
+          <Radio size={17} strokeWidth={1.8} />
+          {group.cta.label}
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -145,7 +160,15 @@ export function AppShell({ register, user, children }: AppShellProps) {
         </Link>
 
         {NAV_SECTIONS.map((section) => (
-          <nav key={section.id} className="shell-nav">
+          // `data-tier` is what separates the host from the add-on VISUALLY without separating them
+          // functionally: every Keystone row below stays a real link to a real, working page. A
+          // stakeholder who clicks one and lands on a functioning CRM screen has the framing
+          // confirmed; a dead link would undo it.
+          <nav
+            key={section.id}
+            className="shell-nav"
+            data-tier={section.id === "add-ons" ? "addon" : "host"}
+          >
             {section.items.map((item) => {
               if (item.kind === "eyebrow") {
                 return (

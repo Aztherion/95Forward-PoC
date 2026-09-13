@@ -20,7 +20,9 @@ export type NavIcon =
   | "briefcase"
   | "radio"
   | "compass"
-  | "scale";
+  | "scale"
+  | "layout-dashboard"
+  | "flag";
 
 export interface NavLeaf {
   kind: "leaf";
@@ -37,6 +39,13 @@ export interface NavGroup {
   icon: NavIcon;
   basePath: string;
   children: NavLeaf[];
+  /**
+   * A call to action rendered INSIDE the group, below its children.
+   *
+   * "Enter visit mode" is a product affordance, not host chrome — it belongs to 95 Forward, and
+   * sitting it beside the group rather than inside it read as another thing the CRM offers.
+   */
+  cta?: NavCta;
 }
 
 export interface NavCta {
@@ -122,8 +131,25 @@ export const NAV_SECTIONS: NavSection[] = [
         label: ADDON_BRAND.name,
         icon: "sunrise",
         basePath: "/95-forward",
+        // The war-room order: what to do today, the things you do it to, then the numbers, then the
+        // doctrine behind the numbers. `Today` (the old prospect-centric dashboard) is deliberately
+        // absent — The Board replaces it as the landing, and two landings is one too many. The route
+        // stays reachable until I25 removes it.
         children: [
-          { kind: "leaf", id: "today", label: "Today", href: "/95-forward/today", icon: "sunrise" },
+          {
+            kind: "leaf",
+            id: "board",
+            label: "The Board",
+            href: "/95-forward/board",
+            icon: "layout-dashboard",
+          },
+          {
+            kind: "leaf",
+            id: "opportunities",
+            label: "Opportunities",
+            href: "/95-forward/opportunities",
+            icon: "target",
+          },
           {
             kind: "leaf",
             id: "prospects",
@@ -133,10 +159,17 @@ export const NAV_SECTIONS: NavSection[] = [
           },
           {
             kind: "leaf",
-            id: "candidates",
-            label: "Candidates",
-            href: "/95-forward/prospects/candidates",
-            icon: "compass",
+            id: "initiatives",
+            label: "Initiatives",
+            href: "/95-forward/initiatives",
+            icon: "flag",
+          },
+          {
+            kind: "leaf",
+            id: "forecast",
+            label: "Forecast",
+            href: "/95-forward/forecast",
+            icon: "chart-line",
           },
           {
             kind: "leaf",
@@ -145,25 +178,18 @@ export const NAV_SECTIONS: NavSection[] = [
             href: "/95-forward/green-sheet",
             icon: "trending-up",
           },
-          {
-            kind: "leaf",
-            id: "initiatives",
-            label: "Initiatives",
-            href: "/95-forward/initiatives",
-            icon: "target",
-          },
           // The Rules of Robb (I22). Deliberately at `/rules`, not `/95-forward/rules`: the RULE
           // chips on every screen link here, and a short stable path is what makes the chip's
           // promise — "this leads somewhere a human can read" — cheap to honour everywhere.
           { kind: "leaf", id: "rules", label: "Rules", href: "/rules", icon: "scale" },
         ],
-      },
-      {
-        kind: "cta",
-        id: "visit",
-        label: "Enter visit mode",
-        href: "/95-forward/visit",
-        icon: "radio",
+        cta: {
+          kind: "cta",
+          id: "visit",
+          label: "Enter visit mode",
+          href: "/95-forward/visit",
+          icon: "radio",
+        },
       },
     ],
   },

@@ -137,8 +137,6 @@ export default async function GreenSheetPage({
       <div className="f95-page" data-testid="green-sheet">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Green Sheet</h1>
             <p className="f95-page__count">
               Momentum made visible — activity and the 24-hour follow-up SLA.
             </p>

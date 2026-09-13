@@ -105,6 +105,13 @@ means "works in the live demo." Never weaken a mock or a seam just to make a tes
   through a server action, then relies on `networkidle` before expecting it on a freshly rendered
   page, against a database shared with the other worker. Seen failing on `main` twice. Not yet
   fixed — it needs its own ticket, not a retry.
+- `prospect-overview.spec.ts` ("adds a natural partner and shows it on the relationship team") can
+  flake, and it is the SAME shape as the `constituents.spec.ts` one above: it clicks `Add partner`,
+  then calls `page.reload()` without waiting for the server action to respond, then asserts on the
+  freshly rendered page. Lose that race on a loaded runner and the row is simply not there — the
+  15-second timeout cannot help, because a server-rendered page will not grow the row without
+  another reload. Not the job tray, and not a product bug. Needs its own ticket alongside
+  `constituents.spec.ts`; do not paper over it with a retry.
 - The `prospect-overview.spec.ts` / `demo-journey.spec.ts` flake was the **job tray intercepting
   pointer events**: `.f95-jobtray` is fixed over the bottom-right of every 95 Forward screen, and
   `jobs.spec.ts` expands it from the other worker while these specs are clicking a row underneath.

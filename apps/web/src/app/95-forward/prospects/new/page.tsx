@@ -28,8 +28,6 @@ export default async function NewProspectPage() {
 
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Add a prospect</h1>
             <p className="f95-page__count">
               Bring an existing constituent onto the Master Prospect List. They start unscored — add
               what you know, and the copilot can help fill the gaps.
