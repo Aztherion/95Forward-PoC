@@ -71,10 +71,11 @@ test.describe.serial("95 Forward — settings", () => {
       "5",
     );
 
-    await Promise.all([
-      page.waitForResponse((r) => r.request().method() === "POST"),
-      page.getByRole("button", { name: "Reset to defaults" }).click(),
-    ]);
+    // NOT waited on, deliberately: "Reset to defaults" is `onClick={reset}`, a local setState back
+    // to QPI_DEFAULT_WEIGHTS. No request is made, so waiting for one hangs until the test timeout —
+    // which is exactly what it did when H3 first assumed this was a server action. Saving the
+    // weights below IS one; resetting the form is not.
+    await page.getByRole("button", { name: "Reset to defaults" }).click();
     await expect(weight(page, "capacity").locator('[data-testid="qpi-weight-value"]')).toHaveText(
       "7",
     );
