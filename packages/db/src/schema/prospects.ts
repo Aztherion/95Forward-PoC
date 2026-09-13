@@ -1,4 +1,13 @@
-import { boolean, index, integer, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { embeddingColumns, primaryId, tenantScoped, timestamps } from "./columns";
 import { prospectStatusEnum, qpiDimensionEnum } from "./enums";
 import { constituents } from "./constituents";
@@ -72,6 +81,18 @@ export const naturalPartners = pgTable(
     externalName: text("external_name"),
     role: text("role"),
     warmPathNote: text("warm_path_note"),
+    // I23: the warm path as a three-state fact rather than an implication.
+    //
+    // A partner who EXISTS is not a partner who OFFERED, and a partner who offered is not one we
+    // took up. Two of the seven ranking rules turn on exactly that distinction — "nobody ever asked
+    // them" is a different, colder problem from "they offered and we let it go stale" — and neither
+    // is derivable from `warm_path_note`, which is prose.
+    /** They offered to make an introduction. */
+    introOfferedAt: timestamp("intro_offered_at", { withTimezone: true }),
+    /** We took it up. Set alongside `intro_offered_at`, never instead of it. */
+    introUsedAt: timestamp("intro_used_at", { withTimezone: true }),
+    /** We asked them to open the door, whether or not they had offered first. */
+    askedToOpenDoorAt: timestamp("asked_to_open_door_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [

@@ -17,3 +17,5 @@ export * from "./forward-simulation-evaluator";
 export * from "./rules-catalogue";
 export * from "./rules-registrations";
 export * from "./rules-firing";
+export * from "./forward-ranking";
+export * from "./rules-registrations-ranking";

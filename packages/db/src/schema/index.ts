@@ -10,6 +10,7 @@ export * from "./prospects";
 export * from "./execution";
 export * from "./forward";
 export * from "./rules";
+export * from "./queue";
 export * from "./discovery";
 export * from "./jobs";
 export * from "./config";

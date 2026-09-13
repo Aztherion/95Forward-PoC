@@ -19,6 +19,7 @@ import {
   type MilestoneEvidence,
   type SnapshotGoal,
   type SnapshotOpportunity,
+  type SnapshotPartner,
   type WhatIfResult,
 } from "@95forward/shared";
 import type { Database } from "./client";
@@ -26,8 +27,12 @@ import {
   forwardOpportunities,
   goals,
   milestoneDefinitions,
+  opportunityEvents,
   opportunityMilestones,
 } from "./schema/forward";
+import { naturalPartners } from "./schema/prospects";
+import { visits } from "./schema/execution";
+import { constituents } from "./schema/constituents";
 import { confirmedMilestoneKeys, listMilestoneDefinitions } from "./forward-repo";
 import { and, inArray } from "drizzle-orm";
 
@@ -69,6 +74,197 @@ async function milestoneEvidenceByOpportunity(
   return byOpportunity;
 }
 
+// -------------------------------------------------------------------------------------------
+// I23 inputs — the facts the ranking rules read and nothing else does
+// -------------------------------------------------------------------------------------------
+
+interface CoachingFacts {
+  readonly lastContactAt: string | null;
+  readonly closeDateMoves: number;
+  readonly closeDateMovesProspectSourced: boolean;
+}
+
+/**
+ * One pass over the event log for the two things the queue needs from it.
+ *
+ * Deliberately one query and one loop rather than two: the event log is the largest table in the
+ * forward set and the snapshot is loaded per request.
+ */
+async function coachingFactsByOpportunity(
+  db: Database,
+  tenantId: string,
+): Promise<Map<string, CoachingFacts>> {
+  const rows = await db
+    .select({
+      opportunityId: opportunityEvents.opportunityId,
+      eventType: opportunityEvents.eventType,
+      field: opportunityEvents.field,
+      prospectSourced: opportunityEvents.prospectSourced,
+      occurredAt: opportunityEvents.occurredAt,
+    })
+    .from(opportunityEvents)
+    .where(eq(opportunityEvents.tenantId, tenantId));
+
+  const facts = new Map<string, { last: Date | null; moves: number; prospectSourced: boolean }>();
+  for (const row of rows) {
+    const current = facts.get(row.opportunityId) ?? {
+      last: null,
+      moves: 0,
+      prospectSourced: false,
+    };
+    if (row.eventType === "contact_logged") {
+      if (!current.last || row.occurredAt > current.last) current.last = row.occurredAt;
+    }
+    if (row.field === "closeDate") {
+      current.moves += 1;
+      if (row.prospectSourced) current.prospectSourced = true;
+    }
+    facts.set(row.opportunityId, current);
+  }
+
+  const out = new Map<string, CoachingFacts>();
+  for (const [id, value] of facts) {
+    out.set(id, {
+      lastContactAt: value.last?.toISOString() ?? null,
+      closeDateMoves: value.moves,
+      closeDateMovesProspectSourced: value.prospectSourced,
+    });
+  }
+  return out;
+}
+
+interface VisitFacts {
+  readonly visitCount: number;
+  readonly nextVisitAt: string | null;
+  readonly nextVisitPrepared: boolean;
+}
+
+/**
+ * Visits are per PROSPECT, not per opportunity.
+ *
+ * That is the right grain for the question the rules ask: "how many times have you been in front of
+ * this person" is about the relationship, not about one initiative. Two opportunities against the
+ * same prospect therefore share a visit count, which is correct — you did not visit twice because
+ * you were selling two things.
+ *
+ * "Prepared" means a stated goal AND discovery questions. A brief with a goal and no questions is a
+ * calendar entry with ambition, which is exactly what the rule is trying to catch.
+ */
+async function visitFactsByProspect(
+  db: Database,
+  tenantId: string,
+  now: Date,
+): Promise<Map<string, VisitFacts>> {
+  const rows = await db
+    .select({
+      prospectId: visits.prospectId,
+      occurredAt: visits.occurredAt,
+      scheduledAt: visits.scheduledAt,
+      goal: visits.goal,
+      discoveryQuestions: visits.discoveryQuestions,
+    })
+    .from(visits)
+    .where(eq(visits.tenantId, tenantId));
+
+  const byProspect = new Map<string, { count: number; next: Date | null; prepared: boolean }>();
+  for (const row of rows) {
+    const current = byProspect.get(row.prospectId) ?? { count: 0, next: null, prepared: false };
+    if (row.occurredAt && row.occurredAt <= now) current.count += 1;
+    if (row.scheduledAt && row.scheduledAt >= now) {
+      if (!current.next || row.scheduledAt < current.next) {
+        current.next = row.scheduledAt;
+        current.prepared = Boolean(row.goal?.trim()) && Boolean(row.discoveryQuestions?.trim());
+      }
+    }
+    byProspect.set(row.prospectId, current);
+  }
+
+  const out = new Map<string, VisitFacts>();
+  for (const [id, value] of byProspect) {
+    out.set(id, {
+      visitCount: value.count,
+      nextVisitAt: value.next?.toISOString() ?? null,
+      nextVisitPrepared: value.prepared,
+    });
+  }
+  return out;
+}
+
+/** Natural partners, with the display name resolved from whichever source the row carries. */
+async function partnersByProspect(
+  db: Database,
+  tenantId: string,
+): Promise<Map<string, SnapshotPartner[]>> {
+  const rows = await db
+    .select({
+      id: naturalPartners.id,
+      prospectId: naturalPartners.prospectId,
+      externalName: naturalPartners.externalName,
+      role: naturalPartners.role,
+      introOfferedAt: naturalPartners.introOfferedAt,
+      introUsedAt: naturalPartners.introUsedAt,
+      askedToOpenDoorAt: naturalPartners.askedToOpenDoorAt,
+      constituentName: constituents.displayName,
+    })
+    .from(naturalPartners)
+    .leftJoin(constituents, eq(constituents.id, naturalPartners.constituentId))
+    .where(eq(naturalPartners.tenantId, tenantId));
+
+  const out = new Map<string, SnapshotPartner[]>();
+  for (const row of rows) {
+    const list = out.get(row.prospectId) ?? [];
+    list.push({
+      id: row.id,
+      name: row.constituentName ?? row.externalName ?? "A colleague",
+      role: row.role,
+      introOfferedAt: row.introOfferedAt?.toISOString() ?? null,
+      introUsedAt: row.introUsedAt?.toISOString() ?? null,
+      askedToOpenDoorAt: row.askedToOpenDoorAt?.toISOString() ?? null,
+    });
+    // Stable order so the "first unused partner" a rule picks never changes between runs.
+    list.sort((a, b) => a.id.localeCompare(b.id));
+    out.set(row.prospectId, list);
+  }
+  return out;
+}
+
+/** When each CONFIRMED milestone was confirmed — `verbal-agreement-unwritten` counts days from it. */
+async function milestoneConfirmedAtByOpportunity(
+  db: Database,
+  tenantId: string,
+  opportunityIds: readonly string[],
+): Promise<Map<string, Record<string, string>>> {
+  const out = new Map<string, Record<string, string>>();
+  if (opportunityIds.length === 0) return out;
+
+  const rows = await db
+    .select({
+      opportunityId: opportunityMilestones.opportunityId,
+      key: milestoneDefinitions.key,
+      confirmed: opportunityMilestones.confirmed,
+      confirmedAt: opportunityMilestones.confirmedAt,
+    })
+    .from(opportunityMilestones)
+    .innerJoin(
+      milestoneDefinitions,
+      eq(milestoneDefinitions.id, opportunityMilestones.milestoneDefinitionId),
+    )
+    .where(
+      and(
+        eq(opportunityMilestones.tenantId, tenantId),
+        inArray(opportunityMilestones.opportunityId, [...opportunityIds]),
+      ),
+    );
+
+  for (const row of rows) {
+    if (!row.confirmed || !row.confirmedAt) continue;
+    const existing = out.get(row.opportunityId) ?? {};
+    existing[row.key] = row.confirmedAt.toISOString();
+    out.set(row.opportunityId, existing);
+  }
+  return out;
+}
+
 /**
  * Load everything the metric set needs, in three queries.
  *
@@ -79,7 +275,9 @@ async function milestoneEvidenceByOpportunity(
 export async function loadMetricsSnapshot(
   db: Database,
   tenantId: string,
+  options?: { readonly now?: Date },
 ): Promise<MetricsSnapshot> {
+  const now = options?.now ?? new Date();
   const [opportunityRows, definitionRows, goalRows] = await Promise.all([
     db.select().from(forwardOpportunities).where(eq(forwardOpportunities.tenantId, tenantId)),
     listMilestoneDefinitions(db, tenantId),
@@ -96,6 +294,12 @@ export async function loadMetricsSnapshot(
     tenantId,
     opportunityRows.map((row) => row.id),
   );
+  const [coaching, visitFacts, partners, confirmedAt] = await Promise.all([
+    coachingFactsByOpportunity(db, tenantId),
+    visitFactsByProspect(db, tenantId, now),
+    partnersByProspect(db, tenantId),
+    milestoneConfirmedAtByOpportunity(db, tenantId, opportunityRows.map((row) => row.id)),
+  ]);
 
   const opportunities: SnapshotOpportunity[] = opportunityRows.map((row) => ({
     id: row.id,
@@ -111,6 +315,14 @@ export async function loadMetricsSnapshot(
     probability: row.probability,
     visitRating: row.visitRating,
     milestoneEvidence: evidence.get(row.id) ?? {},
+    lastContactAt: coaching.get(row.id)?.lastContactAt ?? null,
+    milestoneConfirmedAt: confirmedAt.get(row.id) ?? {},
+    visitCount: visitFacts.get(row.prospectId)?.visitCount ?? 0,
+    nextVisitAt: visitFacts.get(row.prospectId)?.nextVisitAt ?? null,
+    nextVisitPrepared: visitFacts.get(row.prospectId)?.nextVisitPrepared ?? false,
+    closeDateMoves: coaching.get(row.id)?.closeDateMoves ?? 0,
+    closeDateMovesProspectSourced: coaching.get(row.id)?.closeDateMovesProspectSourced ?? false,
+    partners: partners.get(row.prospectId) ?? [],
   }));
 
   const snapshotGoals: SnapshotGoal[] = goalRows.map((row) => ({

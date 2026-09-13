@@ -12,6 +12,14 @@ import {
 } from "./schema/prospects";
 import { visits } from "./schema/execution";
 import { stableId } from "./seed-records-core";
+import { DEMO_TODAY } from "./demo-clock";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/** A timestamp offset from the demo anchor, so the seed reads the same whenever it runs. */
+function at(days: number): Date {
+  return new Date(DEMO_TODAY.getTime() + days * DAY);
+}
 
 type ProspectStatus = "research" | "cultivation" | "solicitation" | "stewardship" | "active";
 type Dimension = "capacity" | "relationship" | "timing" | "gift_history" | "philanthropy";
@@ -25,9 +33,14 @@ interface DimSpec {
 }
 
 interface PartnerSpec {
-  constituentKey: string;
+  constituentKey?: string;
+  externalName?: string;
   role: string;
   warmPathNote: string;
+  // I23's warm-path state, in days from the anchor. Absent means it never happened.
+  introOfferedDays?: number;
+  introUsedDays?: number;
+  askedToOpenDoorDays?: number;
 }
 
 interface StrategySpec {
@@ -45,6 +58,9 @@ interface VisitSpec {
   discoveryQuestions?: string;
   team?: string;
   locationType?: string;
+  /** Days from the demo anchor. Past = it happened; future = it is in the diary. */
+  occurredDays?: number;
+  scheduledDays?: number;
 }
 
 interface KdmSpec {
@@ -227,6 +243,10 @@ const PROSPECTS: ProspectSpec[] = [
         constituentKey: "lin",
         role: "ESG connector",
         warmPathNote: "Sofia Lin connects to the Cordova ESG team.",
+        // I23: offered five weeks ago and never taken up. Fires `intro-offered-unused` on the
+        // Bolivia opportunity, and deliberately NOT on the Kamuli one — an introduction is not the
+        // useful thing to say about a deal where the ask has already been made.
+        introOfferedDays: -35,
       },
     ],
     strategy: {
@@ -321,6 +341,36 @@ const PROSPECTS: ProspectSpec[] = [
       timingNote: "No active ask window yet — continue cultivation.",
     },
     partners: [],
+    // I23: two meetings had, nothing specific ever asked for, and a third already in the diary with
+    // no questions written down. Three of the seven ranking rules fire on this one record, which is
+    // what makes it the demo of "one item per opportunity, every rule id on the chips".
+    visits: [
+      {
+        key: "intro-coffee",
+        goal: "Introduce the Forever Promise endowment and listen for what she cares about.",
+        discoveryQuestions: "What drew you to water? Who else in your circle cares about this?",
+        team: "Dana Reese",
+        locationType: "In person — coffee",
+        occurredDays: -70,
+      },
+      {
+        key: "women-and-water",
+        goal: "Deepen the relationship through the Women & Water network.",
+        discoveryQuestions: "Which part of the programme would you want your name beside?",
+        team: "Dana Reese",
+        locationType: "In person — network event",
+        occurredDays: -30,
+      },
+      {
+        key: "autumn-catch-up",
+        // Deliberately NO discovery questions: a goal and a date is a calendar entry with ambition,
+        // and that is exactly what `visit-within-7d-unprepped` exists to catch.
+        goal: "Autumn catch-up.",
+        team: "Dana Reese",
+        locationType: "In person — her office",
+        scheduledDays: 5,
+      },
+    ],
   },
   {
     key: "cornerstone",
@@ -537,14 +587,35 @@ export async function seedProspects(db: Database, tenantId: string): Promise<voi
       await db
         .insert(naturalPartners)
         .values({
-          id: stableId(`np:${p.key}:${partner.constituentKey}`),
+          id: stableId(`np:${p.key}:${partner.constituentKey ?? partner.externalName}`),
           tenantId,
           prospectId,
-          constituentId: stableId(`constituent:${partner.constituentKey}`),
+          constituentId: partner.constituentKey
+            ? stableId(`constituent:${partner.constituentKey}`)
+            : null,
+          externalName: partner.externalName ?? null,
           role: partner.role,
           warmPathNote: partner.warmPathNote,
+          introOfferedAt:
+            partner.introOfferedDays === undefined ? null : at(partner.introOfferedDays),
+          introUsedAt: partner.introUsedDays === undefined ? null : at(partner.introUsedDays),
+          askedToOpenDoorAt:
+            partner.askedToOpenDoorDays === undefined ? null : at(partner.askedToOpenDoorDays),
         })
-        .onConflictDoNothing({ target: naturalPartners.id });
+        // Update, not DoNothing: the warm-path timestamps are the whole content of two ranking
+        // rules, and a reseed that left an old row in place would leave those rules silent.
+        .onConflictDoUpdate({
+          target: naturalPartners.id,
+          set: {
+            role: partner.role,
+            warmPathNote: partner.warmPathNote,
+            introOfferedAt:
+              partner.introOfferedDays === undefined ? null : at(partner.introOfferedDays),
+            introUsedAt: partner.introUsedDays === undefined ? null : at(partner.introUsedDays),
+            askedToOpenDoorAt:
+              partner.askedToOpenDoorDays === undefined ? null : at(partner.askedToOpenDoorDays),
+          },
+        });
     }
 
     for (const label of p.gaps ?? []) {
@@ -598,8 +669,16 @@ export async function seedProspects(db: Database, tenantId: string): Promise<voi
           discoveryQuestions: v.discoveryQuestions ?? null,
           team: v.team ?? null,
           locationType: v.locationType ?? null,
+          occurredAt: v.occurredDays === undefined ? null : at(v.occurredDays),
+          scheduledAt: v.scheduledDays === undefined ? null : at(v.scheduledDays),
         })
-        .onConflictDoNothing({ target: visits.id });
+        .onConflictDoUpdate({
+          target: visits.id,
+          set: {
+            occurredAt: v.occurredDays === undefined ? null : at(v.occurredDays),
+            scheduledAt: v.scheduledDays === undefined ? null : at(v.scheduledDays),
+          },
+        });
     }
 
     for (const k of p.kdms ?? []) {
