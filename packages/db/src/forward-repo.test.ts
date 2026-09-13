@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { computeQualification } from "@95forward/shared";
 import { seed } from "./seed";
 import { stableId } from "./seed-records-core";
@@ -294,10 +294,10 @@ describe("scope-level totals — Contradiction 1 resolved in the model", () => {
     const totals = await scopeTotals(db, tenantId);
 
     // Pre-close total matches the design's stage-board left half exactly.
-    expect(totals.preCloseTotalCents).toBe(169_500_000);
+    expect(totals.preCloseTotalCents).toBe(370_800_000);
     // Of which only the milestone-qualified subset is "qualified asks on the table".
-    expect(totals.qualifiedTotalCents).toBe(94_500_000);
-    expect(totals.unqualifiedRemainderCents).toBe(75_000_000);
+    expect(totals.qualifiedTotalCents).toBe(172_000_000);
+    expect(totals.unqualifiedRemainderCents).toBe(198_800_000);
     // The three parts must reconcile — this is what I27's footer has to state.
     expect(totals.qualifiedTotalCents + totals.unqualifiedRemainderCents).toBe(
       totals.preCloseTotalCents,
@@ -321,7 +321,7 @@ describe("scope-level totals — Contradiction 1 resolved in the model", () => {
       eq(forwardOpportunities.initiativeId, stableId("initiative:kamuli")),
     );
     expect(kamuli.preCloseTotalCents).toBeGreaterThan(0);
-    expect(kamuli.preCloseTotalCents).toBeLessThan(169_500_000);
+    expect(kamuli.preCloseTotalCents).toBeLessThan(370_800_000);
   });
 
   maybe("a late-stage opportunity can still be unqualified", async () => {
@@ -415,4 +415,86 @@ describe("seed shape", () => {
       .where(eq(forwardOpportunities.tenantId, tenantId));
     expect(after.length).toBe(before.length);
   }, 120_000);
+});
+
+// =================================================================================================
+// I18b — prospect-level contact vs opportunity-level silence
+//
+// The bug: the Master Prospect List read ONLY host `interactions`, so it said "Last contact 309d
+// ago" for Hallworth while Opportunity Detail said 81 days. Two screens contradicting each other
+// about the same relationship.
+//
+// The fix is a reading seam, and the invariant it must hold is NOT "the two numbers are equal" —
+// a prospect can carry several opportunities, and Hallworth is exactly that case: a Bolivia
+// conversation yesterday and a Kamuli ask nobody has touched for 81 days. Both figures are true
+// and they are about different things.
+//
+// What must hold is that prospect-level contact is never STALER than the most recent forward
+// contact on any of that prospect's opportunities. That is the direction the bug ran in.
+// =================================================================================================
+
+describe("prospect contact is never staler than opportunity silence", () => {
+  maybe("holds for every prospect in the seed", async () => {
+    const rows = await db.execute(sql`
+      select c.display_name as name,
+        (select max(i.occurred_at) from interactions i where i.constituent_id = c.id) as host,
+        (select max(v.occurred_at) from visits v where v.prospect_id = p.id) as visit,
+        (select max(e.occurred_at) from opportunity_events e
+           join forward_opportunities fo on fo.id = e.opportunity_id
+          where fo.prospect_id = p.id and e.event_type = 'contact_logged') as forward
+      from prospects p
+      join constituents c on c.id = p.constituent_id
+      where p.tenant_id = ${tenantId}
+    `);
+
+    const offenders: string[] = [];
+    for (const row of rows.rows as unknown as {
+      name: string;
+      host: string | null;
+      visit: string | null;
+      forward: string | null;
+    }[]) {
+      if (!row.forward) continue;
+      const forward = new Date(row.forward).getTime();
+      const best = [row.host, row.visit, row.forward]
+        .filter((d): d is string => d !== null)
+        .map((d) => new Date(d).getTime())
+        .reduce((a, b) => (a > b ? a : b));
+      if (best < forward) offenders.push(row.name);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  maybe("no host interaction is more recent than the forward story it sits behind", async () => {
+    // Host interactions are generated, not authored. Placing them in a recent window let a random
+    // touchpoint silently overrule a curated forward record — so they are seeded older than every
+    // forward contact (the most recent of which is four days before the anchor).
+    const rows = await db.execute(sql`
+      select min(occurred_at) as newest from (
+        select max(i.occurred_at) as occurred_at
+        from interactions i
+        join constituents c on c.id = i.constituent_id
+        join prospects p on p.constituent_id = c.id
+        where p.tenant_id = ${tenantId}
+        group by p.id
+      ) t
+    `);
+    // Raw SQL comes back as a string, not a Date.
+    const newest = (rows.rows[0] as unknown as { newest: string | null }).newest;
+    expect(newest).not.toBeNull();
+    const daysAgo = Math.floor(
+      (DEMO_TODAY.getTime() - new Date(newest!).getTime()) / 86_400_000,
+    );
+    expect(daysAgo).toBeGreaterThanOrEqual(100);
+  });
+
+  maybe("Hallworth's Kamuli silence is still exactly 81 days", async () => {
+    const detail = await getOpportunityDetail(
+      db,
+      tenantId,
+      stableId("forward-opportunity:hallworth-kamuli"),
+      DEMO_TODAY,
+    );
+    expect(detail?.silenceDays).toBe(81);
+  });
 });

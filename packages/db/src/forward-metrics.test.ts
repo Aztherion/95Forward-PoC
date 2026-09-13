@@ -67,11 +67,11 @@ describe("golden tie-out against the seed", () => {
     const m = service.metrics(ALL);
 
     // Pipeline, in cents.
-    expect(m.preCloseTotal.cents).toBe(169_500_000); // $1,695,000
-    expect(m.qualifiedAsks.cents).toBe(94_500_000); //   $945,000
-    expect(m.unqualified.cents).toBe(75_000_000); //      $750,000
-    expect(m.closedWork.cents).toBe(4_800_000); //         $48,000
-    expect(m.won.cents).toBe(38_520_000); //              $385,200
+    expect(m.preCloseTotal.cents).toBe(370_800_000); // $3,708,000
+    expect(m.qualifiedAsks.cents).toBe(172_000_000); //  $1,720,000
+    expect(m.unqualified.cents).toBe(198_800_000); //    $1,988,000
+    expect(m.closedWork.cents).toBe(4_800_000); //          $48,000
+    expect(m.won.cents).toBe(46_920_000); //               $469,200
 
     // The split reconciles.
     expect(m.qualifiedAsks.cents + m.unqualified.cents).toBe(m.preCloseTotal.cents);
@@ -80,10 +80,10 @@ describe("golden tie-out against the seed", () => {
     expect(m.goalDefined).toBe(true);
     expect(m.goalScope).toBe("org");
     expect(m.goalCents).toBe(270_000_000); //          $2,700,000
-    expect(m.basisCents).toBe(231_480_000); //         $2,314,800  = goal - won
-    expect(m.neededAtCoverageCents).toBe(694_440_000); // $6,944,400  = 3 x basis
-    expect(m.coverageGapCents).toBe(-599_940_000); //  -$5,999,400  = qualified - needed
-    expect(m.coverageRatio).toBeCloseTo(0.4082, 4); //       0.41x
+    expect(m.basisCents).toBe(223_080_000); //         $2,230,800  = goal - won
+    expect(m.neededAtCoverageCents).toBe(669_240_000); // $6,692,400  = 3 x basis
+    expect(m.coverageGapCents).toBe(-497_240_000); //  -$4,972,400  = qualified - needed
+    expect(m.coverageRatio).toBeCloseTo(0.771, 3); //        0.77x
 
     // Every displayed figure is derived from the two above it.
     expect(m.basisCents).toBe((m.goalCents ?? 0) - m.won.cents);
@@ -94,17 +94,18 @@ describe("golden tie-out against the seed", () => {
   maybe("derives the new-ask requirement from the computed weeksLeft", () => {
     const m = service.metrics(ALL);
     expect(m.weeksLeft).toBe(15);
-    expect(m.newAsksNeeded?.perWeek).toBeCloseTo(599_940_000 / 15, 6); // $399,960/wk
-    expect(m.newAsksNeeded?.perDay).toBeCloseTo(599_940_000 / 15 / 5, 6); // $79,992/day
-    expect(m.newAsksNeeded?.perHour).toBeCloseTo(599_940_000 / 15 / 5 / 4, 6); // $19,998/hr
+    expect(m.newAsksNeeded?.perWeek).toBeCloseTo(497_240_000 / 15, 6); // $331,493/wk
+    expect(m.newAsksNeeded?.perDay).toBeCloseTo(497_240_000 / 15 / 5, 6); // $66,299/day
+    expect(m.newAsksNeeded?.perHour).toBeCloseTo(497_240_000 / 15 / 5 / 4, 6); // $16,575/hr
   });
 
-  maybe("counts 9 pre-close opportunities, of which 3 are qualified", () => {
+  maybe("counts 27 pre-close opportunities, of which 6 are qualified", () => {
     const m = service.metrics(ALL);
-    expect(m.preCloseTotal.count).toBe(9);
-    expect(m.qualifiedAsks.count).toBe(3);
-    expect(m.unqualified.count).toBe(6);
-    expect(m.won.count).toBe(3);
+    // Most of the pipeline is NOT a real ask. That ratio is the product's thesis, not a data gap.
+    expect(m.preCloseTotal.count).toBe(27);
+    expect(m.qualifiedAsks.count).toBe(6);
+    expect(m.unqualified.count).toBe(21);
+    expect(m.won.count).toBe(6);
     expect(m.closedWork.count).toBe(1);
   });
 
@@ -220,7 +221,7 @@ describe("what-if against the seed", () => {
 
     const result = service.whatIf(ALL, { excludeOpportunityIds: [cordova] });
     expect(result.qualifiedAsksDeltaCents).toBe(-amount);
-    expect(result.after.qualifiedAsks.cents).toBe(94_500_000 - amount);
+    expect(result.after.qualifiedAsks.cents).toBe(172_000_000 - amount);
     expect(result.coverageGapDeltaCents).toBe(-amount);
   });
 
@@ -231,8 +232,8 @@ describe("what-if against the seed", () => {
     const result = service.whatIf(ALL, { milestonePatches: { [hallworth]: blocking } });
 
     expect(result.qualifiedAsksDeltaCents).toBe(25_000_000); // $250,000
-    expect(result.after.qualifiedAsks.cents).toBe(119_500_000);
-    expect(result.before.qualifiedAsks.cents).toBe(94_500_000);
+    expect(result.after.qualifiedAsks.cents).toBe(197_000_000);
+    expect(result.before.qualifiedAsks.cents).toBe(172_000_000);
   });
 
   maybe("leaves the snapshot untouched so hypotheses are independent", () => {
@@ -249,7 +250,7 @@ describe("what-if against the seed", () => {
     );
     expect(deltas).toHaveLength(snapshot.opportunities.length);
     const totalImpact = deltas.reduce((sum, d) => sum + d, 0);
-    expect(totalImpact).toBe(-94_500_000);
+    expect(totalImpact).toBe(-172_000_000);
   });
 });
 
@@ -258,9 +259,9 @@ describe("per-initiative metrics against the seed", () => {
     const northwater = stableId("forward-opportunity:northwater-kamuli");
     const share = service.initiativeShare(northwater);
     // Kamuli qualified = Cordova $425,000 + Northwater $220,000 = $645,000.
-    expect(share?.initiativeQualifiedCents).toBe(64_500_000);
+    expect(share?.initiativeQualifiedCents).toBe(114_500_000);
     expect(share?.counted).toBe(true);
-    expect(share?.share).toBeCloseTo(22_000_000 / 64_500_000, 10);
+    expect(share?.share).toBeCloseTo(22_000_000 / 114_500_000, 10);
     expect(share?.isLargest).toBe(false);
   });
 
@@ -274,11 +275,12 @@ describe("per-initiative metrics against the seed", () => {
     const cordova = stableId("forward-opportunity:cordova-kamuli");
     const result = service.coverageWithout(cordova);
     // Coverage is measured against the BASIS, not the goal: Kamuli's $1,200,000 goal less its
-    // $150,000 won = a $1,050,000 basis. Dividing by the goal here was this test's first draft,
+    // $172,000 won = a $1,028,000 basis. Dividing by the goal here was this test's first draft,
     // and getting it wrong is exactly the reader error `basis` exists to prevent.
-    const kamuliBasis = 120_000_000 - 15_000_000;
-    expect(result?.coverageRatio).toBeCloseTo(64_500_000 / kamuliBasis, 10);
-    expect(result?.coverageRatioWithout).toBeCloseTo(22_000_000 / kamuliBasis, 10);
+    const kamuliBasis = 120_000_000 - 17_200_000;
+    expect(result?.coverageRatio).toBeCloseTo(114_500_000 / kamuliBasis, 10);
+    // Kamuli's qualified asks are Cordova $425,000 + Northwater $220,000 + Sterling $500,000.
+    expect(result?.coverageRatioWithout).toBeCloseTo((114_500_000 - 42_500_000) / kamuliBasis, 10);
     expect(result?.delta).toBeLessThan(0);
   });
 

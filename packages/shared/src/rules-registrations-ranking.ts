@@ -117,7 +117,12 @@ const ENTRIES: readonly CatalogueEntry[] = [
     source: "I23",
     defaultEnabled: true,
     parameters: [
-      multiplierSpec(1.5, "The classic major-gifts failure: cost incurred, nothing requested."),
+      multiplierSpec(
+        1.9,
+        "Above `prospect-ahead-of-us` (1.8) deliberately, from I23's review: two visits with no ask " +
+          "is the cardinal failure of the method, and where both fire the amber BLOCKED label was " +
+          "hiding a red UNASKED one. The more serious fact should declare the card.",
+      ),
       {
         key: "visitThreshold",
         label: "Visits before this fires",
@@ -399,9 +404,9 @@ export function registerRankingRules(): void {
 
 export const RANKING_RULE_MULTIPLIER_DEFAULTS: Readonly<Record<RankingRuleId, number>> = {
   "live-ask-silence": 2,
+  "visits-without-specific-ask": 1.9,
   "prospect-ahead-of-us": 1.8,
   "verbal-agreement-unwritten": 1.6,
-  "visits-without-specific-ask": 1.5,
   "visit-within-7d-unprepped": 1.4,
   "intro-offered-unused": 1.3,
   "partner-path-unused": 1.1,

@@ -1,11 +1,13 @@
 import "server-only";
-import { asc, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 import {
   asks,
   constituents,
   followUpTasks,
+  forwardOpportunities,
   fundingInitiatives,
   interactions,
+  opportunityEvents,
   knowledgeBase,
   naturalPartners,
   prospectFundingInitiatives,
@@ -176,7 +178,7 @@ export async function getEnrichedProspects(tenantId: string): Promise<EnrichedPr
 
     const constituentIds = records.map((record) => record.constituent.id);
     const prospectIds = records.map((record) => record.id);
-    const lastContactByConstituent = await loadLastContact(tx, constituentIds);
+    const lastContact = await loadLastContact(tx, constituentIds);
     const openFollowUpByProspect = await loadOpenFollowUps(tx);
     const visitedProspects = await loadExecutedVisitProspects(tx);
     const askProspects = await loadAskProspects(tx);
@@ -186,7 +188,10 @@ export async function getEnrichedProspects(tenantId: string): Promise<EnrichedPr
       const qpi = computeQpi(toDimensionInputs(record.qpiAssessments), weights);
       const status = record.status as ProspectStatus;
       const firstPartner = record.naturalPartners[0];
-      const lastContactAt = lastContactByConstituent.get(record.constituent.id) ?? null;
+      const lastContactAt = latestContact(
+        lastContact.byConstituent.get(record.constituent.id) ?? null,
+        lastContact.byProspect.get(record.id) ?? null,
+      );
       return {
         id: record.id,
         rank: record.rank ?? 0,
@@ -395,7 +400,13 @@ export async function getProspectDetail(
     const qpi = computeQpi(toDimensionInputs(record.qpiAssessments), weights);
     const status = record.status as ProspectStatus;
     const type = record.constituent.type as ProspectType;
-    const lastContactAt = activityRows[0]?.occurredAt ?? null;
+    // The SAME three sources as the list. If these two diverged, the Master Prospect List and this
+    // record would tell a rep different things about the same relationship.
+    const detailContact = await loadLastContact(tx, [record.constituent.id], [record.id]);
+    const lastContactAt = latestContact(
+      detailContact.byConstituent.get(record.constituent.id) ?? null,
+      detailContact.byProspect.get(record.id) ?? null,
+    );
 
     return {
       id: record.id,
@@ -706,17 +717,89 @@ async function keywordMatchProspectIds(tenantId: string, query: string): Promise
 
 type Tx = Parameters<Parameters<typeof withTenant<unknown>>[2]>[0];
 
-async function loadLastContact(tx: Tx, constituentIds: string[]): Promise<Map<string, Date>> {
-  const map = new Map<string, Date>();
-  if (constituentIds.length === 0) return map;
-  const rows = await tx
+/**
+ * The most recent contact with a prospect, from EVERY place a contact is recorded.
+ *
+ * Three sources, and all three are needed (I18b):
+ *
+ *   • host `interactions` — calls, emails and notes logged in Keystone;
+ *   • `visits` that have happened — a meeting is the most substantial contact there is;
+ *   • forward `contact_logged` events — what a rep logs against an opportunity in 95 Forward.
+ *
+ * Reading only the first was a real bug with a visible symptom: the Master Prospect List said
+ * "Last contact 309d ago" for Hallworth while Opportunity Detail said 81 days, because the 81-day
+ * contact was logged against the opportunity and the newest host interaction was a year older. Two
+ * screens disagreeing about the same relationship is exactly the kind of thing that ends a demo.
+ *
+ * Keyed by PROSPECT as well as constituent because forward events hang off opportunities, not
+ * constituents; the caller takes whichever it has.
+ */
+async function loadLastContact(
+  tx: Tx,
+  constituentIds: string[],
+  /**
+   * Narrow to these prospects. The list needs every row, but the record page needs exactly one —
+   * and scanning the tenant's whole visit and event history to answer a question about one prospect
+   * is work nobody asked for, on the page a user opens most.
+   */
+  prospectIds?: string[],
+): Promise<{ byConstituent: Map<string, Date>; byProspect: Map<string, Date> }> {
+  const byConstituent = new Map<string, Date>();
+  const byProspect = new Map<string, Date>();
+  if (constituentIds.length === 0) return { byConstituent, byProspect };
+  if (prospectIds !== undefined && prospectIds.length === 0) return { byConstituent, byProspect };
+
+  const keepLatest = (map: Map<string, Date>, key: string, at: Date | null) => {
+    if (!at) return;
+    const current = map.get(key);
+    if (!current || at > current) map.set(key, at);
+  };
+
+  const interactionRows = await tx
     .select({ constituentId: interactions.constituentId, occurredAt: interactions.occurredAt })
     .from(interactions)
+    .where(inArray(interactions.constituentId, constituentIds))
     .orderBy(asc(interactions.constituentId), desc(interactions.occurredAt));
-  for (const row of rows) {
-    if (!map.has(row.constituentId)) map.set(row.constituentId, row.occurredAt);
-  }
-  return map;
+  for (const row of interactionRows) keepLatest(byConstituent, row.constituentId, row.occurredAt);
+
+  const visitRows = await tx
+    .select({ prospectId: visits.prospectId, occurredAt: visits.occurredAt })
+    .from(visits)
+    .where(
+      prospectIds
+        ? and(isNotNull(visits.occurredAt), inArray(visits.prospectId, prospectIds))
+        : isNotNull(visits.occurredAt),
+    );
+  for (const row of visitRows) keepLatest(byProspect, row.prospectId, row.occurredAt);
+
+  const eventRows = await tx
+    .select({
+      prospectId: forwardOpportunities.prospectId,
+      occurredAt: opportunityEvents.occurredAt,
+    })
+    .from(opportunityEvents)
+    .innerJoin(
+      forwardOpportunities,
+      eq(forwardOpportunities.id, opportunityEvents.opportunityId),
+    )
+    .where(
+      prospectIds
+        ? and(
+            eq(opportunityEvents.eventType, "contact_logged"),
+            inArray(forwardOpportunities.prospectId, prospectIds),
+          )
+        : eq(opportunityEvents.eventType, "contact_logged"),
+    );
+  for (const row of eventRows) keepLatest(byProspect, row.prospectId, row.occurredAt);
+
+  return { byConstituent, byProspect };
+}
+
+/** The latest of the two views of the same relationship. */
+export function latestContact(a: Date | null, b: Date | null): Date | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a > b ? a : b;
 }
 
 // Earliest open follow-up per prospect (joined through visits) — drives the top banner rung.
