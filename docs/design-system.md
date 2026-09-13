@@ -17,7 +17,8 @@ snapshot, not a guarantee.
 Hand-written **plain global CSS** with BEM-ish `f95-*` / `shell-*` class names, over **CSS custom
 properties**. There is **no Tailwind, no PostCSS config, no CSS Modules, no CSS-in-JS, no component
 library, and no TypeScript token module** — `apps/web/package.json` lists only `lucide-react`,
-`next`, `react`, `drizzle-orm`, `graphile-worker` and the Auth0 SDK as runtime deps. All styling
+`recharts` (added by I17b for the one chart — §10.1), `next`, `react`, `drizzle-orm`,
+`graphile-worker` and the Auth0 SDK as runtime deps. All styling
 ships through one entrypoint imported exactly once, at `apps/web/src/app/layout.tsx:4`. **Dark mode
 does not exist** in any form. The only theming axis is a two-value _register_ (§6.5).
 
@@ -33,6 +34,7 @@ does not exist** in any form. The only theming axis is a two-value _register_ (�
 | `apps/web/src/styles/register.css`                       | 7 `--reg-*` aliases per register — the only conditional token values in the codebase                                                    |
 | `apps/web/src/styles/ds.css` (1020 ln)                   | Button, Badge, Tag, Avatar, Card, field/Input, RoleChip, HorizonTag, SourceTag, Heartbeat, ProvisionalSuggestion, QpiScore, `.f95-prow` |
 | `apps/web/src/styles/ds-data.css` (1029 ln)              | DataTable, Pagination, Select, Checkbox, Switch, Tabs, EmptyState, Textarea, FieldGroup/FormRow, filter bar, and all layout primitives  |
+| `apps/web/src/styles/warroom.css`                        | **I17b** — health triad, rule chip, mono caption, milestone/scenario badges, initiative dots, metric block, TabNav, chart frame (§10)   |
 | `apps/web/src/styles/shell.css`                          | App shell, sidebar, nav, topbar, `.page-placeholder`, `.styleguide`                                                                     |
 | `apps/web/src/styles/{visit,jobtray,feedback,login}.css` | Visit mode overlay; background-job pill; feedback menu + the app's only modal; auth screens                                             |
 | `apps/web/src/components/ds/`                            | 23 files exporting **24 components** via the `index.ts` barrel                                                                          |
@@ -89,10 +91,15 @@ A red/amber/green triad is declared at token level: **`--color-success` (sage-60
 `--color-attention` (gold-600), `--color-danger` (brick-600), `--color-info` (blue-600)**
 (`tokens/colors.css:98-101`). Deliberately muted — not saturated traffic-light colours.
 
-**But three of those four aliases have zero references.** Only `--color-danger` is consumed. The
-palette that actually renders is the `.f95-badge--*` tone classes and `.f95-heartbeat--*` state
-classes, which bypass the aliases and reach straight for the raw ramps (`ds.css:149-159`,
-`ds.css:600-629`). See §8.1.
+**Three of those four aliases used to have zero references** — only `--color-danger` was consumed,
+and what actually rendered was the `.f95-badge--*` tone classes and `.f95-heartbeat--*` state classes
+reaching past the aliases for the raw ramps. **I17b gave them consumers**: the war-room health triad
+(§10.2) is built on `--color-success` / `-attention` / `-danger`, and `.f95-heartbeat--*` was re-keyed
+onto the same tokens without changing a rendered value. `--color-info` still has none.
+
+`.f95-badge--*` continues to reach for the raw ramps and was deliberately left alone — it is the
+table status pill, not a health, and rewiring 8 tones to serve 3 healths would have been a
+refactor rather than a fix.
 
 ### Special-purpose palettes
 
@@ -172,16 +179,19 @@ classes, which bypass the aliases and reach straight for the raw ramps (`ds.css:
 | Serif moment       | 400 serif, `--ls-snug`                                                      | `.f95-visit__ask` 40px · `.f95-visit__prompt` 32px · `.f95-visit__q` 28px                        |
 | Monospace          | `500 / 11px` or `13px`                                                      | `.f95-src`, `.f95-qpi__pscore`, `.f95-prov__from/__to`, `.f95-weight__max`                       |
 
-**Monospace is 11px or 13px everywhere** — there is no mono role at body or label size, and **no CSS
-rule anywhere combines `--font-mono` with `text-transform: uppercase`** (relevant to §9).
+**Monospace is 11px or 13px everywhere** — there is still no mono role at body or label size.
+Mono + `text-transform: uppercase` had **no rule anywhere** until I17b, which added exactly two, both
+at `--fs-micro` and both with `--ls-wide` rather than `--ls-caps`: `.f95-rulechip` and `.f95-monocap`
+(§10.3). Mono is already wide; 0.08em on a monospaced face reads as spaced-out, not as a label.
 
 **Numerals** — `body` sets `font-feature-settings: var(--num-tabular)` (`"tnum" 1, "lnum" 1`)
 globally (`tokens/base.css:21`), so everything is tabular by default. 12 numeric classes in
 `ds-data.css` re-assert `font-variant-numeric: tabular-nums`. Two mechanisms, split cleanly by
 stylesheet generation — §8.3.
 
-**Zero consumers:** `--text-display`, `--fs-base`, `--fs-5xl`, `--fs-score-lg`, `--ls-normal`,
-`--ls-wide`, `--lh-relaxed`, and the `.f95-overline` / `.f95-num` utilities.
+**Zero consumers:** `--text-display`, `--fs-base`, `--fs-score-lg`, `--ls-normal`, `--lh-relaxed`,
+and the `.f95-overline` / `.f95-num` utilities. `--fs-5xl` (52px) and `--ls-wide` were on this list
+until I17b bound them — the dominant metric step and the mono caption respectively (§10.3, §10.5).
 
 ---
 
@@ -307,13 +317,14 @@ their header from `.f95-page__header` markup instead. See §8.4.
 
 ### 5.2 Card — `ds/Card.tsx`, `ds.css:288-338` — 134 uses / 62 files
 
-| Prop          | Values                                             | Notes                                                                               |
-| ------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `tone`        | `default` · `ai` · `go` · `sunk`                   | `ai` = iris surface + border; `go` = gold border + `--ring-go`; `sunk` = inset well |
-| `pad`         | `sm 16` · **`md 20` (default)** · `lg 32` · `none` | `sm` and `none` have **0 uses**                                                     |
-| `elevation`   | `sm` (default) · `md` · `none`                     | **0 uses** — every card renders `--shadow-sm`                                       |
-| `accent`      | bool                                               | **Only styled compounded with `tone="ai"`** — a no-op on other tones (§8.2)         |
-| `interactive` | bool                                               | Pointer + `shadow-md` + 1px lift. 1 use                                             |
+| Prop          | Values                                             | Notes                                                                                 |
+| ------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `tone`        | `default` · `ai` · `go` · `sunk`                   | `ai` = iris surface + border; `go` = gold border + `--ring-go`; `sunk` = inset well   |
+| `pad`         | `sm 16` · **`md 20` (default)** · `lg 32` · `none` | `sm` and `none` have **0 uses**                                                       |
+| `elevation`   | `sm` (default) · `md` · `none`                     | **0 uses** — every card renders `--shadow-sm`                                         |
+| `accent`      | bool                                               | Draws the 3px left border **on any tone** since I17b; was an AI-only compound (§10.4) |
+| `health`      | `moving` · `slowing` · `stuck`                     | **I17b.** Colours the accent from the health triad. Queue cards, stage chips          |
+| `interactive` | bool                                               | Pointer + `shadow-md` + 1px lift. 1 use                                               |
 
 ```tsx
 // apps/web/src/app/95-forward/today/page.tsx:30
@@ -359,7 +370,12 @@ All 209 call sites pass `variant` explicitly.
 
 Sizes `sm` (32px/13px/radius-sm — **148 uses**, the norm), `md` (40px/15px/radius-md, default), `lg`
 (48px/18px). `block` has 0 uses. **70 Buttons are wrapped in a `next/link` `<Link>`** — the dominant
-link-as-button pattern (§8.2).
+link-as-button pattern (§8.2), and those 70 are unchanged.
+
+Since I17b, `Button` takes an **`href`** and renders a single `<a>` through `next/link` instead —
+one element, one tab stop, valid HTML. With `disabled` it renders the inert treatment `Pagination`
+already uses, because an anchor cannot be disabled. New screens use this; the 70 are their own
+cleanup (§10.4).
 
 ### 5.6 Badges, chips and pills — six distinct components, different jobs
 
@@ -411,6 +427,11 @@ Each control's invalid and disabled treatment differs, and sibling APIs diverge 
 Link-based tabs, 2px `--reg-accent` underline on the active item, horizontally scrollable. **4 call
 sites.** Six hand-rolled `*Nav` components reuse the same classes with different ARIA and are the
 dominant variant at 17 call sites (§8.2).
+
+**`TabNav`** (I17b, `.f95-tabnav`) is the third, and the correct one: navigation links marked with
+`aria-current="page"`, which a link may have, rather than the `aria-selected` the other two set —
+plus a colour dot per item and a disabled state, which the Forecast Room's initiative tabs need and
+`Tabs` has no notion of (§10.6). The existing ten call sites are untouched.
 
 ### 5.9 Modal — one instance, not a primitive
 
@@ -556,20 +577,21 @@ var(--space-4)`. Used in **69 files** (57 host, 12 95-forward).
 the **only two `Intl.*` constructions in the entire repo** (`:4`, `:16`). Everything else is
 hand-rolled. There is **no date or number library** in any `package.json`.
 
-| Kind                  | Convention                                                                                                                                                                                                                                                | Where                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Currency**          | Integer **cents** in, `Intl.NumberFormat("en-US", USD, min/max fraction 0)` out — whole dollars, **never cents**: `$250,000`. Null → `—`.                                                                                                                 | `formatCurrencyFromCents` (`format.ts:1-10`)                                  |
-| **Abbreviated money** | **Does not exist.** Zero uses of `notation:"compact"`, zero `compactDisplay`, no division by 1e3/1e6 in any render path. The `$1M` strings in the repo are hard-coded prose in seed data and the styleguide.                                              | —                                                                             |
-| **Dates**             | `Intl.DateTimeFormat("en-US", {year:numeric, month:short, day:numeric, timeZone:"UTC"})` → `Sep 11, 2025`. UTC is pinned because the columns are Postgres `date` (calendar days, no zone). Null/invalid → `—`. **No time-of-day format exists anywhere.** | `formatDate` (`format.ts:12-22`)                                              |
-| **Machine dates**     | `toISOString().slice(0,10)` for URL params and `<input type="date">` — re-implemented in 4 lib files, no shared helper.                                                                                                                                   | `event-params.ts:53`, `marketing-format.ts:30`, `membership-renewals.ts:8,39` |
-| **Relative time**     | **Four disagreeing implementations** — §8.4.                                                                                                                                                                                                              | —                                                                             |
-| **Counts**            | `.toLocaleString("en-US")` inline in **3 files / 7 sites**; **raw with no separator** in the 17 page-header `{n} records` ternaries and in table cells. No shared count formatter.                                                                        | `(host)/page.tsx:43,50` vs `constituents/page.tsx:154`                        |
-| **Percentages**       | Computed **server-side**, always `Math.round` to a whole integer — never `toFixed`, never a decimal. Rendered as bare `{n}%`. Some clamp 0–100 server-side.                                                                                               | `analysis-metrics.ts:41,72`, `green-sheet-metrics.ts:33,38`                   |
-| **Hours**             | Bare `.toFixed(2)` → `12.50`, at 6 display sites in 4 files. No helper. Unit normally carried by the column header.                                                                                                                                       | `volunteers/roster/page.tsx:34`                                               |
-| **Enum labels**       | `titleCaseFromSnake` — `corporate_grant` → `Corporate Grant`. Does **not** lower-case the rest. 9 local `Record<…,string>` label maps exist for enums whose form is not plain title-case.                                                                 | `format.ts:60-65`                                                             |
-| **Null / empty**      | Four conventions, all live: em dash `—` (default, usually in `.f95-table__muted`); a muted phrase ("No gifts yet", "No contact yet", "Unassigned"); a full sentence ("No tags yet — add what you know."); or `EmptyState` for a whole list.               | §8.4                                                                          |
-| **Numeric alignment** | Opt-in per column on `DataTable` (`align:"right"` → `.f95-table__num`), used 29 times / 14 files. Tabular figures are on globally regardless.                                                                                                             | `DataTable.tsx:10,62,87`                                                      |
-| **Pagination**        | `Showing {from}–{to} of {total}` with an **en dash** (not the em dash used for nulls) and raw unseparated numbers; `No records` at zero.                                                                                                                  | `Pagination.tsx:22,35`                                                        |
+| Kind                         | Convention                                                                                                                                                                                                                                                | Where                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Currency**                 | Integer **cents** in, `Intl.NumberFormat("en-US", USD, min/max fraction 0)` out — whole dollars, **never cents**: `$250,000`. Null → `—`.                                                                                                                 | `formatCurrencyFromCents` (`format.ts:1-10`)                                  |
+| **Abbreviated money**        | `$1.86M` · `$945K` · `$0`. Millions and billions at 2 decimals, thousands at 0 — which is what keeps `$2.70M` holding its trailing zero beside `$1.86M`. Rounds on the integer cents, not through `toFixed`. **I17b.**                                    | `formatCurrencyAbbreviatedFromCents` (`format.ts`)                            |
+| **A set of related amounts** | Formats figures that will be read together at one precision, raising it only as far as it must so that two different amounts never render identically and the order survives. Falls back to exact dollars past two extra digits. **I17b.**                | `formatCurrencySeriesAbbreviatedFromCents` (`format.ts`)                      |
+| **Dates**                    | `Intl.DateTimeFormat("en-US", {year:numeric, month:short, day:numeric, timeZone:"UTC"})` → `Sep 11, 2025`. UTC is pinned because the columns are Postgres `date` (calendar days, no zone). Null/invalid → `—`. **No time-of-day format exists anywhere.** | `formatDate` (`format.ts:12-22`)                                              |
+| **Machine dates**            | `toISOString().slice(0,10)` for URL params and `<input type="date">` — re-implemented in 4 lib files, no shared helper.                                                                                                                                   | `event-params.ts:53`, `marketing-format.ts:30`, `membership-renewals.ts:8,39` |
+| **Relative time**            | **Four disagreeing implementations** — §8.4.                                                                                                                                                                                                              | —                                                                             |
+| **Counts**                   | `.toLocaleString("en-US")` inline in **3 files / 7 sites**; **raw with no separator** in the 17 page-header `{n} records` ternaries and in table cells. No shared count formatter.                                                                        | `(host)/page.tsx:43,50` vs `constituents/page.tsx:154`                        |
+| **Percentages**              | Computed **server-side**, always `Math.round` to a whole integer — never `toFixed`, never a decimal. Rendered as bare `{n}%`. Some clamp 0–100 server-side.                                                                                               | `analysis-metrics.ts:41,72`, `green-sheet-metrics.ts:33,38`                   |
+| **Hours**                    | Bare `.toFixed(2)` → `12.50`, at 6 display sites in 4 files. No helper. Unit normally carried by the column header.                                                                                                                                       | `volunteers/roster/page.tsx:34`                                               |
+| **Enum labels**              | `titleCaseFromSnake` — `corporate_grant` → `Corporate Grant`. Does **not** lower-case the rest. 9 local `Record<…,string>` label maps exist for enums whose form is not plain title-case.                                                                 | `format.ts:60-65`                                                             |
+| **Null / empty**             | Four conventions, all live: em dash `—` (default, usually in `.f95-table__muted`); a muted phrase ("No gifts yet", "No contact yet", "Unassigned"); a full sentence ("No tags yet — add what you know."); or `EmptyState` for a whole list.               | §8.4                                                                          |
+| **Numeric alignment**        | Opt-in per column on `DataTable` (`align:"right"` → `.f95-table__num`), used 29 times / 14 files. Tabular figures are on globally regardless.                                                                                                             | `DataTable.tsx:10,62,87`                                                      |
+| **Pagination**               | `Showing {from}–{to} of {total}` with an **en dash** (not the em dash used for nulls) and raw unseparated numbers; `No records` at zero.                                                                                                                  | `Pagination.tsx:22,35`                                                        |
 
 **Inline formatting count:** 10 distinct files format numbers for display inline rather than through
 a helper — 8 in `apps/web`, 2 in `packages/ai`. `packages/ai` carries **two private USD formatters**
@@ -584,18 +606,21 @@ variant with more call sites, not the better one.
 
 ### 8.1 Token-layer defects
 
-1. **6 custom properties are referenced but never defined**, across 7 sites: `--ink-strong`
-   (`shell.css:16`), `--motion-fast` (`shell.css:18`), `--elevation-sm` (`jobtray.css:14`),
-   `--text-primary` (`feedback.css:30,:68`), `--text-lg` (`feedback.css:66`), `--ai-iris`
-   (`95-forward/search/page.tsx`).
-2. **5 `var()` fallbacks contradict the real token**: `var(--radius-sm, 8px)` vs the real `6px`;
-   `var(--motion-fast, 120ms)` vs `--dur-fast: 140ms`; `var(--text-lg, 18px)` names a token that
-   does not exist (`--fs-lg` does); `var(--ai-iris, #4A4F94)` hard-codes `--ai-ink`;
-   `var(--reg-accent, #235C86)` hard-codes `--blue-600`.
-3. **33 declared tokens have zero references**, including all three `--border-w*`, three of the four
-   `--color-*` status aliases, `--focus-ring`, `--rail-w`, `--touch-min`, `--content-gutter`,
-   `--radius-xl`/`2xl`/`circle`, `--fs-5xl`, `--fs-score-lg`, `--text-display`, `--reg-accent-surface`
-   (defined twice, used zero times).
+1. ~~**6 custom properties are referenced but never defined**~~ — **all resolved in I17b**, each to
+   the token that already carried the meaning rather than by defining a second name for a colour
+   that has one. `--ink-strong` → `--text-strong`; `--motion-fast` → `--dur-fast`; `--elevation-sm`
+   → `--shadow-sm`; `--text-primary` → `--text-body` on the menu item and `--text-strong` on the
+   modal title; `--text-lg` → `--fs-lg`; `--ai-iris` → `--ai-ink`.
+2. ~~**5 `var()` fallbacks contradict the real token**~~ — **all resolved in I17b**, by dropping the
+   fallback. On a defined token a fallback is unreachable, so it is pure opportunity for the two
+   values to drift; the one visible change is the feedback menu item's radius moving 8px → the real
+   6px. A `--_`-prefixed local is the opposite case and keeps its fallback: it is undefined by
+   design until the markup sets it, and the fallback **is** its default.
+   **`apps/web/src/styles/css-contract.test.ts` now fails the build on the twelfth of either.**
+3. **~30 declared tokens have zero references**, including all three `--border-w*`, `--color-info`,
+   `--focus-ring`, `--rail-w`, `--touch-min`, `--content-gutter`, `--radius-xl`/`2xl`/`circle`,
+   `--fs-score-lg`, `--text-display`, `--reg-accent-surface` (defined twice, used zero times).
+   I17b bound `--fs-5xl`, `--ls-wide` and three of the four `--color-*` status aliases.
 4. **Two focus-ring tokens, and the dead one is the semantic one.** `--ring` (raw rgba of blue-500)
    is used in 9 rules; `--focus-ring: var(--blue-500)` in **0**. Two further focus rings are inlined
    as raw rgba (`ds.css:409,:418`) instead of tokenised.
@@ -611,13 +636,18 @@ variant with more call sites, not the better one.
    is the only rule that styles an active tab and nothing targets `aria-current`.
    **`*Nav` is dominant: 17 call sites across 6 near-verbatim duplicate files** (Analysis 3,
    MajorGiving 4, Marketing 2, Memberships 4, Revenue 2, Volunteers 2), none shared.
-7. **`Card accent` is a silent no-op outside AI cards.** The only rule is the compound
-   `.f95-card--ai.f95-card--accent` (`ds.css:324-326`). Of 12 `accent` call sites, 7 are `tone="ai"`
-   (works) and **5 are `tone="go"` (renders nothing)**.
+   **Still true.** I17b added a third, correct implementation (`TabNav`, §10.6) for the new screens
+   and deliberately did not touch the existing 21 sites — copying the broken pattern into a
+   load-bearing new surface is how a mistake becomes the house style, and rewriting six files is a
+   separate cleanup.
+7. ~~**`Card accent` is a silent no-op outside AI cards**~~ — **fixed in I17b**. `.f95-card--accent`
+   now draws on its own, taking its colour from `--_accent`, which each tone and each health sets.
+   The 5 `tone="go"` sites that rendered nothing now render a gold left border.
 8. **Link-as-button is nested interactive throughout.** `<Link><Button/></Link>` puts a `<button>`
    inside an `<a>` at **70 sites across 43 files** — dominant. Two competing treatments: raw
    `<a class="f95-btn …">` on the auth screens (2 sites), and `Pagination`'s `<Link>` +
-   `aria-disabled` + `tabIndex={-1}`. `Button` has no `as`/`href` prop.
+   `aria-disabled` + `tabIndex={-1}`. **Still true of all 70.** `Button` gained an `href` in I17b
+   (§5.5) so that new screens stop adding to the count; the existing 70 are their own cleanup.
 9. **Tables — two implementations.** `DataTable` (sortable, `aria-sort`, right-align, row links) at
    16 sites, dominant; raw `<table class="f95-table">` markup with none of those at 2 sites
    (`green-sheet`, `RelationshipMapTab`).
@@ -683,10 +713,11 @@ variant with more call sites, not the better one.
 
 ### 8.5 Dead, orphaned and mis-wired
 
-25. **6 classes are applied in TSX with no CSS rule anywhere**: `f95-eyebrow`, `f95-field__error`
-    (the real class is `f95-field__err` — so that error text renders in inherited colour, not
-    `--color-danger`), `f95-prov`, `f95-prov__title`, `f95-settings__intro`, and `f95-rise` — which
-    is a **keyframes name applied as a class**.
+25. **5 classes are applied in TSX with no CSS rule anywhere**: `f95-eyebrow`, `f95-prov`,
+    `f95-prov__title`, `f95-settings__intro`, and `f95-rise` — which is a **keyframes name applied
+    as a class**. `f95-field__error` was the sixth: a one-character typo for `f95-field__err` at
+    `CopilotTrigger.tsx`, the app's only copilot error site, where the message had been rendering in
+    inherited colour rather than `--color-danger`. **Fixed in I17b.**
 26. **7 classes are defined in CSS and never used**: `.f95-num`, `.f95-overline`, `.f95-recordbar`,
     `.f95-mpl__pillgroup`, `.f95-mpl__pillgroup-label`, `.f95-visit__amount`, `.f95-visit__phasenav`.
 27. **BEM elements outliving their block.** `.f95-recordbar` has 0 uses but `.f95-recordbar__spacer`
@@ -767,6 +798,14 @@ Assessed against `docs/design/SCREENS.md` (The Board · The Forecast Room · Opp
 **Gaps are reported, not filled** — adding tokens is the decision of the initiative that builds the
 screens.
 
+> **I17b closed these.** The table below is left as the record of what was found and why, because
+> the reasoning is what a later reader needs. What each gap became is in **§10**; the short version
+> is that six of the seven were extensions of something that existed, one (badges) was new, and the
+> two "Further gaps" that were absent entirely — charting and abbreviated currency — were added.
+> Still open from the second table, for I25–I27: the breadcrumb, the six-column stage board, the
+> legend, timeline rows, the labelled column divider, the six-stage vocabulary in the data layer,
+> and nav entries for the three screens.
+
 ### The seven named items
 
 | #   | Needed                                                                 | Verdict                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -803,3 +842,127 @@ states by **shape rather than colour alone** is `RoleChip` (filled vs dashed + g
 `HorizonTag` (a distinct glyph per value) — worth preserving for a health triad. (b) No `--reg-*`
 token carries any status, health or stage meaning, so a war-room health palette has **no existing
 register hook** to attach to.
+
+---
+
+## 10. War-room additions (I17b)
+
+What §9 asked for, and what it became. Everything here is in `warroom.css`, `tokens/colors.css` and
+`components/ds/`, and every value is a semantic alias — there is no colour literal in any of it.
+
+### 10.1 Charting — `recharts`
+
+The only UI runtime dependency beside `lucide-react`, added deliberately for one chart. §9 found no
+charting library, no SVG chart, and every existing "chart" a CSS div bar with no axes, no time
+dimension and no band; the BMW cumulative curve had nothing to build on.
+
+**`ForecastChart`** (`components/forecast/`) is the only file in the app that imports it. One
+`ComposedChart` covers the whole spec: `Area` for the shaded Best–Worst band, `Line` for Most likely
+and Actual, `ReferenceLine` for the dashed goal and the today divider, `ReferenceDot` + `Label` for
+the three in-chart end labels. It is one shape on purpose — "one graph to rule them all" is a
+stakeholder position, and `SCREENS.md` defers alternative chart types, so a general charting
+abstraction would be building for a chart that is explicitly not coming.
+
+The x axis is **numeric time**, not categorical, so the today divider lands on the actual day rather
+than snapping to the nearest month.
+
+**Tokens are read in JS.** Recharts styles inline, so a custom property never reaches it.
+`readChartTokens()` (`components/forecast/chart-tokens.ts`) reads every colour off
+`document.documentElement` — `getComputedStyle().getPropertyValue()` returns a custom property's
+_computed_ value, so `--ai-ink → --iris-600 → #4a4f94` arrives resolved — and passes them as props.
+Until they arrive the frame renders at full height without the plot: a forecast in browser defaults
+is worse than one that is a frame late, and reserving the height means nothing shifts.
+
+**Bundle**, from `next build`: shared First Load JS is **unchanged at ~102–103 kB**. Recharts lands
+only on routes that render the chart, where it costs about **+165 kB First Load** (`/design-check`:
+268 kB against a 103 kB shared baseline). Every other route moved by less than 0.03 kB. That
+containment is what the `"use client"` wrapper buys, and it is the argument for keeping the import
+in exactly one file.
+
+### 10.2 The health triad — Moving / Slowing / Stuck
+
+Twelve tokens, four roles each: `--health-{moving,slowing,stuck}` plus `-text`, `-surface`,
+`-border`. The solid value of each **is** `--color-success` / `-attention` / `-danger`, which gives
+three dead aliases their first consumers — so there is now one status palette rather than a token
+layer and a stylesheet that happened to agree.
+
+The values are exactly what `Heartbeat` rendered, which is why `.f95-heartbeat--*` could be re-keyed
+onto them without moving a pixel. **Heartbeat keeps its own enum**: `on-track`/`due-soon`/`overdue`
+is a follow-up cadence, not deal health, and its three call sites mean the cadence.
+
+- **`StatusLabel`** (`.f95-status`) renders one of the seven queue labels. The wording comes from
+  `STATUS_LABEL_TEXT` and the colour from `STATUS_HEALTH`, both in `@95forward/shared`. Neither is
+  written on a screen — two sources for one value is how they come to disagree, and the colour
+  vocabulary is only learnable while every surface agrees.
+- **`HealthDot`** (`.f95-healthdot`) is the bare dot. Colour is its only visible channel, so it
+  always carries an accessible name. On the chip the word carries the meaning instead.
+
+### 10.3 Monospace evidence
+
+**`RuleChip`** (`.f95-rulechip`) — `RULE · live-ask-silence`, linking to `/rules/:ruleId`, the
+contract I22 fixed for it. All seven ranking rules resolve. The rule id comes from the Rules of Robb
+layer; a chip whose text was typed into a screen would go stale the first time an org edited the
+rule, which is the failure the chip exists to prevent. `kind` takes `CHECK` for the data-integrity
+findings, and `href={null}` renders inert for an id the catalogue cannot resolve.
+
+**`MonoCaption`** (`.f95-monocap`) — consequence lines, column subtitles and inline arithmetic, in
+four tones. Mono here means what it means on `SourceTag`: this is evidence, not prose.
+
+Both are the system's first mono + uppercase rules. Both sit at `--fs-micro` (11px), level with
+`SourceTag`, and both use `--ls-wide` (0.04em) rather than `--ls-caps` (0.08em).
+
+### 10.4 Cards, accents and links
+
+- **`Card accent`** draws on every tone (§8.2.7). `--_accent` follows `.f95-prow`'s `--_tier`
+  precedent: a local the modifier sets, with the fallback as its default.
+- **`Card health`** colours that accent from the triad — queue cards and stage chips.
+- **`Button href`** renders one `<a>` through `next/link` (§5.5).
+
+### 10.5 Badges, dots and the metric step
+
+- **`MilestoneBadge`** — `THEY SAID` · `WE SAID` · `BLOCKING` · `NOT ASKED`. The they-said/we-said
+  asymmetry is the most novel idea in the product, so it is carried by **shape before colour**: what
+  the prospect said is solid, filled, with a filled glyph; what we said is an empty dashed outline
+  with a hollow one. Print it in greyscale and the distinction survives. `RoleChip`'s filled-versus-
+  dashed treatment is the precedent, and §9's structural note asked for it.
+  `BLOCKING` is independent of source — `Permission to share publicly` is they-said and non-blocking.
+- **`ScenarioBadge`** — `IN ALL THREE` · `MOST LIKELY +` · `BEST ONLY` · `OUTSIDE BEST`.
+  **A deliberate deviation from `SCREENS.md`, per the hard rule that the design system wins when the
+  change is documented in the same PR.** The design assigns green / **red** / **amber**, which puts
+  red in the middle of the ramp. The ladder is ordered — closes even in Worst, then needs Most
+  likely, then needs Best, then in no scenario at all — so the palette descends with it: green,
+  amber, red, then the dashed Unknown treatment for the fourth. A ladder whose colours are not
+  monotonic makes the second-safest band louder than the least safe one and teaches a reader that
+  the colours carry no meaning, which costs the health vocabulary everywhere else. The copy is
+  exactly as specified; only the palette assignment differs.
+- **Initiative dots** — `--initiative-1…5` plus `--initiative-none`, drawn from the identity ramps.
+  Brick is excluded: the token comments reserve it for destructive/danger, and an initiative is
+  neither. I18 stores a **key** on the initiative and `InitiativeDot` maps it to a token, so renaming
+  an initiative cannot change its colour and no screen writes a hue. An unrecognised key falls back
+  to neutral rather than guessing — a wrong colour here would silently re-attribute money on the
+  stage board. `InitiativeChip` is the dot plus the name.
+- **`Metric`** (`.f95-metric`) — one dominant figure, three subordinate, with `sub` for the basis in
+  words and `basis` for it in arithmetic. `dominant` binds **`--fs-5xl` (52px)**, which had zero
+  consumers: above every heading (h1 is 32px) and deliberately **below** the QPI number's 64px,
+  whose binding is untouched. The other orphan, 88px, is the wrong answer for The Board — it is
+  already ~66px over its vertical budget at 1280×800, and a headline that costs the queue its first
+  card has defeated the screen it leads.
+- **`ProgressBar`** rides the existing `.f95-progress`. What is new is the two things none of its
+  five existing call sites do: it clamps (two feed raw unclamped percentages straight into a width)
+  and it carries a role and an accessible name (none carry either). The five are untouched.
+
+### 10.6 `TabNav`
+
+Navigation tabs marked with `aria-current="page"` — valid on a link, unlike the `aria-selected` the
+DS `Tabs` and the six `*Nav` copies set — plus a colour dot per item and a disabled state, for the
+Forecast Room's initiative tabs and the undesigned Team / All-reps toggles. The existing 21 sites
+are deliberately untouched (§8.2.6).
+
+### 10.7 The verification gallery
+
+**`/design-check`** — unlinked, `notFound()` in production, and rendered **inside the real Keystone
+shell**, which is the point of it. `/styleguide` renders bare, and the questions a gallery has to
+answer are about context: does the amber read as amber against a card on this background, is an 11px
+uppercase mono chip legible, does a 52px headline still read as dominant beside a 264px sidebar. The
+forecast chart there runs the **real simulation over the real seed**, because feeding it invented
+data would verify the chart against itself rather than against the shape I21 emits.

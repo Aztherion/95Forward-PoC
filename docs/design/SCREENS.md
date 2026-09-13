@@ -216,7 +216,9 @@ That subtitle is load-bearing — it answers the half-pregnant objection in the 
 
 *"Every opportunity, and which scenario it lands in."* Each row: prospect name · scenario badge · amount.
 
-Badges: `IN ALL THREE` (green) · `MOST LIKELY +` (red) · `BEST ONLY` (amber).
+Badges: `IN ALL THREE` · `MOST LIKELY +` · `BEST ONLY`.
+
+> **Palette note, I17b.** The design assigns these green / **red** / **amber**, which puts red in the middle of the ramp — the second-safest band rendered louder than the least safe one. The ladder is ordered (closes even in Worst → needs Most likely → needs Best → in no scenario at all), so the colours descend with it instead: **green · amber · red**, plus the dashed Unknown treatment for I21's fourth badge `OUTSIDE BEST`. A ladder whose colours are not monotonic teaches a reader that the colours carry no meaning, which costs the health vocabulary everywhere else in the war room. **The copy is untouched**; only the palette assignment differs. Built as `ScenarioBadge`, documented in `docs/design-system.md`.
 
 Footer: *"3 of these 9 only appear in Best. $225,000 of hope, nothing prospect-confirmed behind it."*
 
