@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 import {
   asks,
   constituents,
@@ -402,7 +402,7 @@ export async function getProspectDetail(
     const type = record.constituent.type as ProspectType;
     // The SAME three sources as the list. If these two diverged, the Master Prospect List and this
     // record would tell a rep different things about the same relationship.
-    const detailContact = await loadLastContact(tx, [record.constituent.id]);
+    const detailContact = await loadLastContact(tx, [record.constituent.id], [record.id]);
     const lastContactAt = latestContact(
       detailContact.byConstituent.get(record.constituent.id) ?? null,
       detailContact.byProspect.get(record.id) ?? null,
@@ -737,10 +737,17 @@ type Tx = Parameters<Parameters<typeof withTenant<unknown>>[2]>[0];
 async function loadLastContact(
   tx: Tx,
   constituentIds: string[],
+  /**
+   * Narrow to these prospects. The list needs every row, but the record page needs exactly one —
+   * and scanning the tenant's whole visit and event history to answer a question about one prospect
+   * is work nobody asked for, on the page a user opens most.
+   */
+  prospectIds?: string[],
 ): Promise<{ byConstituent: Map<string, Date>; byProspect: Map<string, Date> }> {
   const byConstituent = new Map<string, Date>();
   const byProspect = new Map<string, Date>();
   if (constituentIds.length === 0) return { byConstituent, byProspect };
+  if (prospectIds !== undefined && prospectIds.length === 0) return { byConstituent, byProspect };
 
   const keepLatest = (map: Map<string, Date>, key: string, at: Date | null) => {
     if (!at) return;
@@ -751,13 +758,18 @@ async function loadLastContact(
   const interactionRows = await tx
     .select({ constituentId: interactions.constituentId, occurredAt: interactions.occurredAt })
     .from(interactions)
+    .where(inArray(interactions.constituentId, constituentIds))
     .orderBy(asc(interactions.constituentId), desc(interactions.occurredAt));
   for (const row of interactionRows) keepLatest(byConstituent, row.constituentId, row.occurredAt);
 
   const visitRows = await tx
     .select({ prospectId: visits.prospectId, occurredAt: visits.occurredAt })
     .from(visits)
-    .where(isNotNull(visits.occurredAt));
+    .where(
+      prospectIds
+        ? and(isNotNull(visits.occurredAt), inArray(visits.prospectId, prospectIds))
+        : isNotNull(visits.occurredAt),
+    );
   for (const row of visitRows) keepLatest(byProspect, row.prospectId, row.occurredAt);
 
   const eventRows = await tx
@@ -770,7 +782,14 @@ async function loadLastContact(
       forwardOpportunities,
       eq(forwardOpportunities.id, opportunityEvents.opportunityId),
     )
-    .where(eq(opportunityEvents.eventType, "contact_logged"));
+    .where(
+      prospectIds
+        ? and(
+            eq(opportunityEvents.eventType, "contact_logged"),
+            inArray(forwardOpportunities.prospectId, prospectIds),
+          )
+        : eq(opportunityEvents.eventType, "contact_logged"),
+    );
   for (const row of eventRows) keepLatest(byProspect, row.prospectId, row.occurredAt);
 
   return { byConstituent, byProspect };
