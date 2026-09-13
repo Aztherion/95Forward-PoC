@@ -62,8 +62,6 @@ export default async function InitiativesPage() {
       <div className="f95-page" data-testid="initiatives-list">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Funding initiatives</h1>
             <p className="f95-page__count">
               One set of initiatives, framed Today · Tomorrow · Forever — what every ask points at.
             </p>

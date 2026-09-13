@@ -248,6 +248,8 @@ export interface ProspectActivity {
 
 export interface ProspectDetail {
   id: string;
+  /** The HOST record behind this prospect. What `Open in Keystone` links to (I24). */
+  constituentId: string;
   rank: number;
   name: string;
   type: ProspectType;
@@ -397,6 +399,7 @@ export async function getProspectDetail(
 
     return {
       id: record.id,
+      constituentId: record.constituent.id,
       rank: record.rank ?? 0,
       name: record.constituent.displayName,
       type,

@@ -40,8 +40,39 @@
   border-right: 1px solid var(--border-hairline);
   display: flex;
   flex-direction: column;
-  padding: var(--space-5) var(--space-4);
-  gap: var(--space-5);
+  /* No bottom padding: the sticky account block below owns it, so it can sit flush to the
+     viewport edge with nothing scrolling through the strip underneath it. */
+  padding: var(--space-5) var(--space-4) 0;
+  gap: var(--space-4);
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Keeping the whole nav on screen (Initiative 24)
+
+   The sidebar needed 1030px on `main` and 1068px with the seventh 95 Forward item, against 800px of
+   viewport at 1280x800. It scrolls, so nothing was unreachable — but Settings and the user block sat
+   below the fold on every fresh load, which is a poor look for a shell whose entire job in the demo
+   is to read as a complete, ordinary CRM.
+
+   Recovered without shrinking any type: one step off the section gap (above), one off the row
+   padding, and the account block pinned to the bottom of the viewport rather than floating after
+   1068px of content. Nothing here touches the add-on section's prominence.
+   ------------------------------------------------------------------------------------------------ */
+.shell-sidebar .shell-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.shell-sidebar .shell-visit {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+/* Stays put while the nav above it scrolls, so the signed-in user is always visible. A 13-destination
+   CRM nav legitimately scrolls at 800px — what must not happen is the scroll looking accidental. */
+.shell-account {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-card);
+  padding-bottom: var(--space-5);
 }
 
 .shell-brand {
@@ -123,6 +154,47 @@
   gap: 2px;
   padding-left: 28px;
   margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Host vs add-on (Initiative 24)
+
+   95 Forward is an add-on living inside the Keystone CRM shell, and the demo depends on that being
+   visible: if the product looks standalone, the first question is "so we'd replace Raiser's Edge?"
+   and nonprofits do not rip out their CRM.
+
+   The separation is VISUAL ONLY. Every row below stays a real link to one of the 63 working host
+   pages — a stakeholder who clicks Memberships and lands on a functioning screen has the framing
+   confirmed. Muting to the point of looking disabled would turn a genuine host system into a stage
+   set, which is the opposite of the point.
+
+   So: one weight step and one colour step down, and nothing else. No opacity (that reads as
+   disabled), no pointer-events, no grey-out on hover — the host rows still light up and still
+   navigate, they just do not compete for the eye.
+   ------------------------------------------------------------------------------------------------ */
+
+.shell-nav[data-tier="host"] .shell-row {
+  color: var(--text-secondary);
+  font-weight: var(--fw-regular);
+}
+.shell-nav[data-tier="host"] .shell-row__icon {
+  color: var(--ink-300);
+}
+/* Hover and active still behave normally: this is a live system, not a screenshot. */
+.shell-nav[data-tier="host"] .shell-row:hover {
+  color: var(--text-strong);
+}
+.shell-nav[data-tier="host"] .shell-row:hover .shell-row__icon {
+  color: var(--ink-400);
+}
+.shell-nav[data-tier="host"] .shell-row--active {
+  color: var(--reg-nav-active-fg);
+  font-weight: var(--fw-medium);
+}
+
+/* The add-on section is the one that carries weight. */
+.shell-nav[data-tier="addon"] .shell-row--group .shell-row__label {
+  font-weight: var(--fw-semibold);
 }
 
 .shell-group--branded .shell-row--group .shell-row__label {

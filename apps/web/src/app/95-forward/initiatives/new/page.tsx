@@ -19,7 +19,7 @@ export default async function NewInitiativePage() {
         </Link>
         <div className="f95-page__heading">
           <div className="f95-page__eyebrow">95 Forward</div>
-          <h1 className="f95-page__title">Add a funding initiative</h1>
+          <h2 className="f95-page__title">Add a funding initiative</h2>
         </div>
         <NewInitiativeForm />
       </div>

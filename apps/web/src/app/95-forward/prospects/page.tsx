@@ -197,8 +197,6 @@ export default async function ProspectsPage({
       <div className="f95-page" data-testid="prospects-mpl">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Master Prospect List</h1>
             <p className="f95-page__count">
               One ranked list — people, companies, and foundations together. {unfiltered.length} on
               the list · ranked by QPI

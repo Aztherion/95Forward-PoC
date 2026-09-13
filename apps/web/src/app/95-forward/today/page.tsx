@@ -86,8 +86,6 @@ export default async function TodayPage({
       <div className="f95-page" data-testid="today">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Today</h1>
             <p className="f95-page__count">
               Your next right move, lined up. {scopeNote} ·{" "}
               {nextMoves.length === 0

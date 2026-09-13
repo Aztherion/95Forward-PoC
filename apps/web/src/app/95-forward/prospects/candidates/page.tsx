@@ -32,8 +32,6 @@ export default async function CandidatesPage() {
       <div className="f95-page" data-testid="candidates-view">
         <div className="f95-page__header">
           <div className="f95-page__heading">
-            <div className="f95-page__eyebrow">95 Forward</div>
-            <h1 className="f95-page__title">Candidates</h1>
             <p className="f95-page__count">
               People your copilot surfaced through a connector — hypotheses to validate, held off
               the ranked list until you promote one.

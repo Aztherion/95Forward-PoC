@@ -90,7 +90,7 @@ export default async function InitiativeDetailPage({
 
         <div className="f95-record-head">
           <div className="f95-record-head__main">
-            <h1 className="f95-record-head__title">{detail.name}</h1>
+            <h2 className="f95-record-head__title">{detail.name}</h2>
             <div className="f95-record-head__meta">
               <HorizonTag horizon={detail.frame} solid />
               <span>· Goal {formatCurrencyFromCents(detail.goalCents)}</span>

@@ -14,7 +14,7 @@ test.describe("95 Forward group toggle", () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(greenSheet).toBeVisible();
-    await expect(page.getByRole("link", { name: "Today" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "The Board" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Prospects" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Initiatives" })).toBeVisible();
 
@@ -24,7 +24,7 @@ test.describe("95 Forward group toggle", () => {
   });
 
   test("is expanded automatically inside the 95 Forward register", async ({ page }) => {
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
     await expect(page.locator(".shell")).toBeVisible();
 
     const toggle = page.getByRole("button", { name: /95 Forward/ });

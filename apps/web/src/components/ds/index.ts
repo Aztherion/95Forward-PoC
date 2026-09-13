@@ -47,3 +47,5 @@ export { QpiScore } from "./QpiScore";
 export type { QpiScoreProps } from "./QpiScore";
 export { QpiBreakdown } from "./QpiBreakdown";
 export type { QpiBreakdownProps } from "./QpiBreakdown";
+export { OpenInKeystone } from "./OpenInKeystone";
+export type { OpenInKeystoneProps } from "./OpenInKeystone";
