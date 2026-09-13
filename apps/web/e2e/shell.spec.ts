@@ -120,16 +120,31 @@ test.describe("95 Forward inside the Keystone shell", () => {
 
   test("Keystone's own sections are muted but still navigable", async ({ page }) => {
     await page.goto("/95-forward/board");
-    // Muted VISUALLY: the host rows carry a lighter weight than the add-on's.
+
+    // Muted VISUALLY: the host rows sit a weight and a colour step below the add-on's.
     const hostNav = page.locator('.shell-nav[data-tier="host"]').first();
     await expect(hostNav).toBeVisible();
+    const hostWeight = await page
+      .locator('.shell-nav[data-tier="host"] .shell-row')
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontWeight);
+    expect(Number(hostWeight)).toBeLessThan(600);
 
-    // ...and still real. A dead link here would undo the framing it is meant to reinforce.
+    // ...and still real links to real routes. Asserted on the markup rather than by navigating to
+    // all eight: each of these pages already has its own spec, and walking them here made this one
+    // test a load generator that destabilised the rest of the suite on a shared CI runner.
     for (const [label, href] of HOST_ITEMS) {
-      const response = await page.goto(href);
-      expect(response?.status(), `${label} → ${href}`).toBeLessThan(400);
-      await expect(page.locator(".shell"), `${label} shell`).toBeVisible();
+      const row = page.locator(`.shell-nav[data-tier="host"] a[href="${href}"]`);
+      await expect(row, `${label} → ${href}`).toHaveCount(1);
+      // Not muted to the point of being inert — this is a genuine host system, not a stage set.
+      await expect(row).toBeEnabled();
     }
+
+    // One real navigation, to prove the tier is not decorative.
+    const response = await page.goto("/memberships");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(page.locator(".shell")).toBeVisible();
+    await expect(page.locator("h1")).toHaveCount(1);
   });
 
   test("the old dashboard still resolves but is absent from the nav", async ({ page }) => {
