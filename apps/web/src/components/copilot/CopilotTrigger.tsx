@@ -38,7 +38,7 @@ export function CopilotTrigger({
         {isPending ? pendingLabel : label}
       </Button>
       {state.error ? (
-        <span className="f95-field__error" role="alert">
+        <span className="f95-field__err" role="alert">
           {state.error}
         </span>
       ) : null}

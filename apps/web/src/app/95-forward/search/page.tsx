@@ -52,14 +52,14 @@ function InterpretedQuery({ interpretation }: { interpretation: QueryInterpretat
         {interpretation.filters.map((filter, i) => (
           <Tag
             key={`${filter.field}-${i}`}
-            color="var(--ai-iris, #4A4F94)"
+            color="var(--ai-ink)"
             data-testid="interpreted-filter"
           >
             {filterChipLabel(filter)}
           </Tag>
         ))}
         {semanticTerm !== null ? (
-          <Tag color="var(--reg-accent, #235C86)" data-testid="interpreted-semantic">
+          <Tag color="var(--reg-accent)" data-testid="interpreted-semantic">
             Related to “{semanticTerm}”
           </Tag>
         ) : null}

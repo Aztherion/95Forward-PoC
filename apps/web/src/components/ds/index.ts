@@ -1,5 +1,11 @@
 export { Button } from "./Button";
-export type { ButtonProps, ButtonVariant, ButtonSize } from "./Button";
+export type {
+  ButtonProps,
+  NativeButtonProps,
+  LinkButtonProps,
+  ButtonVariant,
+  ButtonSize,
+} from "./Button";
 export { Badge } from "./Badge";
 export type { BadgeProps, BadgeTone } from "./Badge";
 export { Tag } from "./Tag";
@@ -49,3 +55,25 @@ export { QpiBreakdown } from "./QpiBreakdown";
 export type { QpiBreakdownProps } from "./QpiBreakdown";
 export { OpenInKeystone } from "./OpenInKeystone";
 export type { OpenInKeystoneProps } from "./OpenInKeystone";
+
+// War-room primitives (I17b) — the tokens and components the three redesigned screens need.
+export { StatusLabel } from "./StatusLabel";
+export type { StatusLabelProps } from "./StatusLabel";
+export { HealthDot, HEALTH_TEXT } from "./HealthDot";
+export type { HealthDotProps } from "./HealthDot";
+export { RuleChip } from "./RuleChip";
+export type { RuleChipProps } from "./RuleChip";
+export { MonoCaption } from "./MonoCaption";
+export type { MonoCaptionProps, MonoCaptionTone } from "./MonoCaption";
+export { MilestoneBadge, MILESTONE_BADGE_TEXT } from "./MilestoneBadge";
+export type { MilestoneBadgeProps, MilestoneBadgeKind } from "./MilestoneBadge";
+export { ScenarioBadge, SCENARIO_BADGE_TEXT } from "./ScenarioBadge";
+export type { ScenarioBadgeProps } from "./ScenarioBadge";
+export { InitiativeDot, InitiativeChip, INITIATIVE_COLOUR_KEYS } from "./InitiativeDot";
+export type { InitiativeDotProps, InitiativeChipProps, InitiativeColourKey } from "./InitiativeDot";
+export { Metric } from "./Metric";
+export type { MetricProps } from "./Metric";
+export { ProgressBar } from "./ProgressBar";
+export type { ProgressBarProps, ProgressTone } from "./ProgressBar";
+export { TabNav } from "./TabNav";
+export type { TabNavProps, TabNavItem } from "./TabNav";

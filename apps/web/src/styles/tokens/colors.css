@@ -129,6 +129,55 @@
   --qpi-history: var(--iris-600);
   --qpi-philanthropy: var(--teal-600);
 
+  /* ---------------------------------------------------------------------------------------
+     War-room health triad — Moving / Slowing / Stuck (I17b)
+
+     The green/amber/red triad was already declared as --color-success/-attention/-danger, and
+     three of those four aliases had zero references: what actually rendered were the .f95-badge
+     and .f95-heartbeat tone classes reaching past them for the raw ramps. These four roles per
+     health are the aliases' first consumers, so there is now ONE status palette rather than a
+     token layer and a stylesheet that agree by coincidence.
+
+     The values are exactly what Heartbeat renders today — which is why Heartbeat could be re-keyed
+     onto them without moving a pixel. Note the asymmetry in -border: sage and gold have a 300 step
+     to sit behind a tint, brick does not, and inventing one would be a new colour rather than a
+     new token.
+
+     Consumed by .f95-status, .f95-healthdot, .f95-card--health-*, .f95-heartbeat.
+     --------------------------------------------------------------------------------------- */
+  --health-moving: var(--color-success);
+  --health-moving-text: var(--sage-700);
+  --health-moving-surface: var(--sage-50);
+  --health-moving-border: var(--sage-300);
+
+  --health-slowing: var(--color-attention);
+  --health-slowing-text: var(--gold-700);
+  --health-slowing-surface: var(--gold-50);
+  --health-slowing-border: var(--gold-300);
+
+  --health-stuck: var(--color-danger);
+  --health-stuck-text: var(--brick-600);
+  --health-stuck-surface: var(--brick-100);
+  --health-stuck-border: var(--brick-600);
+
+  /* ---------------------------------------------------------------------------------------
+     Funding-initiative categorical palette (I17b)
+
+     I18 stored `colour_key` on funding_initiatives — a key, not a colour — so the mapping lives
+     here and an initiative renamed in the database does not change hue. Five defined against four
+     seeded initiatives, so a fifth does not wrap onto the first.
+
+     Drawn from the identity ramps, not new hues: a categorical set invented outside the eight
+     ramps would be a second palette. Brick is excluded deliberately — the token comments reserve
+     it for destructive/danger, and an initiative is neither. Unknown keys fall back to --ink-300.
+     --------------------------------------------------------------------------------------- */
+  --initiative-1: var(--blue-600);
+  --initiative-2: var(--sage-600);
+  --initiative-3: var(--gold-600);
+  --initiative-4: var(--iris-600);
+  --initiative-5: var(--teal-600);
+  --initiative-none: var(--ink-300);
+
   /* QPI tier bands */
   --qpi-go: var(--gold-600); /* 90-100 — go today          */
   --qpi-strong: var(--blue-600); /* 70-89                      */

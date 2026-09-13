@@ -27,7 +27,8 @@
 .f95-btn:active {
   transform: translateY(0.5px);
 }
-.f95-btn[disabled] {
+.f95-btn[disabled],
+.f95-btn[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.45;
 }
@@ -321,8 +322,28 @@
   background: var(--ai-surface);
   border-color: var(--ai-border);
 }
-.f95-card--ai.f95-card--accent {
-  border-left: 3px solid var(--ai-ink);
+/* The left-border accent (I17b).
+   Was `.f95-card--ai.f95-card--accent` only, so 5 of the 12 `accent` call sites rendered nothing
+   at all. `accent` now draws on any tone, taking its colour from --_accent, which each tone and
+   each health sets for itself. The AI card's accent is unchanged — it just arrives by the same
+   route as everyone else's now. */
+.f95-card--accent {
+  border-left: 3px solid var(--_accent, var(--reg-accent));
+}
+.f95-card--ai {
+  --_accent: var(--ai-ink);
+}
+.f95-card--go {
+  --_accent: var(--accent-go);
+}
+.f95-card--health-moving {
+  --_accent: var(--health-moving);
+}
+.f95-card--health-slowing {
+  --_accent: var(--health-slowing);
+}
+.f95-card--health-stuck {
+  --_accent: var(--health-stuck);
 }
 /* Go card — the 90+ energizing state */
 .f95-card--go {
@@ -597,35 +618,38 @@
   font: var(--text-label);
   color: var(--gold-700);
 }
+/* Re-keyed onto the health triad (I17b). Heartbeat keeps its own enum — cadence is not deal
+   health, and its three call sites mean something different by it — but it no longer reaches past
+   the token layer for the raw ramps. Byte-for-byte the same rendered colours; one palette. */
 .f95-heartbeat--on-track {
-  background: var(--sage-50);
-  border-color: var(--sage-300);
+  background: var(--health-moving-surface);
+  border-color: var(--health-moving-border);
 }
 .f95-heartbeat--on-track .f95-heartbeat__pulse {
-  background: var(--sage-600);
+  background: var(--health-moving);
 }
 .f95-heartbeat--on-track .f95-heartbeat__label {
-  color: var(--sage-700);
+  color: var(--health-moving-text);
 }
 .f95-heartbeat--due-soon {
-  background: var(--gold-50);
-  border-color: var(--gold-300);
+  background: var(--health-slowing-surface);
+  border-color: var(--health-slowing-border);
 }
 .f95-heartbeat--due-soon .f95-heartbeat__pulse {
-  background: var(--gold-600);
+  background: var(--health-slowing);
 }
 .f95-heartbeat--due-soon .f95-heartbeat__label {
-  color: var(--gold-700);
+  color: var(--health-slowing-text);
 }
 .f95-heartbeat--overdue {
-  background: var(--brick-100);
-  border-color: var(--brick-600);
+  background: var(--health-stuck-surface);
+  border-color: var(--health-stuck-border);
 }
 .f95-heartbeat--overdue .f95-heartbeat__pulse {
-  background: var(--brick-600);
+  background: var(--health-stuck);
 }
 .f95-heartbeat--overdue .f95-heartbeat__label {
-  color: var(--brick-600);
+  color: var(--health-stuck-text);
 }
 
 /* Provisional suggestion — "the copilot proposes, you decide", on an AI card */
