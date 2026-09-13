@@ -187,7 +187,10 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     await expect(kbProposals).toBeVisible();
     const approve = kbProposals.getByRole("button", { name: "Approve" }).first();
     await expect(approve).toBeVisible();
-    await approve.click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      approve.click(),
+    ]);
 
     // Approval writes the researched value back into the knowledge base.
     await page.goto(`/95-forward/prospects/${HALLWORTH_ID}?tab=knowledge`);

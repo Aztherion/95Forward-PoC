@@ -190,11 +190,10 @@ async function clickCandidateButton(
 ): Promise<void> {
   const button = locate(candidateCard(page, name));
   await expect(button).toBeVisible({ timeout: 15000 });
-  const done = page.waitForResponse(
-    (r) => r.request().method() === "POST" && r.url().includes("/prospects/candidates"),
-  );
-  await button.click();
-  await done;
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    button.click(),
+  ]);
   await expect(button).toHaveCount(0, { timeout: 15000 });
 }
 
@@ -240,9 +239,10 @@ test.describe.serial("95 Forward — the headline demo journey (Initiative 13)",
 
     const researchButton = page.locator('[data-testid="research-this"]').first();
     await expect(researchButton).toBeVisible();
-    const done = page.waitForResponse((r) => r.request().method() === "POST");
-    await researchButton.click();
-    await done;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      researchButton.click(),
+    ]);
 
     await drainJobs(page);
 
@@ -275,9 +275,10 @@ test.describe.serial("95 Forward — the headline demo journey (Initiative 13)",
     await form.locator("select[name=fundingInitiativeId]").selectOption(FOREVER_ID);
     await form.locator("select[name=outcome]").selectOption("commitment");
     await form.locator("input[name=commitmentAmountDollars]").fill("25000");
-    const done = page.waitForResponse((r) => r.request().method() === "POST");
-    await form.getByRole("button", { name: "Log the ask" }).click();
-    await done;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Log the ask" }).click(),
+    ]);
 
     await expect(asksList.locator('[data-testid="ask-row"]')).toHaveCount(asksBefore + 1);
 
@@ -312,9 +313,10 @@ test.describe.serial("95 Forward — the headline demo journey (Initiative 13)",
     await expect(heartbeat).toBeVisible();
     await expect(heartbeat.locator(".f95-heartbeat")).toBeVisible();
 
-    const done = page.waitForResponse((r) => r.request().method() === "POST");
-    await heartbeat.getByRole("button", { name: "Mark done" }).click();
-    await done;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      heartbeat.getByRole("button", { name: "Mark done" }).click(),
+    ]);
     await expect(page.locator('[data-testid="follow-up-heartbeat"]')).toHaveCount(0);
   });
 

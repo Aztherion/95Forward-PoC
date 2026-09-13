@@ -80,20 +80,12 @@ async function gotoTab(page: Page, prospectId: string, tab: string): Promise<voi
   await expect(page.locator('[data-testid="prospect-detail"]')).toBeVisible();
 }
 
-async function submitServerAction(
-  page: Page,
-  button: ReturnType<Page["getByRole"]>,
-): Promise<void> {
-  const done = page.waitForResponse(
-    (response) => response.request().method() === "POST" && response.url().includes("/prospects/"),
-  );
-  await button.click();
-  await done;
-}
-
 async function askCopilot(page: Page, panelTestId: string, askLabel: string) {
   const panel = page.locator(`[data-testid="${panelTestId}"]`);
-  await submitServerAction(page, panel.getByRole("button", { name: askLabel }));
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    panel.getByRole("button", { name: askLabel }).click(),
+  ]);
   const suggestion = panel.locator(".f95-prov").first();
   await expect(suggestion).toBeVisible();
   await expect(suggestion.locator(".f95-prov__acts")).toBeVisible();
@@ -151,7 +143,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await fieldRow.getByRole("button", { name: "Edit" }).click();
     const form = fieldRow.locator('[data-testid="kb-field-form"]');
     await form.locator("textarea[name=value]").fill(newValue);
-    await form.getByRole("button", { name: "Save" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Save" }).click(),
+    ]);
     await expect(form).toHaveCount(0);
 
     await page.reload();
@@ -167,13 +162,19 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await gaps.getByRole("button", { name: "Add something worth researching" }).click();
     const addForm = page.locator('[data-testid="add-gap-form"]');
     await addForm.locator("input[name=label]").fill(gapLabel);
-    await addForm.getByRole("button", { name: "Add the invitation" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      addForm.getByRole("button", { name: "Add the invitation" }).click(),
+    ]);
     await expect(addForm).toHaveCount(0);
 
     const newGap = page.locator('[data-testid="research-gap"]').filter({ hasText: gapLabel });
     await expect(newGap).toBeVisible();
 
-    await newGap.getByRole("button", { name: "Mark researched" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      newGap.getByRole("button", { name: "Mark researched" }).click(),
+    ]);
     await expect(
       page.locator('[data-testid="research-gap"]').filter({ hasText: gapLabel }),
     ).toHaveCount(0);
@@ -213,7 +214,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
 
     await fieldRow.getByRole("button", { name: "Edit" }).click();
     await fieldRow.locator("textarea[name=value]").fill(newValue);
-    await fieldRow.getByRole("button", { name: "Save" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      fieldRow.getByRole("button", { name: "Save" }).click(),
+    ]);
     await expect(fieldRow.locator("textarea[name=value]")).toHaveCount(0);
 
     await page.reload();
@@ -235,7 +239,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await expect(suggestion.locator(".f95-src")).toBeVisible();
     const draftedText = (await suggestion.locator(".f95-prov__body").innerText()).trim();
 
-    await submitServerAction(page, suggestion.getByRole("button", { name: "Approve" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Approve" }).click(),
+    ]);
     await page.reload();
 
     await expect(panel.locator(".f95-prov")).toHaveCount(0);
@@ -261,7 +268,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
       "strategy-copilot",
       "Ask the copilot to draft strategy",
     );
-    await submitServerAction(page, suggestion.getByRole("button", { name: "Dismiss" }));
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Dismiss" }).click(),
+    ]);
     await page.reload();
 
     await expect(panel.locator(".f95-prov")).toHaveCount(0);
@@ -279,7 +289,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await page.getByRole("button", { name: "Plan a visit" }).click();
     const form = page.locator('[data-testid="visit-plan-form"]');
     await form.locator("textarea[name=goal]").fill(goal);
-    await form.getByRole("button", { name: "Save the plan" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Save the plan" }).click(),
+    ]);
     await expect(form).toHaveCount(0);
 
     const planned = page.locator('[data-testid="planned-visit"]');
@@ -334,7 +347,10 @@ test.describe.serial("95 Forward — Strategize (Initiative 8)", () => {
     await map.getByRole("button", { name: "Add a decision-maker" }).click();
     const form = page.locator('[data-testid="kdm-form"]');
     await form.locator("input[name=name]").fill(name);
-    await form.getByRole("button", { name: "Add to the map" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      form.getByRole("button", { name: "Add to the map" }).click(),
+    ]);
     await expect(form).toHaveCount(0);
 
     const rows = map.locator('[data-testid="kdm-row"]');

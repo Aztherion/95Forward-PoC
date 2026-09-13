@@ -85,9 +85,10 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
     await expect(multiple).toHaveValue("3");
 
     await multiple.fill("4");
-    const saved = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.locator('[data-testid="rule-save"]').click();
-    await saved;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.locator('[data-testid="rule-save"]').click(),
+    ]);
 
     await page.reload();
     await expect(page.locator('[data-testid="param-multiple"] input')).toHaveValue("4");
@@ -103,9 +104,10 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
     );
 
     await page.goto(COVERAGE);
-    const reset = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.locator('[data-testid="rule-reset"]').click();
-    await reset;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.locator('[data-testid="rule-reset"]').click(),
+    ]);
     await page.reload();
     await expect(page.locator('[data-testid="param-multiple"] input')).toHaveValue("3");
   });
@@ -116,9 +118,10 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
     // The form is noValidate, so this reaches the server — which is the only place that can
     // be trusted to refuse it.
     await page.locator('[data-testid="param-multiple"] input').fill("0");
-    const responded = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.locator('[data-testid="rule-save"]').click();
-    await responded;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.locator('[data-testid="rule-save"]').click(),
+    ]);
 
     await expect(page.locator('[data-testid="param-multiple"]')).toContainText("must be at least 1");
 
@@ -137,9 +140,10 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
 
     const statement = "Never let a lapsed major donor go two years without a visit.";
     await page.locator('[data-testid="propose-rule-input"]').fill(statement);
-    const saved = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.getByRole("button", { name: "Propose this rule" }).click();
-    await saved;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Propose this rule" }).click(),
+    ]);
 
     await page.reload();
     const list = page.locator('[data-testid="proposed-rules-list"]');

@@ -85,16 +85,25 @@ test.describe.serial("95 Forward — Connector discovery & candidates (Initiativ
 
     // Each server-action form submit re-renders the card in place; wait for the next action to
     // appear before clicking it so we never race the revalidation.
-    await candidateCard(page, "David Osei").locator('[data-testid="candidate-endorse"]').click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      candidateCard(page, "David Osei").locator('[data-testid="candidate-endorse"]').click(),
+    ]);
     const requestIntro = candidateCard(page, "David Osei").getByRole("button", {
       name: "Request intro",
     });
     await expect(requestIntro).toBeVisible();
-    await requestIntro.click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      requestIntro.click(),
+    ]);
 
     const promote = candidateCard(page, "David Osei").locator('[data-testid="candidate-promote"]');
     await expect(promote).toBeVisible();
-    await promote.click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      promote.click(),
+    ]);
 
     // The promoted candidate links to its new prospect ("On the list").
     await expect(candidateCard(page, "David Osei").getByText("On the list")).toBeVisible();
@@ -104,7 +113,9 @@ test.describe.serial("95 Forward — Connector discovery & candidates (Initiativ
     await expect(page.locator("body")).toContainText("David Osei");
 
     // Open the new prospect and confirm Sandra Kim is its Natural Partner (the warm path).
+    // A NAVIGATION, not a server action — so the post-condition to wait for is the URL, not a POST.
     await page.getByText("David Osei").first().click();
+    await page.waitForURL(/\/95-forward\/prospects\/[0-9a-f-]+/);
     await expect(page.locator("body")).toContainText("Sandra Kim");
   });
 

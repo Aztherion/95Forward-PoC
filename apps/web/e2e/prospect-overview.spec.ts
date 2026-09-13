@@ -64,16 +64,22 @@ async function overrideDimension(page: Page, dimension: string, rating: string):
   await openAdjustForm(page);
   await page.selectOption("select[name=dimension]", dimension);
   await page.selectOption("select[name=rating]", rating);
-  await page.getByRole("button", { name: "Save the rating" }).click();
-  await expect(page.locator("select[name=dimension]")).toHaveCount(0, { timeout: 15000 });
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    page.getByRole("button", { name: "Save the rating" }).click(),
+  ]);
+  await expect(page.locator("select[name=dimension]")).toHaveCount(0);
 }
 
 async function markDimensionUnknown(page: Page, dimension: string): Promise<void> {
   await openAdjustForm(page);
   await page.selectOption("select[name=dimension]", dimension);
   await page.check("input[name=isUnknown]");
-  await page.getByRole("button", { name: "Save the rating" }).click();
-  await expect(page.locator("select[name=dimension]")).toHaveCount(0, { timeout: 15000 });
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    page.getByRole("button", { name: "Save the rating" }).click(),
+  ]);
+  await expect(page.locator("select[name=dimension]")).toHaveCount(0);
 }
 
 async function restoreDimensionRating(
@@ -109,11 +115,14 @@ async function reassignRm(page: Page, label: string): Promise<void> {
   await page.getByRole("button", { name: "Reassign" }).click();
   await page.waitForSelector("select[name=rmUserId]");
   await page.selectOption("select[name=rmUserId]", { label });
-  await page
+  const saveRm = page
     .locator("form")
     .filter({ has: page.locator("select[name=rmUserId]") })
-    .getByRole("button", { name: "Save" })
-    .click();
+    .getByRole("button", { name: "Save" });
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST"),
+    saveRm.click(),
+  ]);
   await expect(page.locator("select[name=rmUserId]")).toHaveCount(0);
 }
 
@@ -125,8 +134,20 @@ test.describe.serial("95 Forward — prospect overview", () => {
   test.afterEach(async ({ page }) => {
     const pending = [...cleanups];
     cleanups = [];
+    // Each cleanup is isolated (H3). The loop used to abort on the first throw, so when a test
+    // failed part-way and its cleanup threw on a page that was not in the expected state, every
+    // LATER cleanup was skipped — and the retry inherited whatever the failed attempt had changed.
+    // That is the cascade behind `assigns a relationship manager`: attempt one left Osgood assigned
+    // to Dana, and the retry then failed on its opening "Priya Nair" assertion.
+    //
+    // A cleanup that fails is reported, not swallowed silently, but it does not fail a test that
+    // otherwise passed — and it no longer takes its neighbours down with it.
     for (const cleanup of pending) {
-      await cleanup(page);
+      try {
+        await cleanup(page);
+      } catch (error) {
+        console.warn(`[cleanup] failed, continuing: ${(error as Error).message}`);
+      }
     }
   });
 
@@ -184,19 +205,25 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await expect(qpiTotal(page)).toHaveText("40");
 
     const copilot = page.locator('[data-testid="prospect-copilot"]');
-    await copilot.getByRole("button", { name: "Ask the copilot" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      copilot.getByRole("button", { name: "Ask the copilot" }).click(),
+    ]);
 
     const suggestion = copilot.locator(".f95-prov").filter({ hasText: "Capacity" });
-    await expect(suggestion).toBeVisible({ timeout: 15000 });
+    await expect(suggestion).toBeVisible();
     await expect(suggestion.locator(".f95-prov__from")).toHaveText("Unknown");
     await expect(suggestion.locator(".f95-prov__to")).toHaveText("5");
     await expect(suggestion.locator(".f95-src")).toBeVisible();
 
-    await suggestion.getByRole("button", { name: "Approve" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Approve" }).click(),
+    ]);
     await expect(qpiTotal(page)).toHaveText("75");
     await page.reload();
     await expect(qpiTotal(page)).toHaveText("75");
-    await expect(copilot.locator(".f95-prov")).toHaveCount(0, { timeout: 15000 });
+    await expect(copilot.locator(".f95-prov")).toHaveCount(0);
   });
 
   test("dismissing an AI QPI suggestion applies nothing", async ({ page }) => {
@@ -205,12 +232,18 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await expect(qpiTotal(page)).toHaveText("48");
 
     const copilot = page.locator('[data-testid="prospect-copilot"]');
-    await copilot.getByRole("button", { name: "Ask the copilot" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      copilot.getByRole("button", { name: "Ask the copilot" }).click(),
+    ]);
 
     const suggestion = copilot.locator(".f95-prov").filter({ hasText: "Capacity" });
-    await expect(suggestion).toBeVisible({ timeout: 15000 });
+    await expect(suggestion).toBeVisible();
 
-    await suggestion.getByRole("button", { name: "Dismiss" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Dismiss" }).click(),
+    ]);
     await expect(qpiTotal(page)).toHaveText("48");
     await page.reload();
     await expect(qpiTotal(page)).toHaveText("48");
@@ -218,17 +251,21 @@ test.describe.serial("95 Forward — prospect overview", () => {
   });
 
   test("assigns a relationship manager and persists the change", async ({ page }) => {
-    const path = await openProspectByName(page, OSGOOD);
+    await openProspectByName(page, OSGOOD);
     const team = page.locator('[data-testid="relationship-team"]');
     await expect(team).toContainText("Priya Nair");
-    registerCleanup(async (p) => {
-      await p.goto(path);
-      const t = p.locator('[data-testid="relationship-team"]');
-      await expect(t).toBeVisible();
-      if (!(await t.innerText()).includes("Priya Nair")) {
-        await reassignRm(p, "Priya Nair");
-      }
-      await expect(t).toContainText("Priya Nair");
+    // Restored through the DATABASE, not the UI (H3). Driving the browser to undo a change means
+    // the cleanup can only work if the page is healthy — which is exactly what it is not after the
+    // test it is cleaning up behind has failed. One statement, no page, no race, and it is
+    // idempotent: it sets the owner it wants regardless of the owner it finds.
+    registerCleanup(async () => {
+      await withDb(async (client) => {
+        await client.query(
+          `update prospects set rm_user_id = (select id from users where email = $1)
+             where constituent_id = (select id from constituents where display_name = $2)`,
+          ["priya.nair@waterforpeople.org", OSGOOD],
+        );
+      });
     });
 
     await reassignRm(page, "Dana Reese");
@@ -250,7 +287,10 @@ test.describe.serial("95 Forward — prospect overview", () => {
     await team.getByRole("button", { name: "Add natural partner" }).click();
     await page.waitForSelector("input[name=externalName]");
     await page.fill("input[name=externalName]", partnerName);
-    await page.getByRole("button", { name: "Add partner" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Add partner" }).click(),
+    ]);
 
     await page.reload();
     await expect(

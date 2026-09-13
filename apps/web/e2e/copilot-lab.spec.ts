@@ -15,7 +15,10 @@ test.describe("Copilot lab demonstration harness", () => {
 
     const runButton = page.getByRole("button", { name: "Run copilot" });
     await expect(runButton).toBeVisible();
-    await runButton.click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      runButton.click(),
+    ]);
 
     const aiCards = page.locator(".f95-card--ai");
     await expect(aiCards.first()).toBeVisible();
@@ -29,7 +32,10 @@ test.describe("Copilot lab demonstration harness", () => {
     await expect(qpiCard.locator(".f95-src--grounded")).toContainText("990-PF");
     await expect(qpiCard.locator(".f95-prov__to")).toHaveText("5");
 
-    await qpiCard.getByRole("button", { name: "Approve" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      qpiCard.getByRole("button", { name: "Approve" }).click(),
+    ]);
 
     const approvedCard = page.locator(".f95-card--ai .f95-prov__resolved--ok").first();
     await expect(approvedCard).toBeVisible();
@@ -37,7 +43,10 @@ test.describe("Copilot lab demonstration harness", () => {
 
     const remainingDraft = page.locator(".f95-card--ai").filter({ hasText: "Draft" }).first();
     await expect(remainingDraft).toBeVisible();
-    await remainingDraft.getByRole("button", { name: "Dismiss" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      remainingDraft.getByRole("button", { name: "Dismiss" }).click(),
+    ]);
 
     const dismissedCard = page.locator(".f95-card--ai .f95-prov__resolved--no").first();
     await expect(dismissedCard).toBeVisible();

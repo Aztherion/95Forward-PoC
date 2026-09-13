@@ -71,6 +71,10 @@ test.describe.serial("95 Forward — settings", () => {
       "5",
     );
 
+    // NOT waited on, deliberately: "Reset to defaults" is `onClick={reset}`, a local setState back
+    // to QPI_DEFAULT_WEIGHTS. No request is made, so waiting for one hangs until the test timeout —
+    // which is exactly what it did when H3 first assumed this was a server action. Saving the
+    // weights below IS one; resetting the form is not.
     await page.getByRole("button", { name: "Reset to defaults" }).click();
     await expect(weight(page, "capacity").locator('[data-testid="qpi-weight-value"]')).toHaveText(
       "7",
@@ -109,21 +113,24 @@ test.describe.serial("95 Forward — settings", () => {
     }
 
     // The "Preferences saved." span is driven by useActionState, which revalidatePath("/settings")
-    // can remount away before this assertion observes it; wait on the POST completing instead, then
-    // prove persistence via reload — the deterministic signal the other specs use.
+    // can remount away before this assertion observes it; wait on the action completing instead,
+    // then prove persistence via reload. This spec worked that out first; H3 applied the same three
+    // lines at every mutation site in the suite.
     const research = page.getByLabel(RESEARCH_TOGGLE);
     await research.uncheck({ force: true });
-    const saved1 = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.getByRole("button", { name: "Save preferences" }).click();
-    await saved1;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Save preferences" }).click(),
+    ]);
 
     await page.reload();
     await expect(page.getByLabel(RESEARCH_TOGGLE)).not.toBeChecked();
 
     await page.getByLabel(RESEARCH_TOGGLE).check({ force: true });
-    const saved2 = page.waitForResponse((r) => r.request().method() === "POST");
-    await page.getByRole("button", { name: "Save preferences" }).click();
-    await saved2;
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: "Save preferences" }).click(),
+    ]);
     await page.reload();
     await expect(page.getByLabel(RESEARCH_TOGGLE)).toBeChecked();
   });

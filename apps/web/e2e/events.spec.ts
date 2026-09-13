@@ -116,12 +116,18 @@ test.describe("events — registrations", () => {
     await expect(newRow).toContainText("$250");
     await expect(newRow.getByText("Checked in")).toHaveCount(0);
 
-    await newRow.getByRole("button", { name: "Check in" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      newRow.getByRole("button", { name: "Check in" }).click(),
+    ]);
     const checkedInRow = page.locator(".f95-itemrow", { hasText: attendeeName });
     await expect(checkedInRow.getByText("Checked in")).toBeVisible();
     await expect(checkedInRow.getByRole("button", { name: "Undo check-in" })).toBeVisible();
 
-    await checkedInRow.getByRole("button", { name: "Undo check-in" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      checkedInRow.getByRole("button", { name: "Undo check-in" }).click(),
+    ]);
     const revertedRow = page.locator(".f95-itemrow", { hasText: attendeeName });
     await expect(revertedRow.getByText("Checked in")).toHaveCount(0);
     await expect(revertedRow.getByRole("button", { name: "Check in" })).toBeVisible();

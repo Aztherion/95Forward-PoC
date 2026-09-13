@@ -23,6 +23,10 @@ test.describe("copilot trigger — slow action pending/resolution", () => {
     const trigger = copilot.getByRole("button", { name: "Ask the copilot" });
     const urlBefore = page.url();
 
+    // DELIBERATELY NOT waiting for the action (H3). This test's whole subject is the state that
+    // exists WHILE the action is in flight; waiting for it to come back would mean the pending state
+    // had already cleared before the first assertion looked for it. The wait belongs on specs that
+    // assert the RESULT of an action — this one asserts the gap.
     await trigger.click();
 
     // (i) a non-blocking pending state appears (button disabled + "Working…"), not a frozen UI.
@@ -40,7 +44,10 @@ test.describe("copilot trigger — slow action pending/resolution", () => {
     await expect(trigger).toBeEnabled();
 
     // Clean up: dismissing applies nothing, leaving the seeded score untouched for other specs.
-    await suggestion.getByRole("button", { name: "Dismiss" }).click();
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      suggestion.getByRole("button", { name: "Dismiss" }).click(),
+    ]);
     await expect(copilot.locator(".f95-prov").filter({ hasText: "Capacity" })).toHaveCount(0, {
       timeout: 15000,
     });

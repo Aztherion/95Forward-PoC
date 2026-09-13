@@ -48,8 +48,14 @@ test.describe("constituents — host CRM register", () => {
     const viewName = `E2E view ${uniqueSuffix()}`;
     await page.getByRole("button", { name: "Save view" }).click();
     await page.getByLabel("View name").fill(viewName);
-    await page.getByRole("button", { name: /^Save view$/ }).click();
-    await page.waitForLoadState("networkidle");
+    // `networkidle` was the wrong signal (H3): against a dev server that is compiling on demand, the
+    // network is rarely idle for long enough to mean anything, and this is the race that made
+    // "browses, searches, filters, and saves a view" the suite's most-cited flake. Wait for the save
+    // action itself instead.
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST"),
+      page.getByRole("button", { name: /^Save view$/ }).click(),
+    ]);
 
     await page.goto("/constituents");
     await page.getByRole("button", { name: "Views" }).click();
