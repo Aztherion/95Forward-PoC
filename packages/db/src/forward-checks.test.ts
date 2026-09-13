@@ -173,10 +173,13 @@ describe("consequence integrity — computed, not asserted against a literal", (
 });
 
 describe("no false positives against the seed", () => {
-  maybe("the six healthy opportunities produce nothing", () => {
+  maybe("the rest of the portfolio produces nothing", () => {
     const flagged = new Set(run().findings.map((f) => f.opportunityId));
     const open = snapshot.opportunities.filter((o) => o.status === "open");
-    expect(open.length).toBe(10);
+    // I18b took the portfolio from 10 open records to 28, and the finding count did NOT move.
+    // That is the discipline the Fix-first block depends on: three contradictions a rep can clear
+    // in under three minutes, not a backlog that grows with the pipeline.
+    expect(open.length).toBe(28);
     expect(flagged.size).toBe(3);
 
     // Specifically: the qualified ones and the genuinely early ones are silent.
@@ -194,7 +197,7 @@ describe("no false positives against the seed", () => {
 
   maybe("won records produce nothing", () => {
     const wonIds = snapshot.opportunities.filter((o) => o.status === "won").map((o) => o.id);
-    expect(wonIds).toHaveLength(3);
+    expect(wonIds).toHaveLength(6);
     const flagged = run().findings.map((f) => f.opportunityId);
     for (const id of wonIds) expect(flagged).not.toContain(id);
   });

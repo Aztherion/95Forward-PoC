@@ -3,6 +3,7 @@ import type { Database } from "./client";
 import { users } from "./schema/users";
 import { asks, followUpTasks, referrals, visits } from "./schema/execution";
 import { stableId } from "./seed-records-core";
+import { DEMO_TODAY } from "./demo-clock";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -120,7 +121,11 @@ const EXEC_VISITS: ExecVisitSpec[] = [
 export async function seedExecution(
   db: Database,
   tenantId: string,
-  now: Date = new Date(),
+  // Anchored, not floating (I18b). These visits are contact with a prospect, so they feed the
+  // prospect-level "last contact" — and a `new Date()` default dated them at seed time, which put
+  // a visit AFTER the demo anchor and made the Master Prospect List report contact that had not
+  // happened yet.
+  now: Date = DEMO_TODAY,
 ): Promise<void> {
   const userRows = await db.query.users.findMany({ where: eq(users.tenantId, tenantId) });
   const rmIds: Record<"dana" | "priya", string | undefined> = {

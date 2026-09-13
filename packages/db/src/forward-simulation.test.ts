@@ -81,15 +81,31 @@ describe("the seeded curve", () => {
   maybe("continues from won-to-date rather than restarting at zero", () => {
     const result = service().run(ALL);
     // $385,200 is already won across the period, so no line may ever sit below it at year end.
-    expect(result.yearEnd.worstCents).toBeGreaterThanOrEqual(38_520_000);
+    expect(result.yearEnd.worstCents).toBeGreaterThanOrEqual(46_920_000);
     const december = result.months[11]!;
-    expect(december.worstCents).toBeGreaterThanOrEqual(38_520_000);
+    expect(december.worstCents).toBeGreaterThanOrEqual(46_920_000);
   });
 
   maybe("stops the actuals at the anchor month", () => {
     const months = service().run(ALL).months;
-    expect(months[8]?.actualCents).toBe(38_520_000); // September, the anchor
+    expect(months[8]?.actualCents).toBe(46_920_000); // September, the anchor
     expect(months[9]?.actualCents).toBeUndefined();
+  });
+
+  maybe("rises month by month rather than running flat into the anchor", () => {
+    // The actuals line used to sit at $385,200 from June to September — three months of a
+    // horizontal line, which reads as a stall or a bug rather than as a year in progress (I18b).
+    const months = service().run(ALL).months.slice(0, 9);
+    const actuals = months.map((m) => m.actualCents ?? 0);
+    expect(actuals).toEqual([
+      0, 15_000_000, 15_000_000, 23_520_000, 23_520_000, 38_520_000, 41_320_000, 43_520_000,
+      46_920_000,
+    ]);
+    // Never goes backwards, and moves in each of the last three months.
+    for (let i = 1; i < actuals.length; i += 1) expect(actuals[i]!).toBeGreaterThanOrEqual(actuals[i - 1]!);
+    expect(actuals[8]).toBeGreaterThan(actuals[7]!);
+    expect(actuals[7]).toBeGreaterThan(actuals[6]!);
+    expect(actuals[6]).toBeGreaterThan(actuals[5]!);
   });
 
   maybe("never books a fraction of any seeded amount", () => {

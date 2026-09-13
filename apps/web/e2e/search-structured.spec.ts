@@ -23,8 +23,9 @@ test.describe("95 Forward — NL structured-query layer (Initiative 14)", () => 
     const matches = page.locator('[data-testid="search-match"]');
     await expect(matches.first()).toBeVisible();
     await expect(matches).toContainText([HALLWORTH]);
-    // Both Hallworth (92) and Cordova (83) are over 80; the demo seeds exactly these two.
-    await expect(matches).toHaveCount(2);
+    // Four prospects clear 80 after I18b widened the portfolio: Hallworth (92), Sterling (90),
+    // Maya Abernathy (84) and Cordova (83).
+    await expect(matches).toHaveCount(4);
   });
 
   test("'Foundations with high capacity' → structured (type + capacity), foundations only", async ({
@@ -56,9 +57,16 @@ test.describe("95 Forward — NL structured-query layer (Initiative 14)", () => 
     const matches = page.locator('[data-testid="search-match"]');
     await expect(matches.first()).toBeVisible();
     const count = await matches.count();
-    // A subset, not all 8 prospects (the seed gives 2 recently-contacted) and not zero.
+    // A SUBSET is the claim — not everybody and not nobody. Measured against the live prospect
+    // count rather than a hardcoded one, so widening the portfolio again does not re-break this.
+    const total = await page.evaluate(async () => {
+      const res = await fetch("/95-forward/prospects");
+      const html = await res.text();
+      return (html.match(/data-testid="prospect-row"/g) ?? []).length;
+    });
+    expect(total).toBeGreaterThan(8);
     expect(count).toBeGreaterThanOrEqual(1);
-    expect(count).toBeLessThan(8);
+    expect(count).toBeLessThan(total);
   });
 
   test("'Strong relationship to clean water' → hybrid (relationship filter + semantic)", async ({
@@ -132,7 +140,7 @@ test.describe("95 Forward — search UI polish", () => {
 
     // #3: the count moves into the "Who this is about" heading…
     await expect(
-      page.getByRole("heading", { name: /Who this is about · 2 prospects/ }),
+      page.getByRole("heading", { name: /Who this is about · 4 prospects/ }),
     ).toBeVisible();
     // …and "What we found" is omitted for pure-structured (no retrieved evidence, no dead chip).
     await expect(page.getByRole("heading", { name: "What we found" })).toHaveCount(0);

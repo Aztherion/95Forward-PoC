@@ -11,6 +11,7 @@ import {
 } from "./schema/constituents";
 import { appeals, campaigns, funds, gifts } from "./schema/revenue";
 import type { constituentTypeEnum, giftTypeEnum } from "./schema/enums";
+import { DEMO_TODAY } from "./demo-clock";
 
 type ConstituentType = (typeof constituentTypeEnum.enumValues)[number];
 type GiftType = (typeof giftTypeEnum.enumValues)[number];
@@ -737,14 +738,21 @@ function buildInteractions(
   const types = ["call", "email", "meeting", "note"] as const;
   const rows: InteractionRow[] = [];
   for (let i = 0; i < count; i += 1) {
-    const month = 1 + Math.floor(next() * 12);
-    const day = 1 + Math.floor(next() * 27);
+    // Anchored to the demo clock, not to calendar 2025 (I18b). These were dated in a fixed past
+    // year, so as DEMO_TODAY moved forward they aged into "last contact 309d ago" on the Master
+    // Prospect List — against forward events that said 81 days for the same relationship. Host
+    // pages appear in demo screenshots; incoherent dates there undercut the whole frame.
+    // Deliberately OLDER than every forward contact (the most recent of those is four days before
+    // the anchor). A prospect's last contact is the most recent across host interactions, visits
+    // and forward events — so a randomly-placed recent host touchpoint would silently overrule the
+    // curated forward story and put the Master Prospect List back out of step with the opportunity.
+    const daysAgo = 120 + Math.floor(next() * 300);
     rows.push({
       id: stableId(`interaction:${spec.key}:${i}`),
       tenantId: refs.tenantId,
       constituentId,
       type: pick(next, types),
-      occurredAt: new Date(Date.UTC(2025, month - 1, day, 16, 0, 0)),
+      occurredAt: new Date(DEMO_TODAY.getTime() - daysAgo * 86_400_000),
       summary: `Touchpoint with ${spec.displayName} re: Everyone Forever giving.`,
       ownerUserId: owner,
     });
@@ -881,15 +889,16 @@ export async function seedRecordsCore(db: Database, tenantId: string): Promise<v
     await db.insert(interactions).values(i).onConflictDoNothing({ target: interactions.id });
   }
 
-  // Recent touchpoints (relative to seed time) for a couple of prospects, so "not contacted in N
-  // days" returns a meaningful subset rather than everyone — the historical interactions above are
-  // all dated in 2025 and drift past any recency window as time passes. Idempotent via stableId.
+  // Recent touchpoints for a couple of prospects, so "not contacted in N days" returns a meaningful
+  // subset rather than everyone. Anchored to DEMO_TODAY rather than to seed time (I18b): a floating
+  // `Date.now()` made these drift away from every forward date, which are all anchored.
   const recentlyContacted: { key: string; daysAgo: number }[] = [
     { key: "northwater", daysAgo: 12 },
     { key: "whitfield", daysAgo: 21 },
   ];
   for (const r of recentlyContacted) {
     const constituentId = stableId(`constituent:${r.key}`);
+    const occurredAt = new Date(DEMO_TODAY.getTime() - r.daysAgo * 86_400_000);
     await db
       .insert(interactions)
       .values({
@@ -897,11 +906,13 @@ export async function seedRecordsCore(db: Database, tenantId: string): Promise<v
         tenantId,
         constituentId,
         type: "call",
-        occurredAt: new Date(Date.now() - r.daysAgo * 86_400_000),
+        occurredAt,
         summary: `Recent check-in call ahead of the next ask.`,
         ownerUserId: userIds.dana,
       })
-      .onConflictDoNothing({ target: interactions.id });
+      // Update, not DoNothing: the whole point of these rows is their date, and a reseed that left
+      // an old one in place would leave the drift this change exists to remove.
+      .onConflictDoUpdate({ target: interactions.id, set: { occurredAt } });
   }
 
   for (const ct of allConstituentTags) {

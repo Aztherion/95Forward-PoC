@@ -54,8 +54,13 @@ const ALL: MetricScope = { rep: "all", initiative: "all", period: "FY26" };
 const HALLWORTH = stableId("forward-opportunity:hallworth-kamuli");
 const OSGOOD_BOLIVIA = stableId("forward-opportunity:osgood-bolivia");
 const VEGA = stableId("forward-opportunity:vega-forever-promise");
-const BELLO = stableId("forward-opportunity:bello-forever-promise");
 const CORDOVA_BOLIVIA = stableId("forward-opportunity:cordova-bolivia");
+// I18b additions that carry a rule each.
+const STERLING = stableId("forward-opportunity:sterling-kamuli");
+const SUMMIT_RIDGE = stableId("forward-opportunity:summitridge-bolivia");
+const ELLSWORTH = stableId("forward-opportunity:ellsworth-bolivia");
+const IRIS = stableId("forward-opportunity:iabernathy-forever-promise");
+const BLUE_MESA = stableId("forward-opportunity:bluemesa-unrestricted");
 
 registerBuiltInRules();
 registerRankingRules();
@@ -128,6 +133,19 @@ describe("the seeded queue", () => {
     ).toEqual([
       {
         rank: 1,
+        status: "BLOCKED",
+        health: "slowing",
+        opportunityId: STERLING,
+        amountCents: 50_000_000,
+        primary: "prospect-ahead-of-us",
+        rules: ["prospect-ahead-of-us"],
+        action: "Get the ask approved",
+        rationale:
+          "This is the biggest amount on your board and the only milestone missing is the one only you can do.",
+        impactCents: 50_000_000,
+      },
+      {
+        rank: 2,
         status: "AT RISK",
         health: "stuck",
         opportunityId: HALLWORTH,
@@ -140,7 +158,7 @@ describe("the seeded queue", () => {
         impactCents: 25_000_000,
       },
       {
-        rank: 2,
+        rank: 3,
         status: "AT RISK",
         health: "stuck",
         opportunityId: OSGOOD_BOLIVIA,
@@ -152,45 +170,53 @@ describe("the seeded queue", () => {
         impactCents: 18_000_000,
       },
       {
-        rank: 3,
-        status: "BLOCKED",
-        health: "slowing",
-        opportunityId: VEGA,
-        amountCents: 9_000_000,
-        primary: "prospect-ahead-of-us",
-        rules: [
-          "prospect-ahead-of-us",
-          "visits-without-specific-ask",
-          "visit-within-7d-unprepped",
-        ],
-        action: "Get the ask approved",
-        rationale:
-          "They have put a meeting in the diary that we are not yet internally cleared to walk into.",
-        impactCents: 9_000_000,
-      },
-      {
         rank: 4,
         status: "COLD",
         health: "slowing",
-        opportunityId: BELLO,
-        amountCents: 12_000_000,
+        opportunityId: SUMMIT_RIDGE,
+        amountCents: 28_000_000,
         primary: "partner-path-unused",
         rules: ["partner-path-unused"],
-        action: "Ask Tom Bradley to open the door",
-        rationale: "Tom Bradley (Colleague introduction) can open this door and has never been asked.",
-        impactCents: 12_000_000,
+        action: "Ask Blue Mesa Industries to open the door",
+        rationale:
+          "Blue Mesa Industries (Supplier relationship) can open this door and has never been asked.",
+        impactCents: 28_000_000,
       },
       {
         rank: 5,
+        status: "UNASKED",
+        health: "stuck",
+        opportunityId: ELLSWORTH,
+        amountCents: 15_000_000,
+        primary: "visits-without-specific-ask",
+        rules: ["visits-without-specific-ask"],
+        action: "Make the specific ask",
+        rationale: "You have been in front of them 2 times and never asked for anything specific.",
+        impactCents: 15_000_000,
+      },
+      {
+        rank: 6,
         status: "DECAYING",
         health: "slowing",
-        opportunityId: CORDOVA_BOLIVIA,
-        amountCents: 5_000_000,
+        opportunityId: IRIS,
+        amountCents: 18_000_000,
         primary: "intro-offered-unused",
         rules: ["intro-offered-unused"],
-        action: "Get the visit through Sofia Lin",
-        rationale: "Sofia Lin offered an introduction 35 days ago and it has not been used.",
-        impactCents: 5_000_000,
+        action: "Get the visit through Maya Abernathy",
+        rationale: "A warm introduction that nobody acted on is the fastest asset you own to lose.",
+        impactCents: 18_000_000,
+      },
+      {
+        rank: 7,
+        status: "CLOSING",
+        health: "moving",
+        opportunityId: BLUE_MESA,
+        amountCents: 7_500_000,
+        primary: "verbal-agreement-unwritten",
+        rules: ["verbal-agreement-unwritten"],
+        action: "Get it in writing",
+        rationale: "They agreed to the amount 30 days ago and nothing has been put in writing.",
+        impactCents: 7_500_000,
       },
     ]);
   });
@@ -204,11 +230,12 @@ describe("the seeded queue", () => {
 
   maybe("hands The Board the one fact about item #1", async () => {
     const result = await work();
-    // "Item #1 is 81 days idle." The engine returns the number; the screen writes the sentence.
+    // Item #1 is now Sterling, whose story is its date rather than its silence. The engine returns
+    // the number and its kind; the screen writes the sentence.
     expect(result.summary.topItemFact).toEqual({
-      opportunityId: HALLWORTH,
-      kind: "idle-days",
-      value: 81,
+      opportunityId: STERLING,
+      kind: "closes-in",
+      value: 28,
     });
   });
 
@@ -237,6 +264,73 @@ describe("the seeded queue", () => {
   });
 });
 
+describe("rule coverage across the seeded portfolio (I18b)", () => {
+  maybe("every one of the seven rules declares at least one card", async () => {
+    const settings = await resolveTenantSettings(db, tenantId);
+    const resolved = await resolveTenantCatalogue(db, tenantId);
+
+    // Against the FULL ranked set, not the top seven. The cut is a display limit: seven cards
+    // cannot carry seven distinct rules unless no rule ever repeats, and arranging the portfolio
+    // that way would be a fiction. What matters is that no rule's rationale is unreachable.
+    const full = dayWork({
+      snapshot,
+      scope: ALL,
+      settings,
+      clock: CLOCK,
+      resolved: resolved.map((entry) =>
+        entry.id === "queue-size" ? { ...entry, values: { items: 50 } } : entry,
+      ),
+    });
+
+    const primaries = new Set(full.queue.map((item) => item.primaryRuleId));
+    for (const ruleId of RANKING_RULE_IDS) {
+      expect(primaries.has(ruleId), `${ruleId} never declares a card`).toBe(true);
+    }
+    expect(full.queue.length).toBe(16);
+  });
+
+  maybe("six of the seven are visible above the default cut", async () => {
+    const result = await work();
+    const primaries = new Set(result.queue.map((item) => item.primaryRuleId));
+    // `visit-within-7d-unprepped` sits at #8. It is the seventh because Hallworth and Osgood both
+    // carry `live-ask-silence` and neither may be quietened — Hallworth is the narrative record and
+    // Osgood's past close date is a Fix-first pathology.
+    expect(primaries.size).toBe(6);
+    expect(primaries.has("visit-within-7d-unprepped")).toBe(false);
+  });
+
+  maybe("at least three distinct cards carry a computed superlative", async () => {
+    const result = await work();
+    const superlatives = result.queue.filter(
+      (item) =>
+        item.rationale.includes("largest live ask") ||
+        item.rationale.includes("gone silent longest") ||
+        item.rationale.includes("biggest amount on your board") ||
+        item.rationale.includes("fastest asset you own to lose"),
+    );
+    expect(superlatives.length).toBeGreaterThanOrEqual(3);
+    // ...and on DIFFERENT records, or the coaching reads thin.
+    expect(new Set(superlatives.map((i) => i.opportunityId)).size).toBe(superlatives.length);
+  });
+
+  maybe("Hallworth keeps both of its superlatives", async () => {
+    const result = await work();
+    const hallworth = result.queue.find((i) => i.opportunityId === HALLWORTH)!;
+    expect(hallworth.rationale).toContain("The largest live ask in your portfolio");
+    expect(hallworth.rationale).toContain("gone silent longest");
+  });
+
+  maybe("keeps Fix first short enough to be worth the detour", async () => {
+    const result = await work();
+    // The block's persuasive claim is that it is a quick, worthwhile detour. A fifteen-item list is
+    // a backlog and gets skipped, so the count must NOT grow with the portfolio.
+    expect(result.fixFirst.length).toBeGreaterThanOrEqual(3);
+    expect(result.fixFirst.length).toBeLessThanOrEqual(5);
+    const totalSeconds = result.fixFirst.reduce((sum, f) => sum + f.effortSeconds, 0);
+    expect(totalSeconds).toBeLessThanOrEqual(300);
+  });
+});
+
 describe("below the cut", () => {
   maybe("ties to the full portfolio: ranked plus remainder is everything that fires", async () => {
     const result = await work();
@@ -255,17 +349,22 @@ describe("below the cut", () => {
     });
 
     expect(narrowed.queue).toHaveLength(1);
-    expect(narrowed.belowCut.count).toBe(result.queue.length - 1);
-    const remainderCents = result.queue.slice(1).reduce((sum, i) => sum + i.impactCents, 0);
-    expect(narrowed.belowCut.cents).toBe(remainderCents);
+    // 16 opportunities fire at least one rule; with a cut of one, fifteen sit below it.
+    expect(narrowed.belowCut.count).toBe(15);
+    expect(narrowed.queue[0]!.opportunityId).toBe(result.queue[0]!.opportunityId);
   });
 
   maybe("answers whether the remainder changes this week's number", async () => {
     const result = await work();
-    // Everything fits above the cut on this seed, so the remainder is empty and cannot move it.
-    expect(result.belowCut.count).toBe(0);
-    expect(result.belowCut.cents).toBe(0);
-    expect(result.belowCut.changesTheNumber).toBe(false);
+    // Nine ranked opportunities sit below a cut of seven, carrying $540,000 of impact between them.
+    expect(result.belowCut.count).toBe(9);
+    expect(result.belowCut.cents).toBe(54_000_000);
+
+    // TRUE, and computed rather than arranged (I18b). The weekly requirement is $331,493, and the
+    // remainder is worth more than that — so the designed footer "none of them change this week's
+    // number" is NOT true of this portfolio, and I25 must render what this returns rather than the
+    // line from the mock. That is the whole reason this is a computed claim and not a caption.
+    expect(result.belowCut.changesTheNumber).toBe(true);
   });
 });
 
@@ -302,21 +401,22 @@ describe("catalogue integration", () => {
 
   maybe("changing a multiplier reorders the queue", async () => {
     const before = await work();
-    const beforeRank = (id: string) => before.queue.find((i) => i.opportunityId === id)!.rank;
-    expect(beforeRank(BELLO)).toBe(4);
-    expect(beforeRank(VEGA)).toBe(3);
+    const rankOf = (result: Awaited<ReturnType<typeof work>>, id: string) =>
+      result.queue.find((i) => i.opportunityId === id)?.rank ?? null;
 
-    // The spread is deliberately narrow so IMPACT DOMINATES: even at the catalogue's maximum of 5,
-    // Bello's $120,000 does not overtake Hallworth's $250,000 at 2.0 with urgency behind it. What it
-    // does do is move Bello past Vega, which is the honest thing a weight change should be able to do.
+    expect(rankOf(before, SUMMIT_RIDGE)).toBe(4);
+    expect(rankOf(before, STERLING)).toBe(1);
+
+    // IMPACT DOMINATES, and this is the proof: even at the catalogue's MAXIMUM weight of 5 — nearly
+    // three times `prospect-ahead-of-us` — Summit Ridge's $280,000 still does not overtake
+    // Sterling's $500,000. A weight decides between comparable opportunities; it does not let a
+    // small problem of an urgent kind beat a large one of a calm kind.
     await updateRule(db, tenantId, "partner-path-unused", { parameterValues: { multiplier: 5 } });
     const after = await work();
-    const afterRank = (id: string) => after.queue.find((i) => i.opportunityId === id)!.rank;
 
-    expect(afterRank(BELLO)).toBe(3);
-    expect(afterRank(VEGA)).toBe(4);
-    expect(after.queue.find((i) => i.opportunityId === BELLO)!.multiplier).toBe(5);
-    expect(after.queue[0]!.opportunityId).toBe(HALLWORTH);
+    expect(rankOf(after, SUMMIT_RIDGE)).toBe(2);
+    expect(after.queue[1]!.multiplier).toBe(5);
+    expect(rankOf(after, STERLING)).toBe(1);
   });
 
   maybe("disabling a rule removes its items and its rationale", async () => {
@@ -343,13 +443,13 @@ describe("catalogue integration", () => {
     expect(before.queue.some((i) => i.opportunityId === OSGOOD_BOLIVIA)).toBe(true);
 
     // Osgood-Bolivia is 20 days quiet at visit_and_ask. Relax that stage past 20 and it stops
-    // being a silence problem — but ONLY that stage: Hallworth is follow_up_and_close.
+    // being a silence problem — but ONLY that stage: Hallworth is follow_up_and_close and stays.
     await updateRule(db, tenantId, "live-ask-silence", {
       parameterValues: { "cadence.visit_and_ask": 45 },
     });
     const after = await work();
     expect(after.queue.some((i) => i.opportunityId === OSGOOD_BOLIVIA)).toBe(false);
-    expect(after.queue[0]!.opportunityId).toBe(HALLWORTH);
+    expect(after.queue.some((i) => i.opportunityId === HALLWORTH)).toBe(true);
   });
 });
 
@@ -386,7 +486,8 @@ describe("pin and dismiss", () => {
 
     const result = await work();
     expect(result.queue.some((i) => i.opportunityId === HALLWORTH)).toBe(false);
-    expect(result.queue[0]!.opportunityId).toBe(OSGOOD_BOLIVIA);
+    // The cut pulls one more item up from below rather than leaving a hole.
+    expect(result.queue).toHaveLength(7);
 
     const events = await db
       .select()
