@@ -5,11 +5,11 @@ import {
   listProposedRules,
   listRuleChanges,
   listRuleGoals,
+  loadMetricsSnapshot,
   proposeRule,
   reorderRuleGoals,
   resetRule,
   resolveTenantCatalogue,
-  resolveTenantSettings,
   rulesVersion,
   updateRule,
   withTenant,
@@ -24,19 +24,24 @@ import {
   checkScope,
   enabledCheckDefinitions,
   firingFor,
+  RANKING_RULE_IDS,
   registerBuiltInRules,
+  registerRankingRules,
+  settingsFromCatalogue,
   type CatalogueCategory,
   type FiringResult,
   type MetricScope,
   type ResolvedEntry,
 } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
-import { demoClock, loadForwardSnapshot } from "@/server/data/forward-context";
+import { demoClock } from "@/server/data/forward-context";
 
 // The catalogue registry is module-global and populated by import side effect. Calling this on every
 // entry point is intentional and cheap: Next.js can tear down and rebuild a server module between
 // requests, and a half-registered catalogue would render an editor missing rules rather than fail.
 registerBuiltInRules();
+// I23 registers the seven ranking rules, so /rules lists and explains them like any other.
+registerRankingRules();
 
 export interface RuleGroup {
   readonly category: CatalogueCategory;
@@ -57,23 +62,38 @@ export interface RulesPageData {
 const SCOPE: MetricScope = { rep: "all", initiative: "all", period: "FY26" };
 
 export async function getRulesPageData(tenantId: string): Promise<RulesPageData> {
-  const [resolved, goals, proposals, changes, version] = await withTenant(
+  // ONE tenant transaction for everything the page needs.
+  //
+  // This used to be three — catalogue, then settings, then the snapshot — and each `withTenant` is
+  // a round trip that opens a transaction and sets the tenant GUC. I23 made the snapshot heavier
+  // (events, visits and partners for the ranking rules), and three serial trips was enough to put
+  // the page over a Playwright navigation timeout under load. One trip is also simply correct:
+  // three reads of the same tenant taken at three moments can disagree with each other.
+  const { resolved, goals, proposals, changes, version, settings, snapshot } = await withTenant(
     getAppDb(),
     tenantId,
-    async (tx) =>
-      Promise.all([
+    async (tx) => {
+      const [resolved, goals, proposals, changes, version, snapshot] = await Promise.all([
         resolveTenantCatalogue(tx, tenantId),
         listRuleGoals(tx, tenantId),
         listProposedRules(tx, tenantId),
         listRuleChanges(tx, tenantId, { limit: 12 }),
         rulesVersion(tx, tenantId),
-      ]),
+        loadMetricsSnapshot(tx, tenantId, { now: demoClock().now() }),
+      ]);
+      return {
+        resolved,
+        goals,
+        proposals,
+        changes,
+        version,
+        snapshot,
+        // Derived from `resolved`, so it costs nothing and cannot disagree with it.
+        settings: settingsFromCatalogue(resolved),
+      };
+    },
   );
 
-  const settings = await withTenant(getAppDb(), tenantId, (tx) =>
-    resolveTenantSettings(tx, tenantId),
-  );
-  const snapshot = await loadForwardSnapshot(tenantId);
   const clock = demoClock();
 
   // ONE run of the SAME engine the Fix-first block uses, grouped by rule — not one run per rule.
@@ -94,6 +114,21 @@ export async function getRulesPageData(tenantId: string): Promise<RulesPageData>
   }
   for (const finding of findings) {
     firingCounts[finding.ruleId] = (firingCounts[finding.ruleId] ?? 0) + 1;
+  }
+
+  // I23's ranking rules are not consistency checks, so `checkScope` never returns them and the
+  // loop above would leave every one of them reading "Firing on 0" — a page lying about its own
+  // rules. They go through `firingFor`, which is the same registered predicate the detail page
+  // and the queue use, so the three cannot disagree.
+  for (const entry of resolved) {
+    if (entry.kind !== "rule" || !RANKING_RULE_IDS.includes(entry.id as never)) continue;
+    firingCounts[entry.id] = firingFor(entry.id, {
+      snapshot,
+      scope: SCOPE,
+      settings,
+      clock,
+      resolved,
+    }).count;
   }
 
   const byCategory = new Map<CatalogueCategory, ResolvedEntry[]>();
@@ -131,20 +166,20 @@ export async function getRuleDetail(
   tenantId: string,
   ruleId: string,
 ): Promise<RuleDetailData | null> {
-  const [resolved, changes] = await withTenant(getAppDb(), tenantId, async (tx) =>
-    Promise.all([
+  // One transaction, for the same reasons as above.
+  const { resolved, changes, snapshot } = await withTenant(getAppDb(), tenantId, async (tx) => {
+    const [resolved, changes, snapshot] = await Promise.all([
       resolveTenantCatalogue(tx, tenantId),
       listRuleChanges(tx, tenantId, { ruleId, limit: 50 }),
-    ]),
-  );
+      loadMetricsSnapshot(tx, tenantId, { now: demoClock().now() }),
+    ]);
+    return { resolved, changes, snapshot };
+  });
 
   const entry = resolved.find((e) => e.id === ruleId);
   if (!entry) return null;
 
-  const settings = await withTenant(getAppDb(), tenantId, (tx) =>
-    resolveTenantSettings(tx, tenantId),
-  );
-  const snapshot = await loadForwardSnapshot(tenantId);
+  const settings = settingsFromCatalogue(resolved);
 
   const firing = firingFor(ruleId, {
     snapshot,
