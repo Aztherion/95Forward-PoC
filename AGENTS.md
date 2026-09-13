@@ -97,9 +97,10 @@ wait hangs until it times out.
 **Why.** The assertion after a click carries Playwright's 5-second default, and the round trip it
 races is action → database → `revalidatePath` → flight response → re-render. Unloaded that fits
 easily; under `fullyParallel` with two workers against one shared database — how the suite actually
-runs — it sometimes does not, and the spec fails on timing rather than behaviour. H3 found this at
-**53 sites across 16 files**, including three separately-invented private helpers that had already
-begun to drift apart.
+runs — it sometimes does not, and the spec fails on timing rather than behaviour. H3 audited every
+click in the suite and applied this at **52 sites across 16 files**, including three
+separately-invented private helpers that had already begun to drift apart. A 53rd candidate turned
+out not to be a server action at all; see the exemptions below.
 
 **It is inline rather than a shared helper, deliberately.** Playwright's loader cannot resolve a
 relative import from a spec in this repo — the app's tsconfig sets `moduleResolution: "Bundler"` for
