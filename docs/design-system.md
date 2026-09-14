@@ -1124,3 +1124,73 @@ Do not add one that only pretends.
 **The grounding warning** (`.f95-draft__warn`) is advisory and never blocks. A human reads the draft
 before it goes anywhere, and a false positive that blocks the flow is worse than one that annotates
 it.
+
+---
+
+## 12. The Opportunities grid (I29)
+
+### 12.1 No new dependency, and why
+
+I17 found this app has no component library: hand-written CSS over custom properties, with
+`lucide-react` the only UI runtime dependency until Recharts was added as a stated exception. The
+grid was the next obvious place to add one — TanStack Table was the standing recommendation — and
+it was not added. **Bundle impact: zero.**
+
+The reason is not frugality. Look at what a headless table library actually provides here:
+
+| It gives you               | This screen needs                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Client-side sorting        | Sorting **in the URL**, so a sorted view is a link — server-side                                                                     |
+| Client-side filtering      | Same: filters travel in the query string                                                                                             |
+| Grouping with aggregation  | Subtotals from the **metrics service's own predicates** — client-side aggregation is precisely the naive sum this screen must not do |
+| Column visibility, pinning | Two sticky columns, four lines of CSS                                                                                                |
+| Virtualisation             | 34 rows                                                                                                                              |
+| Inline editing             | Not provided — you build it                                                                                                          |
+| Keyboard navigation        | Not provided — you build it                                                                                                          |
+
+Every feature it brings is one this screen must not use, and both features this screen actually
+needs it does not have. `DataTable` was not extended either: it is a presentational table with
+URL sorting, and bending it to carry a roving tabindex, per-cell editors and portalled popovers
+would have left every other caller paying for a grid. `components/grid/` is a sibling, and
+`DataTable` is untouched.
+
+### 12.2 Structure
+
+`OpportunityGrid` renders one `<table role="grid">` with a `<tbody>` per group. `GridCell` is one
+editable cell; derived cells are inline and carry `aria-readonly="true"`.
+
+- **Roving tabindex.** Exactly one cell is tabbable, so the grid is one tab stop rather than a
+  hundred and forty. Arrows move, `Home`/`End` jump along a row, `Enter` or `F2` opens the editor,
+  `Enter` commits, `Escape` cancels and returns focus **to the cell** — never to `<body>`.
+- **A select commits on change.** Picking an option is the decision; making someone then press
+  Enter is a second step for nothing. Text and date inputs commit on Enter or blur.
+- **Test ids are the COLUMN key**, not the field name (`cell-amount`, not `cell-amountCents`), so
+  editable and derived cells are addressed the same way.
+
+### 12.3 Two things the scroll container broke
+
+`.f95-grid-wrap` is `overflow: auto` — it has to be, with seventeen columns — and that clips any
+absolutely-positioned child.
+
+- **The close-date question was invisible.** The popover carrying the prospect-sourced checkbox
+  was clipped while the date input above it worked perfectly, so the one guard that must not be
+  skippable simply was not on screen. It is now **portalled to `document.body`** and positioned
+  from the cell's rect, re-measured on scroll and resize.
+- **A cell error is positioned the same way** and stays until dismissed or superseded.
+
+If you add any other overlay inside this container, portal it.
+
+### 12.4 Cell vocabulary
+
+- `.f95-grid__pencil` — a 4px dot in the header marks an editable column. Eight of seventeen
+  headers carrying the word "editable" would be noise.
+- `.f95-grid__moves` — `×3` inside the close-date cell, amber (`--health-slowing-surface`) when
+  **every** move was ours, neutral when the prospect drove one.
+- `.f95-grid__dot` — the milestone strip. Fill carries confirmed, shape carries source: a filled
+  disc for they-said, a ring for we-said, reusing `MilestoneBadge`'s channel (§10.5) rather than
+  inventing a second one.
+- `.f95-grid__hot` — silence of 30 days or more, in the stuck colour.
+
+**Tokens only.** `css-contract.test.ts` catches an invented custom property and catches a `var()`
+fallback on a real token; this section's first draft tripped both, eighteen times, with names like
+`--status-danger-border` that do not exist. Read `tokens/colors.css`, do not guess.

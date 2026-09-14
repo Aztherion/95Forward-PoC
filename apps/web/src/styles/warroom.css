@@ -1497,3 +1497,416 @@ a.f95-rulechip:focus-visible {
   font: var(--fw-semibold) var(--fs-caption) / 1.4 var(--font-sans);
   color: var(--health-moving-text);
 }
+
+/* ---------------------------------------------------------------------------------------------
+   The Opportunities grid (I29)
+
+   A data grid, not a spreadsheet. Every visual decision here follows from that: no gridlines
+   everywhere (a table is not a ledger sheet), an editable cell marked by an affordance rather
+   than by a border, and a sticky rank + prospect pair so the horizontal scroll never loses you.
+   --------------------------------------------------------------------------------------------- */
+
+.f95-opps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+.f95-opps__header {
+  margin-bottom: 0;
+}
+.f95-opps__empty {
+  margin: 0;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font: var(--text-body-r);
+  color: var(--text-muted);
+}
+
+/* -- The control bar. One row, wrapping, so it costs ~40px of the vertical budget. ------------ */
+.f95-gridbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+}
+.f95-gridbar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.f95-gridbar__field--check {
+  gap: 5px;
+  font: var(--text-caption);
+  color: var(--text-body);
+  cursor: pointer;
+}
+.f95-gridbar__label {
+  font: var(--text-label);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.f95-gridbar__select {
+  font: var(--text-caption);
+  color: var(--text-strong);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  max-width: 160px;
+}
+.f95-gridbar__select:hover {
+  border-color: var(--border-strong);
+}
+.f95-gridbar__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 8px;
+  font: var(--text-caption);
+  color: var(--text-body);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.f95-gridbar__clear:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+/* -- The grid itself. ------------------------------------------------------------------------- */
+.f95-grid-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  /* The one place the page scrolls. Capped so the reconciliation line in the header stays put
+     and the rows scroll under it rather than the whole page moving. */
+  max-height: calc(100vh - 260px);
+}
+.f95-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  font: var(--text-caption);
+}
+
+.f95-grid__th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  text-align: left;
+  padding: 7px 8px;
+  font: var(--text-label);
+  color: var(--text-muted);
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+}
+.f95-grid__sortlink {
+  color: inherit;
+  text-decoration: none;
+}
+.f95-grid__sortlink:hover {
+  color: var(--text-strong);
+  text-decoration: underline;
+}
+.f95-grid__th[aria-sort="ascending"] .f95-grid__sortlink::after {
+  content: " ↑";
+}
+.f95-grid__th[aria-sort="descending"] .f95-grid__sortlink::after {
+  content: " ↓";
+}
+/* The editable-column marker. A dot, not the word "editable": eight of seventeen headers would
+   otherwise carry the same noise. */
+.f95-grid__pencil {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--accent-go);
+}
+
+.f95-grid__cell {
+  position: relative;
+  padding: 5px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-hairline);
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f95-grid__cell--num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.f95-grid tbody tr:hover .f95-grid__cell {
+  background: var(--surface-sunk);
+}
+
+/* Sticky rank + prospect. The horizontal scroll is the price of seventeen columns; losing track
+   of which row you are on would be the price of not paying it. */
+.f95-grid__sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface-card);
+}
+.f95-grid__th.f95-grid__sticky {
+  z-index: 4;
+  background: var(--surface-sunk);
+}
+.f95-grid__sticky:not(.f95-grid__sticky--rank) {
+  left: 52px;
+  box-shadow: 1px 0 0 var(--border-hairline);
+}
+.f95-grid tbody tr:hover .f95-grid__sticky {
+  background: var(--surface-sunk);
+}
+
+/* -- Editable cells. -------------------------------------------------------------------------- */
+.f95-grid__cell--edit {
+  cursor: text;
+  color: var(--text-strong);
+}
+.f95-grid__cell--edit:hover {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.f95-grid__cell--edit:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.f95-grid__cell--edit.is-saving .f95-grid__value {
+  opacity: 0.55;
+}
+.f95-grid__cell--edit.is-error {
+  box-shadow: inset 0 0 0 1px var(--health-stuck-border);
+}
+.f95-grid__editor {
+  position: relative;
+}
+.f95-grid__input {
+  width: 100%;
+  font: var(--text-caption);
+  color: var(--text-strong);
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+}
+
+/* The close date's question, in a popover under the cell. It is I26's control, not a new one. */
+/* Portalled to <body>, so it is positioned in viewport coordinates. See GridCell. */
+.f95-grid__ask {
+  position: fixed;
+  z-index: 60;
+  width: 250px;
+  padding: var(--space-2);
+  white-space: normal;
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+.f95-grid__asklabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font: var(--text-caption);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+.f95-grid__askhint {
+  margin-top: 4px;
+  font: var(--text-caption);
+  color: var(--text-muted);
+}
+.f95-grid__askrow {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+.f95-grid__ok,
+.f95-grid__cancel {
+  font: var(--text-caption);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-body);
+}
+.f95-grid__ok {
+  background: var(--accent-go);
+  border-color: transparent;
+  color: var(--text-on-accent);
+}
+
+/* The inline error. It stays until dismissed or superseded — a silent revert is how a rep learns
+   the tool loses their work. */
+.f95-grid__err {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 240px;
+  padding: 3px 7px;
+  font: var(--text-caption);
+  text-align: left;
+  white-space: normal;
+  color: var(--health-stuck-text);
+  background: var(--health-stuck-surface);
+  border: 1px solid var(--health-stuck-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* -- Cell contents. --------------------------------------------------------------------------- */
+.f95-grid__rank {
+  font: var(--text-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.f95-grid__name {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.f95-grid__namerow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.f95-grid__nametext {
+  font: var(--fw-semibold) var(--fs-caption) / 1.25 var(--font-sans);
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f95-grid__name:hover .f95-grid__nametext {
+  text-decoration: underline;
+}
+/* The status sentence, one line, clipped. It is the same verdict The Board gives. */
+.f95-grid__status {
+  display: block;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f95-grid__init {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.f95-grid__moves {
+  margin-left: 5px;
+  padding: 0 4px;
+  font: var(--text-label);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+}
+/* Every move made by us is the suspicious case, and the one the slipping panel is about. */
+.f95-grid__moves.is-ours {
+  background: var(--health-slowing-surface);
+  color: var(--health-slowing-text);
+}
+.f95-grid__qual {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.f95-grid__qual.is-yes {
+  color: var(--text-strong);
+  font-weight: var(--fw-semibold);
+}
+.f95-grid__dots {
+  display: inline-flex;
+  gap: 2px;
+}
+/* The milestone strip. The source sheet asks for "a '.' which also turns the cell green means
+   yes. Pretty easy to see progress visually." — kept literally, with the system's own source
+   channel layered on: disc for they-said, ring for we-said (design-system.md §10.5). */
+.f95-grid__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  text-decoration: none;
+  color: var(--border-strong);
+}
+.f95-grid__dot.is-on {
+  color: var(--health-moving);
+}
+.f95-grid__dotglyph {
+  width: 10px;
+  height: 10px;
+}
+.f95-grid__next {
+  color: var(--text-body);
+}
+.f95-grid__hot {
+  color: var(--health-stuck-text);
+  font-weight: var(--fw-semibold);
+}
+.f95-grid__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--health-stuck-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Group rows. ------------------------------------------------------------------------------ */
+.f95-grid__groupth {
+  position: sticky;
+  left: 0;
+  padding: 6px 10px;
+  text-align: left;
+  background: var(--surface-sunk);
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-hairline);
+}
+.f95-grid__groupname {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--fw-semibold) var(--fs-caption) / 1.3 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-grid__groupcount {
+  margin-left: 6px;
+  padding: 0 5px;
+  font: var(--text-label);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-muted);
+}
+.f95-grid__groupsub {
+  margin-left: var(--space-3);
+  font: var(--text-caption);
+  color: var(--text-body);
+}

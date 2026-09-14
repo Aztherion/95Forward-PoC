@@ -692,6 +692,15 @@ export interface TopItemFact {
 export interface DayWorkResult {
   readonly fixFirst: readonly Finding[];
   readonly queue: readonly RankedItem[];
+  /**
+   * EVERY scored opportunity in scope, ranked, of which `queue` is the first `queue-size`.
+   *
+   * The Opportunities grid (I29) shows a rank column over the whole portfolio, not the top seven.
+   * It reads this rather than re-sorting, because the grid's central claim is that it agrees with
+   * The Board — and two sorts of the same scores are exactly how two surfaces come to disagree
+   * about which deal is #1 while both look right. `queue` is a slice of this by construction.
+   */
+  readonly ranked: readonly RankedItem[];
   readonly belowCut: BelowCut;
   readonly summary: DayWorkSummary;
 }
@@ -974,11 +983,10 @@ function finishDayWork(input: FinishInput): DayWorkResult {
     return a.opportunityId.localeCompare(b.opportunityId);
   });
 
-  const queue: RankedItem[] = scored
-    .slice(0, Math.max(0, queueSize))
-    .map((item, index) => ({ ...item, rank: index + 1 }));
+  const ranked: RankedItem[] = scored.map((item, index) => ({ ...item, rank: index + 1 }));
+  const queue: RankedItem[] = ranked.slice(0, Math.max(0, queueSize));
 
-  const remainder = scored.slice(queue.length);
+  const remainder = ranked.slice(queue.length);
   const belowCutCents = remainder.reduce((sum, item) => sum + item.impactCents, 0);
 
   const metrics = computeMetrics({ snapshot, scope, settings, clock });
@@ -987,6 +995,7 @@ function finishDayWork(input: FinishInput): DayWorkResult {
   return {
     fixFirst,
     queue,
+    ranked,
     belowCut: {
       count: remainder.length,
       cents: belowCutCents,
