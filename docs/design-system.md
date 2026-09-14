@@ -1194,3 +1194,61 @@ If you add any other overlay inside this container, portal it.
 **Tokens only.** `css-contract.test.ts` catches an invented custom property and catches a `var()`
 fallback on a real token; this section's first draft tripped both, eighteen times, with names like
 `--status-danger-border` that do not exist. Read `tokens/colors.css`, do not guess.
+
+---
+
+## 13. The what-if sandbox (I31)
+
+### 13.1 The Unknown palette, deliberately
+
+The mode uses `--unknown-surface` / `--unknown-border` / `--unknown-ink` — the tokens the system
+already uses for "we do not know this" — and **not** the AI tint. The distinction is meaningful: a
+provisional AI suggestion (`Card tone="ai"`, §10.5) is something a user might accept, and there is
+an Approve button to accept it with. A hypothesis is something nobody can accept from here,
+because no code path exists to accept it. Reusing the AI treatment would imply an affordance that
+does not exist.
+
+### 13.2 Four layers of "this is not real"
+
+Loud on purpose. If the reaction to a screenshot is "that's a bit much", that is the correct side
+to be wrong on — someone who reads what-if figures as real has been actively misled.
+
+| Layer                                   | Class                          | Survives                             |
+| --------------------------------------- | ------------------------------ | ------------------------------------ |
+| Sticky banner with count and exit       | `.f95-wibar`                   | scrolling                            |
+| Tint + dashed outline over the surface  | `.f95-whatif-on`               | a screenshot with the banner cropped |
+| Stamp on the plot                       | `.f95-wipanel__stamp`          | a screenshot cropped to the chart    |
+| Per-cell mark + struck-through baseline | `.is-whatif`, `.f95-grid__was` | a screenshot cropped to one row      |
+
+The baseline is always rendered beside the hypothesis — the ghosted curve, and the
+`was → now` metric pairs. Two numbers read as a comparison; one reads as a state.
+
+### 13.3 `ForecastChart` gained a ghosted baseline
+
+`baselineMostLikelyCents` on a point draws a thin dashed muted line **under** everything else, and
+adds a `Baseline (today)` legend key. It is a reference, not a second forecast, and must never
+compete with the line it exists to explain. Only the sandbox supplies it; every other caller is
+unchanged.
+
+**End labels now avoid collisions.** The y-domain stretches to include the goal, so when the band
+is small relative to the goal all three labels compress into the same few pixels and overprint.
+I31 made this routine rather than rare — a what-if that slips everything a quarter collapses the
+band to a fraction of the goal — so a label within 15px of an already-placed one is dropped. Most
+likely always survives; it is the line the eye follows and the one the metric panel quotes.
+
+### 13.4 The grid no longer owns its own write
+
+`OpportunityGrid` takes `onCommitCell` and imports **no server action at all**. This is structural
+rather than tidiness: "what-if mode writes nothing" used to be a runtime `if` inside a component
+that still imported `editGridCellAction`, which is one refactor away from being wrong. The two
+implementations now live apart, and `no-write-path.test.ts` asserts the grid imports neither.
+
+Milestone dots become `<button aria-pressed>` when `onToggleMilestone` is supplied, and stay links
+to I26's checklist otherwise — confirming for real needs `confirmedBy`, `prospectSourced` and
+evidence, and a grid checkbox would walk past that guard.
+
+### 13.5 Overlays inside `.f95-grid-wrap` must be portalled
+
+The grid scrolls (`overflow: auto`), which clips absolutely-positioned children. I29 hit this with
+the close-date question and fixed it with a portal; if you add another overlay in there, do the
+same. The what-if panel sits **outside** the scroll container for the same reason.

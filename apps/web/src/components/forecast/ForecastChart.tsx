@@ -28,6 +28,13 @@ export interface ForecastPoint {
   mostLikelyCents?: number | null;
   bestCents?: number | null;
   worstCents?: number | null;
+  /**
+   * The baseline's most-likely, ghosted behind the live one (I31).
+   *
+   * Only the what-if sandbox supplies it. Two lines together are the whole visual argument there:
+   * without the baseline you can see a curve but not what your change did to it.
+   */
+  baselineMostLikelyCents?: number | null;
 }
 
 export interface ForecastChartProps {
@@ -46,6 +53,7 @@ interface Row {
   t: number;
   actual: number | null;
   mostLikely: number | null;
+  baseline: number | null;
   band: [number, number] | null;
 }
 
@@ -123,12 +131,17 @@ export function ForecastChart({
     t: toTime(point.date),
     actual: point.actualCents ?? null,
     mostLikely: point.mostLikelyCents ?? null,
+    baseline: point.baselineMostLikelyCents ?? null,
     band:
       typeof point.worstCents === "number" && typeof point.bestCents === "number"
         ? [point.worstCents, point.bestCents]
         : null,
   }));
 
+  const hasBaseline = points.some(
+    (p) =>
+      typeof p.baselineMostLikelyCents === "number" && Number.isFinite(p.baselineMostLikelyCents),
+  );
   const best = lastDefined(points, "bestCents");
   const mostLikely = lastDefined(points, "mostLikelyCents");
   const worst = lastDefined(points, "worstCents");
@@ -143,18 +156,49 @@ export function ForecastChart({
     worst,
   ]);
 
-  const endLabels: { key: string; value: number; text: string; strong: boolean }[] = [];
+  const candidateLabels: { key: string; value: number; text: string; strong: boolean }[] = [];
   if (best !== null)
-    endLabels.push({ key: "best", value: best, text: `BEST ${bestText}`, strong: false });
+    candidateLabels.push({ key: "best", value: best, text: `BEST ${bestText}`, strong: false });
   if (mostLikely !== null)
-    endLabels.push({
+    candidateLabels.push({
       key: "most-likely",
       value: mostLikely,
       text: `MOST LIKELY ${mostLikelyText}`,
       strong: true,
     });
   if (worst !== null)
-    endLabels.push({ key: "worst", value: worst, text: `WORST ${worstText}`, strong: false });
+    candidateLabels.push({ key: "worst", value: worst, text: `WORST ${worstText}`, strong: false });
+
+  /**
+   * Drop an end label that would sit on top of another one.
+   *
+   * The y-domain stretches to include the goal, so when the band is small relative to the goal
+   * the three labels compress into the same few pixels and overprint each other. I31 made this
+   * routine rather than rare: a what-if that slips everything a quarter collapses the band to a
+   * fraction of the goal, and BEST/MOST LIKELY/WORST landed in a single illegible smear at the
+   * exact moment the chart most needed to be read.
+   *
+   * Most likely always survives — it is the line the eye follows and the one the metric panel
+   * quotes.
+   */
+  const domainTop = Math.max(
+    goalCents === null ? 0 : goalCents * 1.04,
+    ...points.map((p) =>
+      Math.max(p.bestCents ?? 0, p.actualCents ?? 0, p.baselineMostLikelyCents ?? 0),
+    ),
+    1,
+  );
+  const MIN_LABEL_GAP_PX = 15;
+  const placed: number[] = [];
+  const endLabels = candidateLabels
+    .slice()
+    .sort((a, b) => Number(b.strong) - Number(a.strong))
+    .filter((label) => {
+      const y = (label.value / domainTop) * height;
+      if (placed.some((other) => Math.abs(other - y) < MIN_LABEL_GAP_PX)) return false;
+      placed.push(y);
+      return true;
+    });
 
   const legend = (
     <div className="f95-forecast__legend">
@@ -186,6 +230,12 @@ export function ForecastChart({
         <span className="f95-forecast__swatch f95-forecast__swatch--goal" aria-hidden />
         Goal
       </span>
+      {hasBaseline ? (
+        <span className="f95-forecast__key" data-testid="legend-baseline">
+          <span className="f95-forecast__swatch f95-forecast__swatch--baseline" aria-hidden />
+          Baseline (today)
+        </span>
+      ) : null}
     </div>
   );
 
@@ -251,6 +301,19 @@ export function ForecastChart({
               isAnimationActive={false}
               activeDot={false}
             />
+            {/* The baseline ghost, under everything: dashed, thin, muted. It is a reference, not
+                a second forecast, and it must never compete with the line it is there to explain. */}
+            {hasBaseline ? (
+              <Line
+                dataKey="baseline"
+                stroke={tokens.label}
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            ) : null}
             <Line
               dataKey="mostLikely"
               stroke={tokens.mostLikely}

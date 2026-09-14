@@ -53,6 +53,15 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** The grid, in what-if mode, scoped to this tab. Pending changes never travel in a URL — only
+ *  the invitation to start does. */
+function whatIfHref(initiative: string, preset?: string): string {
+  const params = new URLSearchParams({ whatif: "1" });
+  if (initiative !== "all") params.set("initiative", initiative);
+  if (preset) params.set("preset", preset);
+  return `/95-forward/opportunities?${params.toString()}`;
+}
+
 /**
  * The Monday-meeting screen.
  *
@@ -280,6 +289,32 @@ export default async function ForecastPage({
                     }))}
                   />
                 ) : null}
+
+                {/* The door to I31's sandbox.
+                    This is where the question arises and the grid is where it gets answered:
+                    a what-if needs editing — many rows, eight fields, validation, the close-date
+                    guard — and that exists only on the grid. Building a second editing surface
+                    here would duplicate I29 for no gain. The link carries the selected tab, so
+                    "what if we did this to Kamuli" opens already scoped to Kamuli.
+                    `Qualify the best-case asks` above is one instance of this, with a preset. */}
+                <div className="f95-fc__whatif">
+                  <Link
+                    href={whatIfHref(activeTab.initiative)}
+                    className="f95-fc__whatiflink"
+                    data-testid="forecast-whatif"
+                  >
+                    Explore a what-if for {activeTab.label} →
+                  </Link>
+                  {bestOnlyIds.length > 0 ? (
+                    <Link
+                      href={whatIfHref(activeTab.initiative, "qualify-best-only")}
+                      className="f95-fc__whatiflink f95-fc__whatiflink--preset"
+                      data-testid="forecast-whatif-qualify"
+                    >
+                      …or try qualifying those {bestOnlyIds.length} now
+                    </Link>
+                  ) : null}
+                </div>
               </div>
             </Card>
 

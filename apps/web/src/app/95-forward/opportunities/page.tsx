@@ -1,5 +1,5 @@
 import { Topbar } from "@/components/shell";
-import { OpportunityGrid, type GridColumnSpec } from "@/components/grid";
+import type { GridColumnSpec } from "@/components/grid";
 import {
   isGridGroupBy,
   isGridSortField,
@@ -15,6 +15,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getGridView } from "@/server/data/opportunity-grid";
 import { groupCountLine, reconciliationLine } from "./grid-copy";
 import { GridControls } from "./GridControls";
+import { GridWorkspace } from "./GridWorkspace";
+import { isPresetId } from "./what-if-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -186,7 +188,7 @@ export default async function OpportunitiesPage({
             Nothing matches that filter. Clear it to see the portfolio again.
           </p>
         ) : (
-          <OpportunityGrid
+          <GridWorkspace
             groups={view.groups}
             columns={COLUMNS}
             initiativeOptions={view.initiatives.map((i) => ({ value: i.value, label: i.label }))}
@@ -196,6 +198,16 @@ export default async function OpportunitiesPage({
             sortHrefs={sortHrefs}
             sort={{ field: view.sort.field, dir: view.sort.dir }}
             grouped={groupBy !== "none"}
+            scope={{ rep: view.scope.rep, initiative: view.scope.initiative }}
+            // The Forecast Room's door lands here in what-if mode, carrying the tab it came from
+            // as scope. The flag is only an ENTRY point — pending changes never live in the URL,
+            // which is what keeps the sandbox unable to leak into another route.
+            initialWhatIf={first(raw.whatif) === "1"}
+            initialPreset={
+              first(raw.preset) && isPresetId(first(raw.preset)!)
+                ? (first(raw.preset) as never)
+                : null
+            }
           />
         )}
       </div>

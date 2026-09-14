@@ -245,7 +245,23 @@ export function simulate(input: SimulateInput): SimulationResult {
   // makes "3 of these 9 only appear in Best, $225,000 of hope" computable at all.
   const candidates = inScope.filter((o) => o.status === "open" && isPreCloseStage(o.stage));
 
-  const seed = hashString(simulationSeedInput(inScope, vintageDate, { ...sim, trialCount }));
+  // COMMON RANDOM NUMBERS. Seed from the BASELINE portfolio, never from the overridden one.
+  //
+  // This looks like a bug to anyone who has not hit the problem, so: the seed is a hash of the
+  // portfolio's state, and if an overridden run seeds from the overridden state then changing one
+  // close date changes the hash, which reshuffles every random draw in every trial. The whole
+  // curve then moves — including the parts your change could not possibly have affected — and you
+  // cannot tell what your edit did, only that something did.
+  //
+  // Seeding both runs from the same baseline gives them identical draws, so the difference
+  // between the two curves is genuinely attributable to the override. It is the standard
+  // technique for exactly this comparison (common random numbers), and it is what makes the
+  // what-if sandbox's ghosted-baseline comparison mean anything at all. It also sharpens I20's
+  // consequence quantification, which runs this with overrides for the same purpose.
+  //
+  // The baseline set is scope-filtered but NOT override-filtered.
+  const seedBasis = snapshot.opportunities.filter((o) => scopeMatches(o, scope));
+  const seed = hashString(simulationSeedInput(seedBasis, vintageDate, { ...sim, trialCount }));
   const random = mulberry32(seed);
 
   // Per-trial monthly INCREMENTS from simulated closes, plus what slipped out of the period.

@@ -42,6 +42,10 @@ export interface GridCellProps {
   /** The close date asks who chose it before it commits. */
   readonly askProspectSourced?: boolean;
   readonly title?: string;
+  /** This cell holds a hypothetical value (I31). Marked, and never quiet about it. */
+  readonly changed?: boolean;
+  /** What the record actually says, shown beside the hypothesis — the comparison is the point. */
+  readonly baseline?: string;
 }
 
 /**
@@ -74,6 +78,8 @@ export function GridCell({
   cellRef,
   askProspectSourced,
   title,
+  changed,
+  baseline,
 }: GridCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -178,6 +184,7 @@ export function GridCell({
     align === "right" ? "f95-grid__cell--num" : "",
     saving ? "is-saving" : "",
     error ? "is-error" : "",
+    changed ? "is-whatif" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -277,7 +284,17 @@ export function GridCell({
             : null}
         </div>
       ) : (
-        <span className="f95-grid__value">{display}</span>
+        <span className="f95-grid__value">
+          {display}
+          {changed && baseline !== undefined ? (
+            // The baseline, struck through, right beside the hypothesis. A changed cell that only
+            // showed the new value would be a figure with no context — and the point of the
+            // sandbox is the comparison, not the new number.
+            <span className="f95-grid__was" data-testid="cell-baseline" title={`Was ${baseline}`}>
+              {baseline}
+            </span>
+          ) : null}
+        </span>
       )}
 
       {error ? (

@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { CircleAlert } from "lucide-react";
 import type { GridEditableField, GridGroup, GridRow } from "@95forward/shared";
 import { HealthDot, InitiativeDot, ScenarioBadge } from "@/components/ds";
 import { formatCurrencyFromCents } from "@/lib/format";
-import { editGridCellAction, type GridEditState } from "@/server/actions/grid";
 import {
   CONFIDENCE_LABEL,
   CONFIDENCE_OPTIONS,
@@ -50,6 +49,30 @@ export interface OpportunityGridProps {
   readonly sortHrefs: Readonly<Record<string, string>>;
   readonly sort: { field: string; dir: "asc" | "desc" };
   readonly grouped: boolean;
+  /**
+   * What a committed cell does. Supplied by the caller; THE GRID DOES NOT KNOW.
+   *
+   * This is the structural half of I31's no-write guarantee. The grid used to call
+   * `editGridCellAction` itself, so "what-if mode writes nothing" would have been a runtime `if`
+   * inside a component that still imported the write — one refactor away from being wrong. Now
+   * the module imports no server action at all: `GridEditingHost` supplies the writing commit,
+   * the what-if workspace supplies one that only changes local state, and neither can reach the
+   * other's.
+   *
+   * Resolve with an error string to reject the edit; resolve with null to accept it.
+   */
+  readonly onCommitCell: (
+    row: GridRow,
+    field: GridEditableField,
+    value: string,
+    prospectSourced?: boolean,
+  ) => Promise<string | null>;
+  /** Cells the caller considers changed, as `opportunityId:field` — marked in the UI. */
+  readonly changedCells?: ReadonlySet<string>;
+  /** Baseline display values for changed cells, keyed the same way. The comparison is the point. */
+  readonly baselineValues?: Readonly<Record<string, string>>;
+  /** Milestone dots become togglable in what-if mode. Absent means display-only. */
+  readonly onToggleMilestone?: (row: GridRow, milestoneKey: string) => void;
 }
 
 type CellKey = `${string}:${string}`;
@@ -78,11 +101,14 @@ export function OpportunityGrid({
   sortHrefs,
   sort,
   grouped,
+  onCommitCell,
+  changedCells,
+  baselineValues,
+  onToggleMilestone,
 }: OpportunityGridProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [optimistic, setOptimistic] = useState<Record<string, string>>({});
-  const [, startTransition] = useTransition();
   const [focused, setFocused] = useState<CellKey | null>(null);
   const cells = useRef(new Map<CellKey, HTMLTableCellElement>());
 
@@ -112,30 +138,23 @@ export function OpportunityGrid({
       // value back AND says why — a silent revert is what teaches a rep the tool loses their work.
       setOptimistic((o) => ({ ...o, [key]: value }));
 
-      const formData = new FormData();
-      formData.set("opportunityId", row.opportunityId);
-      formData.set("field", field);
-      formData.set("value", value);
-      if (prospectSourced) formData.set("prospectSourced", "on");
-
-      startTransition(async () => {
-        const result: GridEditState = await editGridCellAction({}, formData);
+      void onCommitCell(row, field, value, prospectSourced).then((error) => {
         setSaving((s) => {
           const next = { ...s };
           delete next[key];
           return next;
         });
-        if (!result.ok) {
+        if (error) {
           setOptimistic((o) => {
             const next = { ...o };
             delete next[key];
             return next;
           });
-          setErrors((e) => ({ ...e, [key]: result.error ?? "That change was not saved." }));
+          setErrors((e) => ({ ...e, [key]: error }));
         }
       });
     },
-    [],
+    [onCommitCell],
   );
 
   /**
@@ -389,6 +408,8 @@ export function OpportunityGrid({
                             return next;
                           })
                         }
+                        changed={changedCells?.has(key) ?? false}
+                        baseline={baselineValues?.[key]}
                         tabbable={focused === null ? key === firstCell : focused === key}
                         onFocus={() => setFocused(key)}
                         onKeyDown={(event) => move(event, row.opportunityId, col.field!)}
@@ -400,7 +421,13 @@ export function OpportunityGrid({
                     );
                   }
                   return (
-                    <ReadOnlyCell key={col.key} col={col} row={row} milestoneKeys={milestoneKeys} />
+                    <ReadOnlyCell
+                      key={col.key}
+                      col={col}
+                      row={row}
+                      milestoneKeys={milestoneKeys}
+                      onToggleMilestone={onToggleMilestone}
+                    />
                   );
                 })}
               </tr>
@@ -423,10 +450,12 @@ function ReadOnlyCell({
   col,
   row,
   milestoneKeys,
+  onToggleMilestone,
 }: {
   col: GridColumnSpec;
   row: GridRow;
   milestoneKeys: readonly { key: string; label: string }[];
+  onToggleMilestone?: (row: GridRow, milestoneKey: string) => void;
 }) {
   const cls = [
     "f95-grid__cell",
@@ -478,34 +507,55 @@ function ReadOnlyCell({
             const hit = row.milestones.find((x) => x.key === m.key);
             const on = !!hit?.confirmed;
             const theySaid = hit?.source === "they_said";
+            // Disc for they-said, ring for we-said — the system's existing channel, kept so a
+            // confirmed we-said dot cannot be misread as the prospect having said it. Fill
+            // carries confirmed; colour carries it too, which is the "turns green means yes"
+            // the source sheet asks for.
+            const glyph = (
+              <svg viewBox="0 0 10 10" aria-hidden="true" className="f95-grid__dotglyph">
+                <circle
+                  cx="5"
+                  cy="5"
+                  r={theySaid ? 4 : 3.4}
+                  fill={theySaid && on ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth={theySaid && on ? 0 : 1.6}
+                />
+              </svg>
+            );
+            const title = `${m.label} — ${on ? "confirmed" : "not confirmed"}${
+              theySaid ? " (they said)" : " (we said)"
+            }`;
+
+            // Togglable ONLY in what-if mode, and even then only hypothetically. Confirming for
+            // real requires confirmedBy, prospectSourced and evidence, and I26 rejects a
+            // they-said claim with nobody named — a grid checkbox would walk past that guard, so
+            // the normal-mode dot is a link to the checklist rather than a control.
+            if (onToggleMilestone) {
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  className={`f95-grid__dot f95-grid__dot--toggle${on ? " is-on" : ""}`}
+                  title={`${title} · click to try it`}
+                  aria-label={`${m.label}: ${on ? "confirmed" : "not confirmed"}. Toggle hypothetically.`}
+                  aria-pressed={on}
+                  onClick={() => onToggleMilestone(row, m.key)}
+                  data-testid={`milestone-toggle-${m.key}`}
+                >
+                  {glyph}
+                </button>
+              );
+            }
             return (
               <Link
                 key={m.key}
-                // Confirming requires confirmedBy, prospectSourced and evidence, and I26 rejects a
-                // they-said claim with nobody named. A grid checkbox would walk straight past that
-                // guard, and the guard is the product's central claim — so this links to the
-                // checklist rather than pretending to be one.
                 href={`/95-forward/opportunities/${row.opportunityId}#milestones`}
                 className={`f95-grid__dot${on ? " is-on" : ""}`}
-                title={`${m.label} — ${on ? "confirmed" : "not confirmed"}${
-                  theySaid ? " (they said)" : " (we said)"
-                }`}
+                title={title}
                 aria-label={`${m.label}: ${on ? "confirmed" : "not confirmed"}`}
               >
-                {/* Disc for they-said, ring for we-said — the system's existing channel, kept so a
-                    confirmed we-said dot cannot be misread as the prospect having said it. Fill
-                    carries confirmed; colour carries it too, which is the "turns green means yes"
-                    the source sheet asks for. */}
-                <svg viewBox="0 0 10 10" aria-hidden="true" className="f95-grid__dotglyph">
-                  <circle
-                    cx="5"
-                    cy="5"
-                    r={theySaid ? 4 : 3.4}
-                    fill={theySaid && on ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth={theySaid && on ? 0 : 1.6}
-                  />
-                </svg>
+                {glyph}
               </Link>
             );
           })}
