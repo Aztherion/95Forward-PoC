@@ -15,6 +15,8 @@ interface InitiativeSpec {
   // I18: a categorical SLOT key for the initiative dot. Deliberately not a hex value and not tied
   // to the initiative's name — the palette that maps slot -> colour is defined by I17b.
   colourKey: string;
+  // The label a tab can carry. See the schema comment; the full name is the fallback (I28).
+  shortName: string;
   // "Unrestricted" is an ordinary initiative with restricted = false, not a special case.
   restricted: boolean;
   fiscalPeriod: string;
@@ -26,6 +28,7 @@ interface InitiativeSpec {
 const INITIATIVES: InitiativeSpec[] = [
   {
     key: "kamuli",
+    shortName: "Kamuli 2026",
     colourKey: "initiative-1",
     restricted: true,
     fiscalPeriod: "FY26",
@@ -39,6 +42,7 @@ const INITIATIVES: InitiativeSpec[] = [
   },
   {
     key: "bolivia",
+    shortName: "Bolivia Scale-Up",
     colourKey: "initiative-2",
     restricted: true,
     fiscalPeriod: "FY26",
@@ -52,6 +56,7 @@ const INITIATIVES: InitiativeSpec[] = [
   },
   {
     key: "forever-promise",
+    shortName: "Forever Promise",
     colourKey: "initiative-3",
     restricted: true,
     fiscalPeriod: "FY26",
@@ -65,6 +70,7 @@ const INITIATIVES: InitiativeSpec[] = [
   },
   {
     key: "unrestricted",
+    shortName: "Unrestricted",
     colourKey: "initiative-4",
     // Modelled as an ordinary initiative so every opportunity has an initiative and the Forecast
     // Room's initiative tabs need no special case for it.
@@ -107,6 +113,7 @@ export async function seedFundingInitiatives(db: Database, tenantId: string): Pr
         timelineStart: i.timelineStart,
         timelineEnd: i.timelineEnd,
         colourKey: i.colourKey,
+        shortName: i.shortName,
         restricted: i.restricted,
         fiscalPeriod: i.fiscalPeriod,
       })
@@ -120,6 +127,7 @@ export async function seedFundingInitiatives(db: Database, tenantId: string): Pr
           timelineStart: i.timelineStart,
           timelineEnd: i.timelineEnd,
           colourKey: i.colourKey,
+          shortName: i.shortName,
           restricted: i.restricted,
           fiscalPeriod: i.fiscalPeriod,
         },

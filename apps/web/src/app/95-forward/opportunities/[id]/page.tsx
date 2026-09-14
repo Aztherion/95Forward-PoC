@@ -34,6 +34,7 @@ import {
   timelineSentence,
   verdictHeadline,
 } from "./detail-copy";
+import { DraftPanel } from "@/components/drafts/DraftPanel";
 import { MilestoneList } from "./MilestoneList";
 import { ChangeAmount, LogWhatHappened, MoveCloseDate } from "./RecordActions";
 
@@ -193,13 +194,19 @@ export default async function OpportunityDetailPage({
                 `Nothing is firing on this one. The stage says what happens next: ${action.label.toLowerCase()}.`}
             </p>
             <div className="f95-cluster">
-              <Button href="/95-forward/board" variant="go" size="sm">
-                {action.label}
-              </Button>
               {ranked ? <RuleChip ruleId={ranked.primaryRuleId} /> : null}
             </div>
           </Card>
         </div>
+
+        {/* The drafted artifact for this record's next action (I28). Server-rendered with whatever
+            is already on the record, so a reload shows the version the rep was working on. */}
+        <DraftPanel
+          opportunityId={opportunity.id}
+          kind={action.kind}
+          prospectName={facts.prospectName}
+          initial={detail.draft}
+        />
 
         <MilestoneList
           opportunityId={opportunity.id}

@@ -25,6 +25,33 @@ When fixing a bug, change the **least** code needed to fix exactly what was repo
 - Prefer following an existing pattern in a sibling file over inventing a new one.
 - One bug → one focused change → one PR.
 
+## The clock is injected — never compare a timestamp against wall clock
+
+This demo runs at a fixed "today": `DEMO_TODAY` = **2026-09-12T12:00:00Z**. Services take a clock
+(`fixedClock` / `systemClock`) and every write stamps rows with it. Never call `new Date()` in a
+service, and — the part that keeps biting — **never compare a stored timestamp against `now()`**.
+
+Because seeded and written rows sit at 2026-09-12, they are in the **past** relative to the real
+wall clock by roughly the gap between that date and today. Anything phrased as "recent", "within the
+last hour", "not yet expired" silently inverts:
+
+```sql
+-- WRONG. Matches nothing: every row this codebase writes is already "older" than an hour.
+delete from opportunity_events where occurred_at > now() - interval '1 hour';
+
+-- Right. The anchor the writes actually used.
+delete from opportunity_events where occurred_at = timestamptz '2026-09-12T12:00:00Z';
+```
+
+I26 shipped exactly the first form as a spec cleanup, so the cleanup **deleted nothing** and two
+close-date moves leaked into every later test in the file; the stage board then read "pushed 5×"
+against three seeded moves. It took I27's arithmetic to notice, because a cleanup that silently
+does nothing looks identical to a cleanup that worked.
+
+The rule generalises past SQL: **cleanup filters, TTLs, cache expiry, "is this stale?" checks and
+"recent activity" queries are all wrong if they read the wall clock.** Compare against the injected
+clock, or against the anchor constant, and never against `Date.now()` or `now()`.
+
 ## Do NOT touch (the safety boundary)
 
 These areas are load-bearing for correctness and trust. Do not modify them while fixing a routine
@@ -167,6 +194,12 @@ means "works in the live demo." Never weaken a mock or a seam just to make a tes
 
 - Two pre-existing ESLint warnings, 0 errors: `apps/web/.../Avatar.tsx` (`<img>` vs `next/image`)
   and an unused `ctx` in `packages/db/src/forward-checks.test.ts` (from I18b).
+- **`pnpm test` run AFTER `pnpm test:e2e` fails one db test.** `seed.test.ts` ("seeds logged hours
+  that roll up per volunteer and per opportunity") expects 18 hours and finds 21.5 — the extra 3.5
+  are what `volunteers.spec.ts` logs through the UI. `seed()` is idempotent for counts but does not
+  remove rows the e2e suite added, so the unit suite reads a mutated database. Not a regression, and
+  not something to "fix" by loosening the assertion: reset first —
+  `ALLOW_DESTRUCTIVE_RESET=true pnpm --filter @95forward/db reset --confirm` — and it passes.
 - Benign webpack "Critical dependency" warnings from `graphile-worker` / `@auth0/nextjs-auth0`.
 - The `constituents.spec.ts` ("saves a view") and `prospect-overview.spec.ts` ("adds a natural
   partner") flakes were two instances of one class: mutate through a server action, then assert or

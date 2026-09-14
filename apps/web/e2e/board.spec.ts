@@ -175,17 +175,25 @@ test.describe("The Board", () => {
     expect(inert !== material, `below-cut rendered neither or both branches: ${text}`).toBe(true);
   });
 
-  test("the primary action names the artifact and does not pretend to be one", async ({ page }) => {
+  test("the primary action opens the real drafter, in place", async ({ page }) => {
+    // I25 put an honest placeholder here — "Drafting arrives in I28" — precisely so that a
+    // plausible-looking draft in a screenshot could not be read as working software. I28 built it,
+    // so the placeholder is gone and this asserts the thing itself. Generation and completion are
+    // covered in drafts.spec.ts; what matters here is that the action opens it WITHOUT leaving the
+    // board.
     await page.goto(BOARD);
     const card = page.locator('[data-testid="queue-card"]').first();
+    const url = page.url();
     await card.locator('[data-testid="primary-action"]').click();
 
-    const panel = card.locator('[data-testid="draft-placeholder"]');
+    const panel = card.locator('[data-testid="draft-panel"]');
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText("Not built yet");
-    await expect(panel).toContainText("will draft");
-    // A plausible-looking draft in a screenshot is read as working software.
-    await expect(panel).toContainText("Drafting arrives in I28");
+    await expect(panel).toHaveAttribute("data-kind", /.+/);
+    await expect(panel.locator('[data-testid="draft-generate"]')).toBeVisible();
+    expect(page.url()).toBe(url);
+
+    await expect(page.locator('[data-testid="draft-placeholder"]')).toHaveCount(0);
+    await expect(panel).not.toContainText("Not built yet");
   });
 
   test("a card action under the job tray is still clickable", async ({ page }) => {

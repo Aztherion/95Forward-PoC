@@ -14,3 +14,4 @@ export * from "./jobs/draft-follow-up";
 export * from "./jobs/discovery-prospects";
 export * from "./jobs/task-list";
 export * from "./extraction";
+export * from "./drafting";

@@ -227,6 +227,55 @@ test.describe("The Forecast Room", () => {
     ).toBeVisible();
   });
 
+  // I28 fold-in 1. The tabs used to carry the initiative's full fundraising name — "Everyone in
+  // Kamuli — Uganda 2026" — which truncated to nothing useful and made a tab unclickable by label.
+  // `short_name` carries a designed label instead, and falls back to the full name when absent so a
+  // tenant that has not set one still gets a tab rather than a blank.
+  test("initiative tabs carry short names, and fall back to the full name", async ({ page }) => {
+    await page.goto(ROOM);
+    const labels = await page.locator(".f95-tabnav__label").allInnerTexts();
+    expect(labels.length).toBeGreaterThan(1);
+
+    const seeded = await withDb(async (client) => {
+      const { rows } = await client.query(
+        `select name, short_name from funding_initiatives order by name`,
+      );
+      return rows as { name: string; short_name: string | null }[];
+    });
+
+    for (const row of seeded) {
+      const expected = row.short_name ?? row.name;
+      expect(labels).toContain(expected);
+      // And the long name is NOT what a tab shows when a shorter one exists. ("Unrestricted" is
+      // already short enough to be its own short name, so there is nothing to replace there.)
+      if (row.short_name && row.short_name !== row.name) expect(labels).not.toContain(row.name);
+    }
+
+    // Short enough to read at a glance: the defect was a label nobody could tell apart.
+    for (const label of labels) expect(label.length).toBeLessThanOrEqual(24);
+
+    // The fallback is real code, not a hypothetical — prove it by removing one.
+    const victim = seeded.find((r) => r.short_name);
+    if (!victim) return;
+    await withDb(async (client) => {
+      await client.query(`update funding_initiatives set short_name = null where name = $1`, [
+        victim.name,
+      ]);
+    });
+    try {
+      await page.goto(ROOM);
+      const after = await page.locator(".f95-tabnav__label").allInnerTexts();
+      expect(after).toContain(victim.name);
+    } finally {
+      await withDb(async (client) => {
+        await client.query(`update funding_initiatives set short_name = $2 where name = $1`, [
+          victim.name,
+          victim.short_name,
+        ]);
+      });
+    }
+  });
+
   test("a tab re-scopes the entire view", async ({ page }) => {
     const { withGoal } = await initiativeIds();
     await page.goto(ROOM);

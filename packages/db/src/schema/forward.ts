@@ -111,6 +111,53 @@ export const milestoneDefinitions = pgTable(
   ],
 );
 
+/**
+ * A drafted artifact, and the record of what the human did with it (Initiative 28).
+ *
+ * Robb's one hard technical condition: every generated draft and every human edit is logged. Not as
+ * an audit chore — as the evidence that a person worked WITH the AI rather than rubber-stamping it,
+ * which he named as both a requirement and a selling point.
+ *
+ * Both bodies are stored: `generatedText` as the model produced it and `finalText` as the human
+ * used it. Keeping only a diff, or only the final, would lose exactly the comparison the log exists
+ * to make.
+ */
+export const opportunityDrafts = pgTable(
+  "opportunity_drafts",
+  {
+    ...primaryId,
+    ...tenantScoped,
+    opportunityId: uuid("opportunity_id")
+      .notNull()
+      .references(() => forwardOpportunities.id, { onDelete: "cascade" }),
+    /** The NextActionKind this was drafted for. */
+    kind: text("kind").notNull(),
+    /** Who the artifact is addressed to — the prospect, a connector, or internal. */
+    audience: text("audience").notNull(),
+    subject: text("subject"),
+    /** As the model produced it. Never overwritten, including on regenerate. */
+    generatedText: text("generated_text").notNull(),
+    /** As the human used it. Equal to generatedText until they edit. */
+    finalText: text("final_text").notNull(),
+    edited: boolean("edited").notNull().default(false),
+    /** How much was changed, 0-100. A flag alone cannot tell a nudge from a rewrite. */
+    editedPercent: integer("edited_percent").notNull().default(0),
+    regeneratedCount: integer("regenerated_count").notNull().default(0),
+    /** Set when the rep marks the action done — which is what drives the completion semantics. */
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorName: text("actor_name"),
+    /** mock | live — so a demo can tell a fixture draft from a generated one. */
+    provider: text("provider").notNull().default("mock"),
+    ...timestamps,
+  },
+  (table) => [
+    index("opportunity_drafts_tenant_id_idx").on(table.tenantId),
+    index("opportunity_drafts_opportunity_id_idx").on(table.opportunityId),
+    unique("opportunity_drafts_unique_kind").on(table.tenantId, table.opportunityId, table.kind),
+  ],
+);
+
 /** Per-opportunity milestone state. Absence of a row means "not confirmed". */
 export const opportunityMilestones = pgTable(
   "opportunity_milestones",
