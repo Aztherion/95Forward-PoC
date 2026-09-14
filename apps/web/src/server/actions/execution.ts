@@ -128,7 +128,7 @@ export async function markFollowUpDoneAction(formData: FormData): Promise<void> 
   if (!parsed.success) return;
   await markFollowUpDone(user.tenantId, parsed.data.followUpTaskId);
   if (typeof prospectId === "string") revalidateProspect(prospectId);
-  revalidatePath("/95-forward/today");
+  revalidatePath("/95-forward/board");
   revalidatePath("/95-forward/green-sheet");
 }
 

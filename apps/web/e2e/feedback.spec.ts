@@ -28,7 +28,9 @@ test.describe("in-app feedback widget (mock mode)", () => {
       .getByLabel("Where in the app?")
       .selectOption("Prospect record (QPI / Knowledge Base / Strategy / Visits)");
     await modal.getByLabel("Where were you testing?").selectOption("Local dev");
-    await modal.getByLabel("How bad is it? (your best guess)").selectOption("Low — cosmetic / minor");
+    await modal
+      .getByLabel("How bad is it? (your best guess)")
+      .selectOption("Low — cosmetic / minor");
 
     await Promise.all([
       page.waitForResponse((r) => r.request().method() === "POST"),

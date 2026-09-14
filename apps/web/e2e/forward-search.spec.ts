@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 
 const SEARCH = "/95-forward/search";
-const TODAY = "/95-forward/today";
 const HALLWORTH = "The Hallworth Family Foundation";
 
 test.describe("95 Forward — natural-language search", () => {
@@ -37,34 +36,5 @@ test.describe("95 Forward — natural-language search", () => {
     await expect(page.locator('[data-testid="search-match"]')).toHaveCount(0);
     await expect(page.getByText("No matched prospects")).toBeVisible();
     await expect(page.getByText("Unknown — worth researching").first()).toBeVisible();
-  });
-});
-
-test.describe("95 Forward — Today", () => {
-  test("leads with the QPI-priority next-right-moves section", async ({ page }) => {
-    await page.goto(TODAY);
-    await expect(page.locator('[data-testid="today"]')).toBeVisible();
-    await expect(page.locator(".f95-page__count")).toContainText("next right move");
-    await expect(page.getByRole("heading", { name: "Your next right moves" })).toBeVisible();
-  });
-
-  test("scopes the portfolio between Me and Team", async ({ page }) => {
-    await page.goto(TODAY);
-    await expect(page.getByRole("tab", { name: "Me" })).toBeVisible();
-    await page.getByRole("tab", { name: "Team" }).click();
-    await page.waitForURL(/scope=team/);
-    await expect(page.locator(".f95-page__count")).toContainText("team's prospects");
-  });
-
-  test("renders later-feed sections as hooks and empty-states without faking data", async ({
-    page,
-  }) => {
-    await page.goto(TODAY);
-    await expect(page.getByRole("heading", { name: "Follow-ups due" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Today's visits" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "From your copilot" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Coverage nudge" })).toBeVisible();
-    await expect(page.getByText("No follow-ups due yet")).toBeVisible();
-    await expect(page.getByText("No visits scheduled")).toBeVisible();
   });
 });

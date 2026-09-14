@@ -43,7 +43,7 @@ export async function findIntroductionsAction(formData: FormData): Promise<void>
   });
   await enqueueDiscovery(user.tenantId, user.id, discoveryTaskId);
   revalidatePath(CANDIDATES_PATH);
-  revalidatePath("/95-forward/today");
+  revalidatePath("/95-forward/board");
 }
 
 export async function decideCandidateAction(formData: FormData): Promise<void> {

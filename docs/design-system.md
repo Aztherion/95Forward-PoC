@@ -167,17 +167,17 @@ refactor rather than a fix.
 
 ### Role map
 
-| Role               | Declaration                                                                 | Where                                                                                            |
-| ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Page title         | `--text-h1` + `--ls-snug`                                                   | `.f95-page__title` (`ds-data.css:451`)                                                           |
-| Section heading    | `--text-h3`                                                                 | `.f95-section-title` (`ds-data.css:645`)                                                         |
-| Eyebrow / overline | `600 / 11px / 1`, `--ls-caps`, uppercase, `--reg-eyebrow` or `--text-muted` | 5 near-identical rules — §8.4                                                                    |
-| Table header       | `600 / 12px / 1.2`, `--ls-snug`, `--text-secondary`                         | `.f95-table thead th` (`ds-data.css:15-25`)                                                      |
-| Table cell         | `--text-body-r`                                                             | `.f95-table` (`ds-data.css:9-14`)                                                                |
-| Stat value         | `600 / 21px / 1.1`, tabular                                                 | `.f95-stat__value` (`ds-data.css:516-520`)                                                       |
-| Big number         | `800 (heavy)`, `--ls-tight`, tabular                                        | `.f95-qpi__num` 64px · `.f95-foil__value` 32px · `.f95-prow__rank .n` / `.f95-prow__qpi .v` 26px |
-| Serif moment       | 400 serif, `--ls-snug`                                                      | `.f95-visit__ask` 40px · `.f95-visit__prompt` 32px · `.f95-visit__q` 28px                        |
-| Monospace          | `500 / 11px` or `13px`                                                      | `.f95-src`, `.f95-qpi__pscore`, `.f95-prov__from/__to`, `.f95-weight__max`                       |
+| Role               | Declaration                                               | Where                                                                                            |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Page title         | `--text-h1` + `--ls-snug`                                 | `.f95-page__title` (`ds-data.css:451`)                                                           |
+| Section heading    | `--text-h3`                                               | `.f95-section-title` (`ds-data.css:645`)                                                         |
+| Eyebrow / overline | `600 / 11px / 1`, `--ls-caps`, uppercase, `--reg-eyebrow` | **One rule** since I25, in `tokens/typography.css` (§10.8)                                       |
+| Table header       | `600 / 12px / 1.2`, `--ls-snug`, `--text-secondary`       | `.f95-table thead th` (`ds-data.css:15-25`)                                                      |
+| Table cell         | `--text-body-r`                                           | `.f95-table` (`ds-data.css:9-14`)                                                                |
+| Stat value         | `600 / 21px / 1.1`, tabular                               | `.f95-stat__value` (`ds-data.css:516-520`)                                                       |
+| Big number         | `800 (heavy)`, `--ls-tight`, tabular                      | `.f95-qpi__num` 64px · `.f95-foil__value` 32px · `.f95-prow__rank .n` / `.f95-prow__qpi .v` 26px |
+| Serif moment       | 400 serif, `--ls-snug`                                    | `.f95-visit__ask` 40px · `.f95-visit__prompt` 32px · `.f95-visit__q` 28px                        |
+| Monospace          | `500 / 11px` or `13px`                                    | `.f95-src`, `.f95-qpi__pscore`, `.f95-prov__from/__to`, `.f95-weight__max`                       |
 
 **Monospace is 11px or 13px everywhere** — there is still no mono role at body or label size.
 Mono + `text-transform: uppercase` had **no rule anywhere** until I17b, which added exactly two, both
@@ -300,13 +300,13 @@ the `Mark` SVG instead of a lucide icon.
 their header from `.f95-page__header` markup instead. See §8.4.
 
 ```tsx
-// apps/web/src/app/95-forward/today/page.tsx:86-97
-<Topbar title="Today" subtitle="95 Forward" />
-<div className="f95-page" data-testid="today">
+// apps/web/src/app/95-forward/board/page.tsx
+<Topbar title="The Board" subtitle="95 Forward" />
+<div className="f95-page f95-board" data-testid="board">
   <div className="f95-page__header">
     <div className="f95-page__heading">
-      <div className="f95-page__eyebrow">95 Forward</div>
-      <h1 className="f95-page__title">Today</h1>
+      <div className="f95-page__eyebrow">95 Forward · SATURDAY 12 SEPTEMBER</div>
+      <h1 className="f95-page__title">The Board</h1>
       <p className="f95-page__count">…</p>
 ```
 
@@ -327,7 +327,7 @@ their header from `.f95-page__header` markup instead. See §8.4.
 | `interactive` | bool                                               | Pointer + `shadow-md` + 1px lift. 1 use                                               |
 
 ```tsx
-// apps/web/src/app/95-forward/today/page.tsx:30
+// apps/web/src/app/95-forward/prospects/page.tsx
 <Card tone="go" accent pad="lg">
 ```
 
@@ -348,13 +348,27 @@ URL-driven** (`buildHref`), never client state. Pair with `Pagination` (3 uses).
 
 ### 5.4 List rows — all class-only, none is a component
 
-| Pattern                                                    | Where                 | Uses                                                                |
-| ---------------------------------------------------------- | --------------------- | ------------------------------------------------------------------- |
-| `.f95-itemrow` (+`__body`/`__title`/`__meta`/`__actions`)  | `ds-data.css:609-640` | 27 rows / 21 files                                                  |
-| `.f95-stat` (+`__label`/`__value`/`__sub`)                 | `ds-data.css:506-524` | 25 / 11 files — 4 competing compositions (§8.4)                     |
-| `.f95-deflist__item` (+`__term`/`__desc`)                  | `ds-data.css:563-590` | 18; the `DefItem` renderer is re-declared verbatim in 3 route files |
-| `.f95-prow` — ranked prospect row, 3px `--_tier` left rail | `ds.css:873-935`      | 2 screens, composed differently (§8.4)                              |
-| `.f95-mg-stage__head` — `count · total` stage summary      | `ds-data.css:742-757` | 1 screen                                                            |
+| Pattern                                                    | Where                 | Uses                                                                            |
+| ---------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `.f95-itemrow` (+`__body`/`__title`/`__meta`/`__actions`)  | `ds-data.css:609-640` | 27 rows / 21 files                                                              |
+| `.f95-stat` (+`__label`/`__value`/`__sub`)                 | `ds-data.css:506-524` | 25 / 11 files — 4 competing compositions (§8.4). **Settled by I25 — see below** |
+| `.f95-deflist__item` (+`__term`/`__desc`)                  | `ds-data.css:563-590` | 18; the `DefItem` renderer is re-declared verbatim in 3 route files             |
+| `.f95-prow` — ranked prospect row, 3px `--_tier` left rail | `ds.css:873-935`      | 2 screens, composed differently (§8.4)                                          |
+| `.f95-mg-stage__head` — `count · total` stage summary      | `ds-data.css:742-757` | 1 screen                                                                        |
+
+**The stat-block composition, settled (I25).** Four arrangements were live and none was canonical:
+bare tiles in `.f95-statgrid`, `Card`-wrapped tiles in `.f95-tilegrid`, `Card`-wrapped in
+`.f95-statgrid`, and `Card`-wrapped in no grid at all. The Board's metric block is the most
+prominent stat composition in the product, so it picks one and it is the rule going forward:
+
+> **One `Card` wraps the whole block; the tiles sit bare inside one `.f95-statgrid`.**
+> Never wrap each tile in its own `Card` — a grid of cards reads as four unrelated facts rather than
+> one figure and its supporting arithmetic. Never use `.f95-tilegrid` for stats: its 220px track is
+> sized for content tiles, and stats want `.f95-statgrid`'s 150px.
+
+The Board adds one dominant tile above the grid (I17b's `Metric dominant`, 52px) and the monospace
+basis line below it. The 25 existing `.f95-stat` occurrences are **not** refactored — that is a
+separate cleanup — but nothing new should add a fifth arrangement.
 
 ### 5.5 Buttons — `ds/Button.tsx`, `ds.css:1-120` — 209 uses / 78 files
 
@@ -692,11 +706,13 @@ variant with more call sites, not the better one.
 18. **Three page-header treatments coexist** (`.f95-page__header` 33 uses, `.f95-record-head` 10,
     `Topbar` 14) — and **12 pages render two `<h1>` elements**, one from `Topbar` and one from the
     page body.
-19. **Five eyebrow treatments, two byte-identical.** `.f95-page__eyebrow` and
-    `.f95-fieldgroup__legend` share all four declarations plus margin; `.page-placeholder__eyebrow`
-    differs only in margin; `.f95-visit__eyebrow` swaps the colour. The token-layer utility
-    `.f95-overline` has **0 uses**, and a sixth name `f95-eyebrow` is applied in TSX with no rule at
-    all.
+19. ~~**Five eyebrow treatments, two byte-identical**~~ — **consolidated in I25.** The treatment is
+    declared once in `tokens/typography.css`; `.f95-page__eyebrow`, `.f95-fieldgroup__legend`,
+    `.page-placeholder__eyebrow` and `.f95-visit__eyebrow` now declare **only** the margin or colour
+    that was ever different between them, each in its own file. `.f95-eyebrow` — the sixth name,
+    previously applied in TSX with no rule behind it — is the base, and carries no margin, which is
+    what made `.f95-page__eyebrow` unusable inline. `.f95-overline` resolves to the same rule.
+    `.f95-eyebrow--quiet` is the muted variant. See §10.8.
 20. **The URL-param `update()` helper is re-implemented in 7 filter components and they disagree** —
     3 call `next.delete("page")` to reset pagination, 4 do not.
 21. **The `.f95-prow` prospect row is hand-written on two screens with different composition** — MPL
@@ -722,8 +738,11 @@ variant with more call sites, not the better one.
     `.f95-mpl__pillgroup`, `.f95-mpl__pillgroup-label`, `.f95-visit__amount`, `.f95-visit__phasenav`.
 27. **BEM elements outliving their block.** `.f95-recordbar` has 0 uses but `.f95-recordbar__spacer`
     has 20 — and 5 of those sit inside a **column** flex container where `flex: 1` does nothing.
-    `.f95-deflist__desc--empty` is used **41 times across 27 files, every one standalone** with no
-    `.f95-deflist` parent — it has become the generic muted-text utility.
+    `.f95-deflist__desc--empty` was used **41 times across 27 files, every one standalone** with no
+    `.f95-deflist` parent — it had become the generic muted-text utility because there was not one.
+    **I25 created `.f95-muted`** and resolved both names to the same rule, so those 41 sites
+    converge without editing 27 files and new screens have something honest to reach for (§10.8).
+    The 41 call sites themselves are not renamed — that is a separate cleanup.
     `.f95-table__cell-link` has **79 occurrences, only 1 inside `DataTable`** — 39 pair it with
     `.f95-cluster` as an undocumented breadcrumb back-link.
 28. **Dead component API**: `QpiBreakdown` is exported but has no call sites outside `QpiScore`;
@@ -966,3 +985,29 @@ answer are about context: does the amber read as amber against a card on this ba
 uppercase mono chip legible, does a 52px headline still read as dominant beside a 264px sidebar. The
 forecast chart there runs the **real simulation over the real seed**, because feeding it invented
 data would verify the chart against itself rather than against the shape I21 emits.
+
+### 10.8 Three consolidations (I25)
+
+I17b escalated these into I25 because each is one rule, and each would otherwise have been
+multiplied by three new screens.
+
+**The stat block.** Settled — see §5.4. One `Card` wraps the block; tiles sit bare inside one
+`.f95-statgrid`. The Board runs it horizontally: the dominant figure on the left, the three
+subordinate ones stacked beside it, which is what the design shows and what the vertical budget can
+afford.
+
+**The eyebrow.** One rule, in `tokens/typography.css`, listing every consumer:
+
+```css
+.f95-eyebrow, .f95-overline, .f95-page__eyebrow,
+.f95-fieldgroup__legend, .page-placeholder__eyebrow, .f95-visit__eyebrow { … }
+```
+
+`.f95-eyebrow` is the base and carries **no margin**, so it works inline — the margin on
+`.f95-page__eyebrow` was the whole reason a sixth name got invented. The block contexts keep their
+own `margin-bottom` and nothing else; `.f95-eyebrow--quiet` (and Visit mode) step back to
+`--text-muted`.
+
+**Muted text.** `.f95-muted` — colour only, so it composes with whatever type the line already has.
+`.f95-deflist__desc--empty` resolves to the same rule, which converges its 41 standalone uses
+without touching 27 files.

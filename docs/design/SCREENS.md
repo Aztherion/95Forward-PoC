@@ -2,7 +2,7 @@
 
 Build-facing spec for the three redesigned screens. Companion to the Claude Design export and screenshots in this folder.
 
-**Status:** design closed, not yet built. These screens replace the prospect-centric PoC screens.
+**Status:** design closed. **Screen 1 (The Board) is built — I25.** Screens 2 and 3 follow in I26 and I27. These screens replace the prospect-centric PoC screens, which are deleted rather than parked.
 
 ---
 
@@ -70,7 +70,12 @@ Every displayed number is either **stored** (a field on an entity) or **computed
 
 ## Screen 1 — The Board
 
-**Route:** landing screen for 95 Forward. Replaces the old prospect-centric dashboard, which is **deleted, not parked**.
+**Route:** `/95-forward/board`, the landing screen for 95 Forward. Replaces the old prospect-centric dashboard, **deleted in I25**, not parked.
+
+> **Built in I25.** Two places where the built screen differs from the drawing, both recorded here so a later reader does not "fix" them back:
+>
+> - **The rule chip carries the identifier alone** — `RULE · live-ask-silence`, not `RULE · live-ask-silence > 30d`. The compact threshold expression in the design is a plug: the ranking rules' parameters are a six-entry per-stage cadence table plus a multiplier, so there is no single number to render. The catalogue's `statement` is the rule's *prose*, which wraps to three lines inside a chip and stops being one — so it appears in `Why it ranks here` instead, where prose belongs.
+> - **The primary button names the artifact, not the move.** `nextAction.label` names the move ("Get the ask approved"); the button says what it will produce ("Send for approval"). Using the label for both printed the same sentence on the card twice.
 
 **Purpose:** what to do next, by name, ranked. Not a dashboard. A user should be able to act on item #1 within seconds of landing and understand why it is #1 without asking.
 

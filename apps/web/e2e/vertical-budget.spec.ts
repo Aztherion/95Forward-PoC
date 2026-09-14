@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-// I24 — measure the vertical cost of the Keystone shell, so I25 builds The Board against a real
-// number rather than against the standalone designs, which did not account for host chrome.
+// I24 measured the vertical cost of the Keystone shell so that I25 could build The Board against a
+// real number rather than against the standalone designs, which did not account for host chrome.
 //
-// This is a MEASUREMENT, not a gate. It asserts only that the chrome has not silently ballooned;
-// the numbers it prints are the deliverable.
+// I25 turned it into a GATE. The Board exists now, so the constraint can be asserted on the real
+// thing instead of estimated from analogues: item #1 of the queue must be visible without scrolling
+// at 1280x800, not merely at 1440x900. The printed numbers stay, because when this fails the
+// question is always "which block grew".
 
 const VIEWPORTS = [
   { name: "1440x900", width: 1440, height: 900 },
@@ -33,14 +35,16 @@ test.describe("vertical budget for The Board", () => {
           viewportHeight: window.innerHeight,
           topbar: box(".shell-topbar"),
           content: box(".shell-content"),
-          placeholder: box(".page-placeholder"),
-          pagePaddingTop: style(".page-placeholder", "padding-top"),
+          // The Board is a real page now, so this measures it rather than the placeholder that
+          // stood in for it while I24 ran.
+          pageBox: box(".f95-board"),
+          pagePaddingTop: style(".f95-board", "padding-top"),
           sidebarWidth: box(".shell-sidebar")?.height ?? null,
         };
       });
 
       const chrome = metrics.topbar?.height ?? 0;
-      const contentTop = metrics.placeholder?.top ?? metrics.content?.top ?? 0;
+      const contentTop = metrics.pageBox?.top ?? metrics.content?.top ?? 0;
       const remaining = metrics.viewportHeight - contentTop;
 
       console.log(
@@ -54,74 +58,52 @@ test.describe("vertical budget for The Board", () => {
       expect(remaining, "content height below chrome").toBeGreaterThan(600);
     });
 
-    test(`component costs at ${viewport.name}`, async ({ page }) => {
+    test(`item #1 clears the fold at ${viewport.name}`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto("/95-forward/board");
+      await expect(page.locator('[data-testid="board"]')).toBeVisible();
 
-      // The Board does not exist yet, so measure the REAL components it will be built from rather
-      // than guessing off the standalone designs. Each of these is already in the design system and
-      // already rendering somewhere.
-      const measure = async (url: string, selector: string) => {
-        await page.goto(url);
-        const el = page.locator(selector).first();
-        await expect(el).toBeVisible();
-        return el.evaluate((node) => {
-          const rect = node.getBoundingClientRect();
-          const style = getComputedStyle(node);
-          return {
-            height: Math.round(rect.height),
-            marginBottom: Math.round(parseFloat(style.marginBottom) || 0),
-          };
-        });
-      };
-
-      // Header: eyebrow + h1 + one descriptive line. The Board's header is this plus a scope toggle
-      // on the same row, so it costs the same vertically.
-      const header = await measure("/constituents", ".f95-page__header");
-      // Metric block: one dominant figure plus supporting tiles.
-      const statRow = await measure("/95-forward/green-sheet", ".f95-statgrid, .f95-tilegrid");
-      // A "Fix first" row: statement plus a monospace consequence/effort meta line. The closest
-      // thing already built is a rule row on /rules — same two-line composition.
-      const fixRow = await measure("/rules", ".f95-rule");
-      // A section heading ("Fix first", "Then the money").
-      const sectionTitle = await measure("/95-forward/green-sheet", ".f95-section-title");
-      // Gap between the stacked blocks inside .f95-page.
-      const pageGap = await page.evaluate(() => {
-        const el = document.querySelector(".f95-page");
-        return el ? Math.round(parseFloat(getComputedStyle(el).rowGap) || 0) : 0;
+      const m = await page.evaluate(() => {
+        const box = (selector: string) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), height: Math.round(r.height) };
+        };
+        const page_ = document.querySelector(".f95-board");
+        return {
+          viewportHeight: window.innerHeight,
+          topbar: box(".shell-topbar"),
+          header: box(".f95-page__header"),
+          metrics: box('[data-testid="board-metrics"]'),
+          fixFirst: box('[data-testid="fix-first"]'),
+          queueHead: box(".f95-board__sectionhead"),
+          itemOne: box('[data-rank="1"]'),
+          padTop: page_ ? getComputedStyle(page_).paddingTop : null,
+          gap: page_ ? getComputedStyle(page_).rowGap : null,
+        };
       });
 
-      const headerBlock = header.height;
-      const metricBlock = statRow.height;
-      const fixFirst = sectionTitle.height + fixRow.height * 3;
-      const thenTheMoney = sectionTitle.height;
-      const gaps = pageGap * 4;
-      const aboveItemOne = headerBlock + metricBlock + fixFirst + thenTheMoney + gaps;
+      const itemOne = m.itemOne;
+      const bottom = itemOne ? itemOne.top + itemOne.height : null;
 
       console.log(
-        `[components ${viewport.name}] header=${headerBlock} metrics=${metricBlock} ` +
-          `fixFirst(title+3rows)=${fixFirst} thenTheMoneyTitle=${thenTheMoney} ` +
-          `gaps(4x${pageGap})=${gaps} TOTAL_ABOVE_ITEM_1=${aboveItemOne}`,
-      );
-      // What item #1 actually costs. The closest analogue that reliably renders is the initiative
-      // card: eyebrow row, dominant title, a figure line, a bar, and a meta line — five content
-      // rows inside a Card. A Board card carries MORE than that (rank + status label, name + type,
-      // amount + initiative chip + stage dot, action + evidence, a rationale sentence, a rule chip
-      // with close date and slippage, and three buttons), so this is a FLOOR, not an estimate.
-      const card = await measure("/95-forward/initiatives", '[data-testid="initiative-card"]');
-      const usable = viewport.height - 92 - 40;
-      const left = usable - aboveItemOne;
-
-      console.log(
-        `[verdict ${viewport.name}] contentHeight=${viewport.height - 92} ` +
-          `pagePaddingTop=40 usable=${usable} aboveItem1=${aboveItemOne} ` +
-          `leftForItem1=${left} cardFloor=${card.height} fits=${left >= card.height}`,
+        `[board ${viewport.name}] viewport=${m.viewportHeight} topbar=${m.topbar?.height} ` +
+          `padTop=${m.padTop} gap=${m.gap} header=${m.header?.height} ` +
+          `metrics=${m.metrics?.height} fixFirst=${m.fixFirst?.height ?? 0} ` +
+          `queueHead=${m.queueHead?.height} item1Top=${itemOne?.top} item1H=${itemOne?.height} ` +
+          `item1Bottom=${bottom} slack=${bottom === null ? "n/a" : m.viewportHeight - bottom}`,
       );
 
-      // The guard that matters going forward: the header block must never grow past the fold. This
-      // does NOT assert that item #1 fits — at 1280x800 it currently does not, which is the finding
-      // I24 reports rather than papers over. It asserts that the chrome and header stay inside the
-      // viewport, so a later change cannot quietly push the queue off-screen entirely.
-      expect(left, `${viewport.name}: header block overflows the fold`).toBeGreaterThan(0);
+      // THE constraint. I24 measured the original design failing this at 1280x800 by ~66px with
+      // optimistic inputs; I17b's amendments (collapsed Fix-first, 24px top padding, 12px gap) plus
+      // I25's horizontal metric block and three-column card are what buy it back. It is asserted
+      // rather than printed so that it cannot silently drift as content grows.
+      expect(itemOne, "item #1 did not render").not.toBeNull();
+      expect(
+        bottom!,
+        `${viewport.name}: item #1 is cut off — it ends at ${bottom} in a ${m.viewportHeight}px viewport`,
+      ).toBeLessThanOrEqual(m.viewportHeight);
     });
   }
 });

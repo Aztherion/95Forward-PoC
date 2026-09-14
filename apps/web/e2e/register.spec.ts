@@ -13,7 +13,7 @@ test.describe("register switch", () => {
   }
 
   test("renders the 95-forward register on a /95-forward route", async ({ page }) => {
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
     await expect(page.locator('[data-register="95-forward"]')).toHaveCount(1);
     await expect(page.locator('[data-register="95-forward"]')).toBeVisible();
     await expect(page.locator('[data-register="host"]')).toHaveCount(0);
