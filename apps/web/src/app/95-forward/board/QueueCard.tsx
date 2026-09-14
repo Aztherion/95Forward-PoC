@@ -27,9 +27,12 @@ import { closeDateLine, prospectTypeLabel, stageLabel } from "./board-copy";
  */
 const PRIMARY_CTA: Record<NextActionKind, string> = {
   "follow-up-to-close": "Review drafted follow-up",
-  "get-ask-approved": "Send for approval",
+  // Not "Send for approval": there is no send path in this product, and a CTA that implies one is
+  // the same lie as a Send button. The panel drafts the memo; the rep sends it themselves.
+  "get-ask-approved": "Draft the approval request",
   "make-specific-ask": "Draft the ask",
-  "prep-the-visit": "Open the prep brief",
+  // "Open" would promise something that does not exist yet on a record with no draft.
+  "prep-the-visit": "Draft the prep brief",
   "get-it-in-writing": "Draft the confirmation letter",
   "use-introduction": "Draft the introduction request",
   "ask-partner": "Draft the ask to your partner",

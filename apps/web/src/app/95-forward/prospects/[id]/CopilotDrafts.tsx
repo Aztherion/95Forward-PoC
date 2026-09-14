@@ -72,8 +72,12 @@ function DraftEditor({
             <form action={markFollowUpDoneAction}>
               <input type="hidden" name="prospectId" value={prospectId} />
               <input type="hidden" name="followUpTaskId" value={followUpTaskId} />
+              {/* The action marks the follow-up DONE; it has never sent anything. "Send
+                  (simulated)" put a Send button on a product with no send path and hoped the
+                  parenthesis would carry it. Past tense, by the rep, about their own mail client —
+                  the same vocabulary the draft panel uses (I28). */}
               <Button type="submit" variant="primary" size="sm">
-                Send (simulated)
+                I&apos;ve sent it
               </Button>
             </form>
           ) : null}
