@@ -136,7 +136,7 @@ export default async function ProspectDetailPage({
 
   return (
     <>
-      <Topbar title={detail.name} subtitle="95 Forward · Prospect" />
+      <Topbar title={detail.name} subtitle="95 Forward · Prospect" heading={false} />
       <div className="f95-page" data-testid="prospect-detail">
         <Link href="/95-forward/prospects" className="f95-table__cell-link f95-cluster">
           <ArrowLeft size={15} strokeWidth={1.8} /> Master Prospect List
@@ -173,7 +173,7 @@ function ProspectHeader({ detail }: { detail: ProspectDetail }) {
   return (
     <div className="f95-record-head">
       <div className="f95-record-head__main">
-        <h2 className="f95-record-head__title">{detail.name}</h2>
+        <h1 className="f95-record-head__title">{detail.name}</h1>
         <div className="f95-record-head__meta">
           <Badge tone={typeTone(detail.type)}>{typeLabel(detail.type)}</Badge>
           <span>#{detail.rank} on the list</span>

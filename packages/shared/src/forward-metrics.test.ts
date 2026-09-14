@@ -9,6 +9,7 @@ import {
 } from "./forward-settings";
 import {
   computeMetrics,
+  coverageWith,
   coverageWithout,
   evaluateWhatIf,
   initiativeShare,
@@ -260,7 +261,13 @@ describe("the metric set", () => {
   it("omits the new-ask requirement when coverage is already met", () => {
     const covered = computeMetrics({
       snapshot: snapshot(
-        [opportunity({ id: "big", amountCents: 9_000_000_00, confirmedMilestoneKeys: ALL_BLOCKING })],
+        [
+          opportunity({
+            id: "big",
+            amountCents: 9_000_000_00,
+            confirmedMilestoneKeys: ALL_BLOCKING,
+          }),
+        ],
         goals,
       ),
       scope: SCOPE,
@@ -273,7 +280,13 @@ describe("the metric set", () => {
 
   it("every aggregate's ids sum to its cents", () => {
     const byId = new Map(snap.opportunities.map((o) => [o.id, o.amountCents]));
-    for (const key of ["won", "qualifiedAsks", "preCloseTotal", "unqualified", "closedWork"] as const) {
+    for (const key of [
+      "won",
+      "qualifiedAsks",
+      "preCloseTotal",
+      "unqualified",
+      "closedWork",
+    ] as const) {
       const agg = m[key];
       const summed = agg.opportunityIds.reduce((sum, id) => sum + (byId.get(id) ?? 0), 0);
       expect(summed, `${key} decomposition`).toBe(agg.cents);
@@ -365,8 +378,20 @@ describe("what-if", () => {
 
   it("does not mutate the snapshot — a second call gives the same answer", () => {
     const overrides = { excludeOpportunityIds: ["q1"] };
-    const first = evaluateWhatIf({ snapshot: snap, scope: SCOPE, settings: SETTINGS, clock: CLOCK, overrides });
-    const second = evaluateWhatIf({ snapshot: snap, scope: SCOPE, settings: SETTINGS, clock: CLOCK, overrides });
+    const first = evaluateWhatIf({
+      snapshot: snap,
+      scope: SCOPE,
+      settings: SETTINGS,
+      clock: CLOCK,
+      overrides,
+    });
+    const second = evaluateWhatIf({
+      snapshot: snap,
+      scope: SCOPE,
+      settings: SETTINGS,
+      clock: CLOCK,
+      overrides,
+    });
     expect(second.qualifiedAsksDeltaCents).toBe(first.qualifiedAsksDeltaCents);
     expect(snap.opportunities).toHaveLength(2);
   });
@@ -415,8 +440,55 @@ describe("per-initiative metrics", () => {
     expect(result?.delta).toBeCloseTo(0, 10);
   });
 
+  it("recomputes the initiative's coverage AS IF an unqualified ask were qualified", () => {
+    // The forward-looking inverse. `unq` is $900,000 sitting outside the numerator entirely, so
+    // qualifying it is the largest single thing that could happen to this initiative's coverage.
+    const result = coverageWith(snap, "unq", SETTINGS, CLOCK);
+    expect(result?.coverageRatio).toBeCloseTo(400_000_00 / 500_000_00, 10);
+    expect(result?.coverageRatioWith).toBeCloseTo(1_300_000_00 / 500_000_00, 10);
+    expect(result?.delta).toBeGreaterThan(0);
+    expect(result?.wouldChange).toBe(true);
+  });
+
+  it("changes nothing for an ask that is ALREADY qualified, and says so", () => {
+    // The mirror of coverageWithout's zero on an unqualified ask: there is no hypothesis to make
+    // about something that is already true, and the panel needs to know not to offer one.
+    const result = coverageWith(snap, "big", SETTINGS, CLOCK);
+    expect(result?.coverageRatioWith).toBeCloseTo(result?.coverageRatio ?? -1, 10);
+    expect(result?.delta).toBeCloseTo(0, 10);
+    expect(result?.wouldChange).toBe(false);
+  });
+
+  it("states its hypothesis in milestones, so it cannot disagree with the real rule", () => {
+    // Qualification is derived from the blocking set and has no stored field to patch. Confirming
+    // the blocking keys and letting computeMetrics decide is the only formulation that stays true
+    // if the milestone set changes.
+    const withResult = coverageWith(snap, "unq", SETTINGS, CLOCK);
+    const qualifiedSnap = snapshot(
+      [
+        opportunity({ id: "big", amountCents: 300_000_00, confirmedMilestoneKeys: ALL_BLOCKING }),
+        opportunity({ id: "small", amountCents: 100_000_00, confirmedMilestoneKeys: ALL_BLOCKING }),
+        opportunity({ id: "unq", amountCents: 900_000_00, confirmedMilestoneKeys: ALL_BLOCKING }),
+        opportunity({
+          id: "other",
+          initiativeId: "i-bolivia",
+          confirmedMilestoneKeys: ALL_BLOCKING,
+        }),
+      ],
+      goals,
+    );
+    const actually = computeMetrics({
+      snapshot: qualifiedSnap,
+      scope: { rep: "all", initiative: "i-kamuli", period: "FY26" },
+      settings: SETTINGS,
+      clock: CLOCK,
+    });
+    expect(withResult?.coverageRatioWith).toBeCloseTo(actually.coverageRatio ?? -1, 10);
+  });
+
   it("returns undefined for an unknown opportunity", () => {
     expect(initiativeShare(snap, "nope", SETTINGS, CLOCK)).toBeUndefined();
     expect(coverageWithout(snap, "nope", SETTINGS, CLOCK)).toBeUndefined();
+    expect(coverageWith(snap, "nope", SETTINGS, CLOCK)).toBeUndefined();
   });
 });

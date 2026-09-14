@@ -78,15 +78,12 @@ export default async function BoardPage() {
 
   return (
     <>
-      <Topbar title="The Board" subtitle="95 Forward" />
+      <Topbar title="The Board" subtitle="95 Forward" heading={false} />
       <div className="f95-page f95-board" data-testid="board">
         <div className="f95-page__header">
           <div className="f95-page__heading">
             <div className="f95-page__eyebrow">95 Forward · {eyebrowDate(board.asOf)}</div>
-            {/* An h2, not an h1 — the Topbar above already emits the page's h1, and two of them is
-                the defect I17 records at §8.4.18 and I24 fixed the same way on PagePlaceholder.
-                `.f95-page__title` carries the h1 type either way, so nothing moves visually. */}
-            <h2 className="f95-page__title">The Board</h2>
+            <h1 className="f95-page__title">The Board</h1>
             <p className="f95-page__count" data-testid="board-subtitle">
               {boardSubtitle(summary)}
             </p>
@@ -175,7 +172,11 @@ export default async function BoardPage() {
           </div>
         </Card>
 
-        <FixFirst findings={fixFirst} labels={fixFirstLabels} />
+        <FixFirst
+          findings={fixFirst}
+          totalEffortSeconds={summary.totalEffortSeconds}
+          labels={fixFirstLabels}
+        />
 
         <section className="f95-stack f95-stack--sm" data-testid="queue">
           <div className="f95-board__sectionhead">

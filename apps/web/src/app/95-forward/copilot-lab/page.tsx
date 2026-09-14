@@ -81,12 +81,12 @@ export default async function CopilotLabPage() {
 
   return (
     <>
-      <Topbar title="Copilot lab" subtitle="Demonstration harness" />
+      <Topbar title="Copilot lab" subtitle="Demonstration harness" heading={false} />
       <div className="f95-page" data-testid="copilot-lab">
         <div className="f95-page__header">
           <div className="f95-page__heading">
             <div className="f95-page__eyebrow">95 Forward · dev harness</div>
-            <h2 className="f95-page__title">Copilot lab — demonstration harness</h2>
+            <h1 className="f95-page__title">Copilot lab — demonstration harness</h1>
             <p className="f95-page__count">
               A lab route, not the product. It runs the full copilot loop on a seeded prospect so
               you can watch grounded proposals appear, then approve or dismiss them. Nothing is

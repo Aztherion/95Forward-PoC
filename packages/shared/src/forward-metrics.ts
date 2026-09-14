@@ -143,9 +143,7 @@ export interface MetricsOverrides {
   /** Drop these from the computation entirely — "what if this were not on the table?" */
   readonly excludeOpportunityIds?: readonly string[];
   /** Hypothetical field values, e.g. a different stage or amount. */
-  readonly opportunityPatches?: Readonly<
-    Record<string, Partial<Omit<SnapshotOpportunity, "id">>>
-  >;
+  readonly opportunityPatches?: Readonly<Record<string, Partial<Omit<SnapshotOpportunity, "id">>>>;
   /** Hypothetical milestone state, keyed by opportunity id. Replaces the confirmed set. */
   readonly milestonePatches?: Readonly<Record<string, readonly string[]>>;
 }
@@ -250,10 +248,7 @@ export interface GoalResolution {
  * A scope of one rep x one initiative will usually have NO goal. Rendering "no goal defined for
  * this view" there is correct and intended, not an error to engineer around.
  */
-export function resolveGoalForScope(
-  snapshot: MetricsSnapshot,
-  scope: MetricScope,
-): GoalResolution {
+export function resolveGoalForScope(snapshot: MetricsSnapshot, scope: MetricScope): GoalResolution {
   const repAll = scope.rep === "all";
   const initiativeAll = scope.initiative === "all";
 
@@ -483,13 +478,14 @@ export function initiativeShare(
   opportunityId: string,
   settings: ForwardSettings,
   clock: Clock,
+  period = "FY26",
 ): InitiativeShare | undefined {
   const opportunity = snapshot.opportunities.find((o) => o.id === opportunityId);
   if (!opportunity) return undefined;
 
   const metrics = computeMetrics({
     snapshot,
-    scope: { rep: "all", initiative: opportunity.initiativeId, period: "FY26" },
+    scope: { rep: "all", initiative: opportunity.initiativeId, period },
     settings,
     clock,
   });
@@ -534,15 +530,12 @@ export function coverageWithout(
   opportunityId: string,
   settings: ForwardSettings,
   clock: Clock,
+  period = "FY26",
 ): CoverageWithout | undefined {
   const opportunity = snapshot.opportunities.find((o) => o.id === opportunityId);
   if (!opportunity) return undefined;
 
-  const scope: MetricScope = {
-    rep: "all",
-    initiative: opportunity.initiativeId,
-    period: "FY26",
-  };
+  const scope: MetricScope = { rep: "all", initiative: opportunity.initiativeId, period };
   const withIt = computeMetrics({ snapshot, scope, settings, clock });
   const withoutIt = computeMetrics({
     snapshot,
@@ -563,6 +556,75 @@ export function coverageWithout(
     coverageRatio: withIt.coverageRatio,
     coverageRatioWithout: withoutIt.coverageRatio,
     delta,
+  };
+}
+
+export interface CoverageWith {
+  readonly opportunityId: string;
+  readonly initiativeId: string;
+  /** Coverage as things stand. */
+  readonly coverageRatio: number | null;
+  /** Coverage if every blocking milestone on this opportunity were confirmed. */
+  readonly coverageRatioWith: number | null;
+  /** Null when either ratio is absent (no goal, or non-positive basis). */
+  readonly delta: number | null;
+  /** False when the opportunity is ALREADY qualified — then the two ratios are the same number. */
+  readonly wouldChange: boolean;
+}
+
+/**
+ * The inverse of `coverageWithout`: the initiative's coverage recomputed as if this opportunity
+ * WERE qualified — "Qualify this and Kamuli goes from 0.61x to 0.87x coverage".
+ *
+ * `coverageWithout` answers the wrong question about an unqualified ask. Excluding something that
+ * was never in the numerator changes nothing, so "lose this one and coverage drops" is exactly 0x
+ * for the record Opportunity Detail was designed around — and that record is unqualified, which is
+ * the entire argument of the screen. The forward-looking question is the one worth asking, and it
+ * is the one this answers.
+ *
+ * The hypothesis is stated in MILESTONES, not by patching a status: qualification is derived from
+ * the blocking set and has no stored field to patch, so the what-if confirms every blocking
+ * milestone and lets the same computation decide. A hypothesis expressed any other way could
+ * disagree with the real rule.
+ */
+export function coverageWith(
+  snapshot: MetricsSnapshot,
+  opportunityId: string,
+  settings: ForwardSettings,
+  clock: Clock,
+  period = "FY26",
+): CoverageWith | undefined {
+  const opportunity = snapshot.opportunities.find((o) => o.id === opportunityId);
+  if (!opportunity) return undefined;
+
+  const scope: MetricScope = { rep: "all", initiative: opportunity.initiativeId, period };
+  const asItStands = computeMetrics({ snapshot, scope, settings, clock });
+
+  // Every blocking key, plus whatever is already confirmed — confirming a blocking milestone never
+  // un-confirms a non-blocking one.
+  const blockingKeys = snapshot.definitions.filter((d) => d.blocking).map((d) => d.key);
+  const hypothetical = [...new Set([...opportunity.confirmedMilestoneKeys, ...blockingKeys])];
+
+  const ifQualified = computeMetrics({
+    snapshot,
+    scope,
+    settings,
+    clock,
+    overrides: { milestonePatches: { [opportunityId]: hypothetical } },
+  });
+
+  const delta =
+    asItStands.coverageRatio !== null && ifQualified.coverageRatio !== null
+      ? ifQualified.coverageRatio - asItStands.coverageRatio
+      : null;
+
+  return {
+    opportunityId,
+    initiativeId: opportunity.initiativeId,
+    coverageRatio: asItStands.coverageRatio,
+    coverageRatioWith: ifQualified.coverageRatio,
+    delta,
+    wouldChange: hypothetical.length !== opportunity.confirmedMilestoneKeys.length,
   };
 }
 

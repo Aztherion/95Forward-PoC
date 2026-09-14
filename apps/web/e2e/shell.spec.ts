@@ -118,6 +118,45 @@ test.describe("95 Forward inside the Keystone shell", () => {
     }
   });
 
+  test("exactly one h1 per screen, and it is the page's own title", async ({ page }) => {
+    // I26 fixed this properly: `Topbar` takes `heading={false}` on screens that render their own
+    // title, and those titles went back to being `h1`s. Seven screens had been demoting their own
+    // heading to an `h2` to satisfy the count, which put the host's chrome above the page's content
+    // in the document outline — backwards, and an accessibility defect.
+    //
+    // One route per shape, host and add-on, including the two that carry a record's name.
+    const ROUTES: [string, string][] = [
+      ["Board", "/95-forward/board"],
+      ["Prospects", "/95-forward/prospects"],
+      ["Candidates", "/95-forward/prospects/candidates"],
+      ["Add prospect", "/95-forward/prospects/new"],
+      ["Initiatives", "/95-forward/initiatives"],
+      ["Add initiative", "/95-forward/initiatives/new"],
+      ["Green Sheet", "/95-forward/green-sheet"],
+      ["Search", "/95-forward/search"],
+      ["Copilot lab", "/95-forward/copilot-lab"],
+      ["Opportunities (placeholder)", "/95-forward/opportunities"],
+      ["Forecast (placeholder)", "/95-forward/forecast"],
+      ["Rules", "/rules"],
+      ["Settings", "/settings"],
+      ["Constituents", "/constituents"],
+      ["Home", "/"],
+    ];
+
+    for (const [label, href] of ROUTES) {
+      const response = await page.goto(href);
+      expect(response?.status(), `${label} → ${href}`).toBeLessThan(400);
+      await expect(page.locator("h1"), `${label} h1 count`).toHaveCount(1);
+    }
+
+    // And the two record screens, whose h1 is the record's name rather than a static string.
+    await page.goto("/95-forward/prospects");
+    await page.locator('[data-testid="prospect-row"]').first().click();
+    await page.waitForURL(/\/95-forward\/prospects\/[0-9a-f-]+/);
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveClass(/f95-record-head__title/);
+  });
+
   test("Keystone's own sections are muted but still navigable", async ({ page }) => {
     await page.goto("/95-forward/board");
 

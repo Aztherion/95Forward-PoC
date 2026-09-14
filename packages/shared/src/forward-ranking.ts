@@ -182,9 +182,7 @@ function num(ctx: RankingContext, key: string, fallback: number): number {
 }
 
 /** The first partner who offered an introduction we never took up. */
-export function unusedIntroPartner(
-  opportunity: SnapshotOpportunity,
-): SnapshotPartner | undefined {
+export function unusedIntroPartner(opportunity: SnapshotOpportunity): SnapshotPartner | undefined {
   return opportunity.partners.find((p) => p.introOfferedAt !== null && p.introUsedAt === null);
 }
 
@@ -227,7 +225,8 @@ export const RANKING_RULES: readonly RankingRule[] = [
     applies(ctx) {
       // They have named a date, or put a meeting in the diary. Either way they have moved and we
       // have not: the ask is not internally cleared.
-      const theyCommitted = has(ctx, "close_date_confirmed") || ctx.opportunity.nextVisitAt !== null;
+      const theyCommitted =
+        has(ctx, "close_date_confirmed") || ctx.opportunity.nextVisitAt !== null;
       return theyCommitted && !has(ctx, "ask_approved_by_leader");
     },
     nextAction: (ctx) => ({
@@ -460,7 +459,9 @@ export function computeSuperlatives(
   const biggest = (rows: readonly SnapshotOpportunity[]) =>
     rows.reduce<SnapshotOpportunity | null>(
       (best, o) =>
-        !best || o.amountCents > best.amountCents || (o.amountCents === best.amountCents && o.id < best.id)
+        !best ||
+        o.amountCents > best.amountCents ||
+        (o.amountCents === best.amountCents && o.id < best.id)
           ? o
           : best,
       null,
@@ -530,7 +531,9 @@ export function rationaleFor(
       const isLargest = sup.largestLiveAskId === o.id;
       const isLongest = sup.longestSilenceId === o.id;
       const subject = isLargest ? "The largest live ask in your portfolio" : "This live ask";
-      const silence = isLongest ? "has gone silent longest" : `has gone silent for ${dayPhrase(ctx.silenceDays)}`;
+      const silence = isLongest
+        ? "has gone silent longest"
+        : `has gone silent for ${dayPhrase(ctx.silenceDays)}`;
       return closeClause ? `${subject} ${silence} — and ${closeClause}.` : `${subject} ${silence}.`;
     }
 
@@ -540,7 +543,8 @@ export function rationaleFor(
       // the way. When other milestones are missing too, saying "the only milestone missing" would
       // be a lie, so the sentence changes.
       const onlyOurs =
-        ctx.missingBlockingKeys.length === 0 && !o.confirmedMilestoneKeys.includes("ask_approved_by_leader");
+        ctx.missingBlockingKeys.length === 0 &&
+        !o.confirmedMilestoneKeys.includes("ask_approved_by_leader");
       if (isBiggest && onlyOurs) {
         return "This is the biggest amount on your board and the only milestone missing is the one only you can do.";
       }
@@ -660,6 +664,15 @@ export interface BelowCut {
 
 export interface DayWorkSummary {
   readonly findingCount: number;
+  /**
+   * Summed effort across the Fix-first findings.
+   *
+   * Here rather than only on `CheckResult`, which `dayWork` does not return: The Board's
+   * "clear them in under three minutes" was summing it from the findings itself, which is the same
+   * number computed in two places — and two computations of one number is how they come to
+   * disagree. The engine returns seconds; the UI phrases them.
+   */
+  readonly totalEffortSeconds: number;
   readonly queueCount: number;
   /** The one fact about item #1 that The Board's subtitle needs. Null when the queue is empty. */
   readonly topItemFact: TopItemFact | null;
@@ -832,8 +845,7 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
 
     const statusLabel = assertStatusLabel(primary.rule.statusLabel);
     const template = rationaleFor(primary.rule.id, primary.ctx, superlatives);
-    const fallback =
-      resolved.find((e) => e.id === primary.rule.id)?.statement ?? primary.rule.id;
+    const fallback = resolved.find((e) => e.id === primary.rule.id)?.statement ?? primary.rule.id;
 
     scored.push({
       opportunityId: opportunity.id,
@@ -892,6 +904,7 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
     },
     summary: {
       findingCount: fixFirst.length,
+      totalEffortSeconds: fixFirst.reduce((sum, finding) => sum + finding.effortSeconds, 0),
       queueCount: queue.length,
       topItemFact: queue[0] ? topItemFactFor(queue[0], snapshot, now) : null,
     },
@@ -905,11 +918,7 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
  * number today. Item #1 is 81 days idle." — the composing belongs to the screen, the facts belong
  * here.
  */
-function topItemFactFor(
-  item: RankedItem,
-  snapshot: MetricsSnapshot,
-  now: Date,
-): TopItemFact {
+function topItemFactFor(item: RankedItem, snapshot: MetricsSnapshot, now: Date): TopItemFact {
   const opportunity = snapshot.opportunities.find((o) => o.id === item.opportunityId);
   const idle = opportunity ? daysSince(opportunity.lastContactAt, now) : null;
   const days = dayDiff(item.closeDate, now);
@@ -918,7 +927,11 @@ function topItemFactFor(
     return { opportunityId: item.opportunityId, kind: "idle-days", value: idle };
   }
   if (item.primaryRuleId === "visits-without-specific-ask" && opportunity) {
-    return { opportunityId: item.opportunityId, kind: "unasked-visits", value: opportunity.visitCount };
+    return {
+      opportunityId: item.opportunityId,
+      kind: "unasked-visits",
+      value: opportunity.visitCount,
+    };
   }
   if (days !== null && days < 0) {
     return { opportunityId: item.opportunityId, kind: "past-close", value: -days };

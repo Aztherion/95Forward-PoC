@@ -15,10 +15,10 @@ export function PagePlaceholder({
 }: PagePlaceholderProps) {
   return (
     <>
-      <Topbar title={title} subtitle={subtitle} />
+      <Topbar title={title} subtitle={subtitle} heading={false} />
       <div className="page-placeholder">
         <div className="page-placeholder__eyebrow">{eyebrow}</div>
-        <h2 className="page-placeholder__title">{title}</h2>
+        <h1 className="page-placeholder__title">{title}</h1>
         <p className="page-placeholder__empty">{empty}</p>
       </div>
     </>

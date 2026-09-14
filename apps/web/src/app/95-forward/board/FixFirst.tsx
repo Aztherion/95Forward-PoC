@@ -10,6 +10,8 @@ import { effortPhrase, fixFirstSummary } from "./board-copy";
 
 export interface FixFirstProps {
   findings: readonly Finding[];
+  /** From DayWorkSummary. Summed by the engine so the claim cannot drift from the findings. */
+  totalEffortSeconds: number;
   labels: Readonly<Record<string, { prospectName: string; initiativeName: string }>>;
 }
 
@@ -21,15 +23,13 @@ export interface FixFirstProps {
  * the spec to a summary line that expands in place. It is also the better design: the count and the
  * time cost are what persuade, and the detail belongs one click away, at the moment you act on it.
  */
-export function FixFirst({ findings, labels }: FixFirstProps) {
+export function FixFirst({ findings, totalEffortSeconds, labels }: FixFirstProps) {
   const [open, setOpen] = useState(false);
   const [state, dismiss, pending] = useActionState(decideBoardItemAction, {});
 
   // A clean forecast is silent. An empty-state card here would congratulate the user for the
   // absence of a problem, which is noise on a screen whose whole job is signal.
   if (findings.length === 0) return null;
-
-  const totalEffortSeconds = findings.reduce((sum, f) => sum + f.effortSeconds, 0);
 
   return (
     <section className="f95-stack f95-stack--sm" data-testid="fix-first">
