@@ -126,7 +126,12 @@ export type NextActionKind =
   | "prep-the-visit"
   | "get-it-in-writing"
   | "use-introduction"
-  | "ask-partner";
+  | "ask-partner"
+  // The two below are never produced by a RULE — they are the stage-derived fallback for a record
+  // that fires nothing, which Opportunity Detail needs because it must work for ANY opportunity
+  // while the queue only ever shows the ones that fire. Added in I26.
+  | "get-the-visit"
+  | "steward-the-gift";
 
 export interface NextAction {
   readonly kind: NextActionKind;
@@ -782,13 +787,85 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
   const maxUrgency = globalNumber(resolved, "queue-urgency", "maxMultiplier", 2);
   const queueSize = globalNumber(resolved, "queue-size", "items", 7);
 
-  // Everything a RankedItem carries except its position, which is only known once all are sorted.
-  type Scored = Omit<RankedItem, "rank">;
   const scored: Scored[] = [];
 
   for (const opportunity of inScope) {
     if (dismissedIds.has(opportunity.id)) continue;
+    const item = scoreOpportunity({
+      opportunity,
+      snapshot,
+      scope,
+      settings,
+      clock,
+      resolved,
+      now,
+      today,
+      superlatives,
+      horizon,
+      maxUrgency,
+      pinned: pinnedIds.has(opportunity.id),
+    });
+    if (item !== null) scored.push(item);
+  }
 
+  return finishDayWork({
+    fixFirst,
+    scored,
+    queueSize,
+    snapshot,
+    scope,
+    settings,
+    clock,
+    now,
+  });
+}
+
+/** Everything a RankedItem carries except its position, which is only known once all are sorted. */
+export type UnrankedItem = Omit<RankedItem, "rank">;
+type Scored = UnrankedItem;
+
+interface ScoreInput {
+  readonly opportunity: SnapshotOpportunity;
+  readonly snapshot: MetricsSnapshot;
+  readonly scope: MetricScope;
+  readonly settings: ForwardSettings;
+  readonly clock: Clock;
+  readonly resolved: readonly ResolvedEntry[];
+  readonly now: Date;
+  readonly today: string;
+  readonly superlatives: PortfolioSuperlatives;
+  readonly horizon: number;
+  readonly maxUrgency: number;
+  readonly pinned: boolean;
+}
+
+/**
+ * Score ONE opportunity against the seven rules.
+ *
+ * Extracted from `dayWork`'s loop in I26 rather than reimplemented, because Opportunity Detail has
+ * to answer "what does this record's rule say" for a record that may sit below the cut or fire
+ * nothing at all — and a second implementation of the scoring would eventually disagree with the
+ * queue about the same record, in front of the person being coached.
+ *
+ * Returns null when no enabled rule applies.
+ */
+function scoreOpportunity(input: ScoreInput): Scored | null {
+  const {
+    opportunity,
+    snapshot,
+    scope,
+    settings,
+    clock,
+    resolved,
+    now,
+    today,
+    superlatives,
+    horizon,
+    maxUrgency,
+    pinned,
+  } = input;
+
+  {
     const qualification = computeQualification(
       snapshot.definitions,
       opportunity.confirmedMilestoneKeys,
@@ -822,7 +899,7 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
       if (!rule.applies(ctx)) continue;
       firing.push({ rule, multiplier: num(ctx, "multiplier", 1), ctx });
     }
-    if (firing.length === 0) continue;
+    if (firing.length === 0) return null;
 
     // MAXIMUM, not product. An opportunity firing three rules is not three times more urgent than a
     // comparable one firing a single stronger rule — products produce runaway scores that bury
@@ -847,7 +924,7 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
     const template = rationaleFor(primary.rule.id, primary.ctx, superlatives);
     const fallback = resolved.find((e) => e.id === primary.rule.id)?.statement ?? primary.rule.id;
 
-    scored.push({
+    return {
       opportunityId: opportunity.id,
       prospectId: opportunity.prospectId,
       initiativeId: opportunity.initiativeId,
@@ -869,9 +946,25 @@ export function dayWork(input: DayWorkInput): DayWorkResult {
       multiplier,
       urgency,
       score: impact * multiplier * urgency,
-      pinned: pinnedIds.has(opportunity.id),
-    });
+      pinned,
+    };
   }
+}
+
+interface FinishInput {
+  readonly fixFirst: readonly Finding[];
+  readonly scored: readonly Scored[];
+  readonly queueSize: number;
+  readonly snapshot: MetricsSnapshot;
+  readonly scope: MetricScope;
+  readonly settings: ForwardSettings;
+  readonly clock: Clock;
+  readonly now: Date;
+}
+
+function finishDayWork(input: FinishInput): DayWorkResult {
+  const { fixFirst, queueSize, snapshot, scope, settings, clock, now } = input;
+  const scored = [...input.scored];
 
   // Pinned first, then score, then opportunity id. The id tie-break is not decoration: identical
   // data must produce an identical order, and a queue that reorders on refresh reads as broken.
@@ -943,6 +1036,100 @@ function topItemFactFor(item: RankedItem, snapshot: MetricsSnapshot, now: Date):
     return { opportunityId: item.opportunityId, kind: "idle-days", value: idle };
   }
   return { opportunityId: item.opportunityId, kind: "none", value: null };
+}
+
+// -------------------------------------------------------------------------------------------
+// One record — what Opportunity Detail needs and the queue cannot give it
+// -------------------------------------------------------------------------------------------
+
+/**
+ * The contact cadence the org expects at this stage, in days.
+ *
+ * Per-stage, not one global number: a get-the-visit prospect legitimately goes a month without
+ * contact while an ask waiting on a yes does not. It lives on `live-ask-silence` because that is
+ * the rule that acts on it, and reading it from there is what keeps the SILENCE panel's
+ * "CADENCE FOR THIS STAGE · EVERY 14 DAYS" true after an org edits its doctrine.
+ */
+export function stageCadenceDays(
+  resolved: readonly ResolvedEntry[],
+  stage: ForwardStage,
+  fallback = 21,
+): number {
+  const value = paramsFor(resolved, "live-ask-silence")[`cadence.${stage}`];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+export interface RankOneInput {
+  readonly snapshot: MetricsSnapshot;
+  readonly scope: MetricScope;
+  readonly settings: ForwardSettings;
+  readonly clock: Clock;
+  readonly resolved: readonly ResolvedEntry[];
+  readonly opportunityId: string;
+}
+
+/**
+ * Evaluate the seven rules against ONE opportunity, wherever it sits.
+ *
+ * `dayWork` only returns the top few of the records that fire something, and Opportunity Detail has
+ * to work for any record at all — one below the cut, one firing nothing, one a rep opened from a
+ * search. This runs the SAME scoring over the same snapshot, so the detail screen and the board can
+ * never disagree about why a record ranks.
+ *
+ * Superlatives are computed over the whole scope, not the one record: "the biggest amount on your
+ * board" is a claim about the board, and computing it from a single opportunity would make every
+ * record the biggest.
+ *
+ * Returns null when no enabled rule applies, when the record is out of scope, or when it is closed
+ * or past the pre-close stages. Callers fall back to `stageNextAction`.
+ */
+export function rankOne(input: RankOneInput): UnrankedItem | null {
+  const { snapshot, scope, settings, clock, resolved, opportunityId } = input;
+  const now = clock.now();
+  const today = now.toISOString().slice(0, 10);
+
+  const inScope = snapshot.opportunities.filter(
+    (o) => scopeMatches(o, scope) && o.status === "open" && isPreCloseStage(o.stage),
+  );
+  const opportunity = inScope.find((o) => o.id === opportunityId);
+  if (!opportunity) return null;
+
+  return scoreOpportunity({
+    opportunity,
+    snapshot,
+    scope,
+    settings,
+    clock,
+    resolved,
+    now,
+    today,
+    superlatives: computeSuperlatives(inScope, now),
+    horizon: globalNumber(resolved, "queue-urgency", "horizonDays", 90),
+    maxUrgency: globalNumber(resolved, "queue-urgency", "maxMultiplier", 2),
+    pinned: false,
+  });
+}
+
+const STAGE_ACTION: Record<ForwardStage, { kind: NextActionKind; label: string }> = {
+  get_the_visit: { kind: "get-the-visit", label: "Get the visit" },
+  prep_the_visit: { kind: "prep-the-visit", label: "Prep the visit" },
+  visit_and_ask: { kind: "make-specific-ask", label: "Make the specific ask" },
+  follow_up_and_close: { kind: "follow-up-to-close", label: "Follow up to close" },
+  celebrate_steward: { kind: "steward-the-gift", label: "Thank them and steward the gift" },
+  repeat: { kind: "steward-the-gift", label: "Set up the next conversation" },
+};
+
+/**
+ * The next action for a record no rule speaks for.
+ *
+ * A stage IS a statement about what happens next — that is what the six-stage vocabulary is for —
+ * so a record with nothing firing is not a record with nothing to do. Opportunity Detail must never
+ * render an empty NEXT ACTION panel: a screen that opens with a verdict and then shrugs has
+ * undercut its own argument.
+ */
+export function stageNextAction(stage: ForwardStage, target: NextAction["target"]): NextAction {
+  const { kind, label } = STAGE_ACTION[stage];
+  return { kind, label, target };
 }
 
 export { FORWARD_STAGES };

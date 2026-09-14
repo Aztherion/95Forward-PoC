@@ -467,6 +467,14 @@ export interface InitiativeShare {
   readonly opportunityCents: number;
   readonly isLargest: boolean;
   /**
+   * The largest qualified ask in the initiative OTHER than this one.
+   *
+   * Without it, an unqualified record cannot honestly say "would be the largest single qualified
+   * ask in it" — the designed copy for exactly that case — because `isLargest` is false for
+   * anything not already counted, and the total tells you nothing about the biggest part of it.
+   */
+  readonly largestOtherCents: number;
+  /**
    * False when this opportunity is not itself qualified — it then contributes nothing to the
    * initiative's qualified asks, and `share` is 0 rather than its raw amount over the total.
    */
@@ -496,6 +504,9 @@ export function initiativeShare(
     (id) => snapshot.opportunities.find((o) => o.id === id)?.amountCents ?? 0,
   );
   const largest = contributions.length > 0 ? Math.max(...contributions) : 0;
+  const others = metrics.qualifiedAsks.opportunityIds
+    .filter((id) => id !== opportunityId)
+    .map((id) => snapshot.opportunities.find((o) => o.id === id)?.amountCents ?? 0);
 
   return {
     opportunityId,
@@ -504,6 +515,7 @@ export function initiativeShare(
     initiativeQualifiedCents: qualifiedCents,
     opportunityCents: opportunity.amountCents,
     isLargest: counted && opportunity.amountCents === largest,
+    largestOtherCents: others.length > 0 ? Math.max(...others) : 0,
     counted,
   };
 }

@@ -420,6 +420,14 @@ describe("per-initiative metrics", () => {
     expect(initiativeShare(snap, "small", SETTINGS, CLOCK)?.isLargest).toBe(false);
   });
 
+  it("reports the largest OTHER qualified ask, so an uncounted one can be compared to it", () => {
+    // Without this an unqualified record cannot honestly say "would be the largest single qualified
+    // ask in it": isLargest is false for anything not counted, and the total says nothing about the
+    // biggest part of it.
+    expect(initiativeShare(snap, "unq", SETTINGS, CLOCK)?.largestOtherCents).toBe(300_000_00);
+    expect(initiativeShare(snap, "big", SETTINGS, CLOCK)?.largestOtherCents).toBe(100_000_00);
+  });
+
   it("gives an unqualified ask a zero share — it contributes nothing to qualified asks", () => {
     const share = initiativeShare(snap, "unq", SETTINGS, CLOCK);
     expect(share?.counted).toBe(false);
