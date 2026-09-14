@@ -18,6 +18,11 @@ export const fundingInitiatives = pgTable(
     // Categorical token KEY for the initiative dot, never a hex value — the palette itself is
     // defined by I17b. Storing a key keeps the colour decision in the design system.
     colourKey: text("colour_key"),
+    // The name a tab can carry — "Kamuli 2026" against "Everyone in Kamuli — Uganda 2026". I27
+    // truncated the Forecast Room's tabs at 22ch because no mechanical derivation of the long name
+    // produced the designed label for more than two of four initiatives. Nullable; the full name is
+    // the fallback (I28).
+    shortName: text("short_name"),
     // "Unrestricted" is an ordinary initiative with restricted = false, not a special case.
     restricted: boolean("restricted").notNull().default(true),
     // The period this initiative's goal is scoped to, e.g. "FY26".
