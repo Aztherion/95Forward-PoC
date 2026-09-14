@@ -289,6 +289,54 @@ const PARAMETER_ENTRIES: readonly CatalogueEntry[] = [
     ],
   },
   {
+    id: "movement-untouched-days",
+    kind: "parameter",
+    category: "forecasting-parameters",
+    label: "Untouched threshold",
+    statement:
+      "How long an open opportunity can go without contact before the Forecast Room flags it by " +
+      "name.",
+    source: "I27",
+    defaultEnabled: true,
+    readBy: ["the Untouched 30+ days panel"],
+    parameters: [
+      {
+        key: "days",
+        label: "Days without contact",
+        unit: "days",
+        type: "number",
+        defaultValue: 30,
+        min: 1,
+        max: 365,
+        step: 1,
+      },
+    ],
+  },
+  {
+    id: "movement-pushes",
+    kind: "parameter",
+    category: "forecasting-parameters",
+    label: "Slipping threshold",
+    statement:
+      "How many times a close date can move before the Forecast Room flags the opportunity as " +
+      "slipping.",
+    source: "I27",
+    defaultEnabled: true,
+    readBy: ["the Close date pushed twice or more panel"],
+    parameters: [
+      {
+        key: "pushes",
+        label: "Close-date moves",
+        unit: "moves",
+        type: "number",
+        defaultValue: 2,
+        min: 1,
+        max: 20,
+        step: 1,
+      },
+    ],
+  },
+  {
     id: "date-confidence-days",
     kind: "parameter",
     category: "forecasting-parameters",
@@ -299,9 +347,36 @@ const PARAMETER_ENTRIES: readonly CatalogueEntry[] = [
     defaultEnabled: true,
     readBy: ["date variation in every simulated year", "slip beyond the period"],
     parameters: [
-      { key: "firm", label: "Firm", unit: "days", type: "number", defaultValue: D.simulation.dateConfidenceDays.firm ?? 7, min: 0, max: 120, step: 1 },
-      { key: "semi_firm", label: "Semi-firm", unit: "days", type: "number", defaultValue: D.simulation.dateConfidenceDays.semi_firm ?? 21, min: 0, max: 180, step: 1 },
-      { key: "loose", label: "Loose", unit: "days", type: "number", defaultValue: D.simulation.dateConfidenceDays.loose ?? 60, min: 0, max: 365, step: 1 },
+      {
+        key: "firm",
+        label: "Firm",
+        unit: "days",
+        type: "number",
+        defaultValue: D.simulation.dateConfidenceDays.firm ?? 7,
+        min: 0,
+        max: 120,
+        step: 1,
+      },
+      {
+        key: "semi_firm",
+        label: "Semi-firm",
+        unit: "days",
+        type: "number",
+        defaultValue: D.simulation.dateConfidenceDays.semi_firm ?? 21,
+        min: 0,
+        max: 180,
+        step: 1,
+      },
+      {
+        key: "loose",
+        label: "Loose",
+        unit: "days",
+        type: "number",
+        defaultValue: D.simulation.dateConfidenceDays.loose ?? 60,
+        min: 0,
+        max: 365,
+        step: 1,
+      },
     ],
   },
   {
@@ -484,12 +559,22 @@ export function registerBuiltInRules(): void {
 // Catalogue -> ForwardSettings
 // -------------------------------------------------------------------------------------------
 
-function num(entries: Map<string, ResolvedEntry>, id: string, key: string, fallback: number): number {
+function num(
+  entries: Map<string, ResolvedEntry>,
+  id: string,
+  key: string,
+  fallback: number,
+): number {
   const value = entries.get(id)?.values[key];
   return typeof value === "number" ? value : fallback;
 }
 
-function str(entries: Map<string, ResolvedEntry>, id: string, key: string, fallback: string): string {
+function str(
+  entries: Map<string, ResolvedEntry>,
+  id: string,
+  key: string,
+  fallback: string,
+): string {
   const value = entries.get(id)?.values[key];
   return typeof value === "string" ? value : fallback;
 }
@@ -522,12 +607,7 @@ export function settingsFromCatalogue(resolved: readonly ResolvedEntry[]): Forwa
 
   const dateConfidenceDays: Record<string, number> = { ...D.simulation.dateConfidenceDays };
   for (const key of Object.keys(dateConfidenceDays)) {
-    dateConfidenceDays[key] = num(
-      byId,
-      "date-confidence-days",
-      key,
-      dateConfidenceDays[key] ?? 0,
-    );
+    dateConfidenceDays[key] = num(byId, "date-confidence-days", key, dateConfidenceDays[key] ?? 0);
   }
 
   const probabilityPct: Record<string, number> = { ...D.simulation.probabilityPct };

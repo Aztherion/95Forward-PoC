@@ -154,7 +154,12 @@ function MilestoneRow({
                 )
               }
             >
-              {milestone.confirmed ? "Un-confirm" : theySaid ? "Record their answer" : "Record it"}
+              {milestone.confirmed
+                ? "Un-confirm"
+                : // The milestone's own verb — "Record their date", "Ask at close" — because the
+                  // milestone set is data and a screen that hardcoded six verbs would drift the
+                  // moment an org changed one. The generic verb is the fallback (I27).
+                  (milestone.actionLabel ?? (theySaid ? "Record their answer" : "Record it"))}
             </Button>
           </div>
         )}

@@ -99,6 +99,10 @@ export const milestoneDefinitions = pgTable(
     source: milestoneSourceEnum("source").notNull(),
     blocking: boolean("blocking").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
+    // The verb on the button that records it — "Record their date", "Ask at close". Data, because
+    // the milestone set is data; a screen that hardcoded six verbs would drift the moment an org
+    // changed one. Null falls back to a generic verb (I27).
+    actionLabel: text("action_label"),
     ...timestamps,
   },
   (table) => [

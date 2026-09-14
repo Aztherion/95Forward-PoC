@@ -82,6 +82,7 @@ function toDomainDefinitions(rows: readonly MilestoneDefinitionRow[]): Milestone
     source: row.source,
     blocking: row.blocking,
     sortOrder: row.sortOrder,
+    actionLabel: row.actionLabel,
   }));
 }
 
@@ -555,6 +556,8 @@ export interface MilestoneState {
   readonly source: "they_said" | "we_said";
   readonly blocking: boolean;
   readonly sortOrder: number;
+  /** The verb on the button that records it. Null falls back to a generic one. */
+  readonly actionLabel: string | null;
   readonly confirmed: boolean;
   readonly confirmedAt: Date | null;
   /** A staff user, or a named external person — "Ellen Hallworth, verbally". */
@@ -583,6 +586,7 @@ export async function loadMilestoneStates(
       source: milestoneDefinitions.source,
       blocking: milestoneDefinitions.blocking,
       sortOrder: milestoneDefinitions.sortOrder,
+      actionLabel: milestoneDefinitions.actionLabel,
       confirmed: opportunityMilestones.confirmed,
       confirmedAt: opportunityMilestones.confirmedAt,
       confirmedByName: opportunityMilestones.confirmedByName,
@@ -609,6 +613,7 @@ export async function loadMilestoneStates(
     source: row.source,
     blocking: row.blocking,
     sortOrder: row.sortOrder,
+    actionLabel: row.actionLabel,
     confirmed: row.confirmed ?? false,
     confirmedAt: row.confirmedAt,
     confirmedBy: row.confirmedByName ?? row.confirmedByUser ?? null,

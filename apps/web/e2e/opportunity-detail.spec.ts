@@ -129,6 +129,20 @@ test.describe("Opportunity Detail — the verdict", () => {
     await expect(we).toHaveAttribute("fill", "none");
   });
 
+  test("each milestone carries its own verb, from the definition", async ({ page }) => {
+    // I26 rendered a generic "Record their answer" on all six, because the definitions carried no
+    // action label. The specific verbs are part of what makes the checklist read as a scoreboard
+    // rather than a form, and they are data, so an org that reworded one sees its own word.
+    await openDetail(page, await opportunityIdFor(HALLWORTH));
+    await expect(page.locator('[data-key="close_date_confirmed"]')).toContainText(
+      "Record their date",
+    );
+    await expect(page.locator('[data-key="permission_to_share"]')).toContainText("Ask at close");
+    await expect(page.locator('[data-key="confirmed_in_writing"]')).toContainText(
+      "Attach the letter",
+    );
+  });
+
   test("says something specific about each unconfirmed milestone", async ({ page }) => {
     await openDetail(page, await opportunityIdFor(HALLWORTH));
     // "Not confirmed" is true of every unconfirmed milestone and therefore says nothing.

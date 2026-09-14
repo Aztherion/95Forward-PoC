@@ -723,6 +723,7 @@ export async function seedForward(
         source: definition.source,
         blocking: definition.blocking,
         sortOrder: definition.sortOrder,
+        actionLabel: definition.actionLabel ?? null,
       })
       .onConflictDoUpdate({
         target: milestoneDefinitions.id,
@@ -731,6 +732,7 @@ export async function seedForward(
           source: definition.source,
           blocking: definition.blocking,
           sortOrder: definition.sortOrder,
+          actionLabel: definition.actionLabel ?? null,
         },
       });
   }
@@ -842,7 +844,10 @@ export async function seedForward(
       };
       await db
         .insert(opportunityMilestones)
-        .values({ id: stableId(`opportunity-milestone:${spec.key}:${milestone.key}`), ...milestoneValues })
+        .values({
+          id: stableId(`opportunity-milestone:${spec.key}:${milestone.key}`),
+          ...milestoneValues,
+        })
         .onConflictDoUpdate({
           target: opportunityMilestones.id,
           set: milestoneValues,
