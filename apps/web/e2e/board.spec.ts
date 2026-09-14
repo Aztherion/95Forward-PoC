@@ -188,6 +188,43 @@ test.describe("The Board", () => {
     await expect(panel).toContainText("Drafting arrives in I28");
   });
 
+  test("a card action under the job tray is still clickable", async ({ page }) => {
+    // The tray is a fixed ~40x40 pill at bottom-right, and the cards' action column runs to the
+    // right gutter, so at some scroll position one sits over the other. H2 made the tray
+    // click-transparent except for its own controls; this asserts that still holds against a real
+    // Board card rather than trusting it, because re-introducing the interception here would be
+    // invisible until someone demoed it.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(BOARD);
+    const tray = page.locator('[data-testid="job-tray"]');
+    await expect(tray).toBeVisible();
+    const trayBox = (await tray.boundingBox())!;
+
+    const cards = page.locator('[data-testid="queue-card"]');
+    const count = await cards.count();
+    let covered = -1;
+    for (let i = 0; i < count; i += 1) {
+      const button = cards.nth(i).locator('[data-testid="why-it-ranks"]');
+      const box = await button.boundingBox();
+      if (!box) continue;
+      const overlaps =
+        box.x < trayBox.x + trayBox.width &&
+        box.x + box.width > trayBox.x &&
+        box.y < trayBox.y + trayBox.height &&
+        box.y + box.height > trayBox.y;
+      if (overlaps) {
+        covered = i;
+        break;
+      }
+    }
+
+    // If nothing overlaps at this viewport the hazard does not exist; take the last card anyway so
+    // the click itself is still exercised.
+    const target = cards.nth(covered >= 0 ? covered : count - 1);
+    await target.locator('[data-testid="why-it-ranks"]').click({ timeout: 5000 });
+    await expect(target.locator('[data-testid="why-panel"]')).toBeVisible();
+  });
+
   test("Why it ranks here shows the rules and the arithmetic, on the card", async ({ page }) => {
     await page.goto(BOARD);
     const card = page.locator('[data-testid="queue-card"]').first();
