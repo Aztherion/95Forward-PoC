@@ -119,10 +119,7 @@ async function reassignRm(page: Page, label: string): Promise<void> {
     .locator("form")
     .filter({ has: page.locator("select[name=rmUserId]") })
     .getByRole("button", { name: "Save" });
-  await Promise.all([
-    page.waitForResponse((r) => r.request().method() === "POST"),
-    saveRm.click(),
-  ]);
+  await Promise.all([page.waitForResponse((r) => r.request().method() === "POST"), saveRm.click()]);
   await expect(page.locator("select[name=rmUserId]")).toHaveCount(0);
 }
 

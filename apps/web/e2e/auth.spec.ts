@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const PROTECTED_ROUTES = ["/", "/95-forward/today", "/styleguide", "/constituents"];
+const PROTECTED_ROUTES = ["/", "/95-forward/board", "/styleguide", "/constituents"];
 
 test.describe("authenticated shell", () => {
   test("shows the logged-in user name and role label", async ({ page }) => {
@@ -26,9 +26,9 @@ test.describe("authenticated shell", () => {
 
     await context.clearCookies();
 
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
     await expect(page).toHaveURL(/\/login(\?|$)/);
-    expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/95-forward/today");
+    expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/95-forward/board");
   });
 });
 

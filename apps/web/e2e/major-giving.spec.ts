@@ -91,9 +91,12 @@ test.describe("major giving — top 20", () => {
   test("ranks the largest potential gifts with stage and likelihood", async ({ page }) => {
     await gotoOpportunities(page);
 
-    await page.getByRole("navigation", { name: "Major Giving sections" }).getByRole("link", {
-      name: "Top 20",
-    }).click();
+    await page
+      .getByRole("navigation", { name: "Major Giving sections" })
+      .getByRole("link", {
+        name: "Top 20",
+      })
+      .click();
     await page.waitForURL(/\/major-giving\/top$/);
     await expect(page.locator(".f95-page__title")).toHaveText("Top 20");
 

@@ -173,7 +173,7 @@ export default async function HomePage() {
                 Your major-gifts workspace. Focused prospects, scored and explained.
               </p>
               <div>
-                <Link href="/95-forward/today">
+                <Link href="/95-forward/board">
                   <Button
                     variant="secondary"
                     size="sm"

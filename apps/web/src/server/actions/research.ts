@@ -23,5 +23,5 @@ export async function enqueueResearchJobAction(formData: FormData): Promise<void
   });
   await enqueueResearch(user.tenantId, user.id, researchJobId);
   revalidatePath(`/95-forward/prospects/${prospectId}`);
-  revalidatePath("/95-forward/today");
+  revalidatePath("/95-forward/board");
 }

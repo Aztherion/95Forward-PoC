@@ -203,6 +203,15 @@ export default async function ProspectsPage({
             </p>
           </div>
           <div className="f95-page__actions">
+            {/* Candidates' only other entry points are conditional — the job tray link appears
+                when a discovery batch is ready, and Today's did the same before I25 deleted it. A
+                permanent path belongs here: candidates are prospects that have not been endorsed
+                onto the list yet, so the list is where you would look for them. */}
+            <Link href="/95-forward/prospects/candidates">
+              <Button variant="secondary" iconLeft={<Users size={16} strokeWidth={1.8} />}>
+                Candidates
+              </Button>
+            </Link>
             <Link href="/95-forward/search">
               <Button variant="secondary" iconLeft={<Search size={16} strokeWidth={1.8} />}>
                 Search prospects

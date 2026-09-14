@@ -59,16 +59,8 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     await cleanup();
   });
 
-  test("the seeded ready research job surfaces on Today as ready to review", async ({ page }) => {
-    await page.goto("/95-forward/today");
-    await expect(page.locator('[data-testid="today-research-jobs"]')).toBeVisible();
-    await expect(page.locator('[data-testid="today-research-jobs"]')).toContainText(
-      "ready to review",
-    );
-  });
-
   test("the job tray shows the seeded ready job", async ({ page }) => {
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
     const tray = page.locator('[data-testid="job-tray"]');
     await expect(tray).toBeVisible();
 
@@ -120,7 +112,7 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
   });
 
   test("the tray toggle is reachable and operable by keyboard", async ({ page }) => {
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
     const toggle = page.locator('[data-testid="job-tray-toggle"]');
     const ready = page.locator('[data-testid="job-tray-ready"]');
     await expect(toggle).toBeVisible();
@@ -147,7 +139,7 @@ test.describe.serial("95 Forward — Long-Running Jobs (Initiative 11)", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/95-forward/today");
+    await page.goto("/95-forward/board");
 
     const tray = page.locator('[data-testid="job-tray"]');
     await expect(tray).toBeVisible();

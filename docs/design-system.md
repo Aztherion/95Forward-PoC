@@ -300,13 +300,13 @@ the `Mark` SVG instead of a lucide icon.
 their header from `.f95-page__header` markup instead. See §8.4.
 
 ```tsx
-// apps/web/src/app/95-forward/today/page.tsx:86-97
-<Topbar title="Today" subtitle="95 Forward" />
-<div className="f95-page" data-testid="today">
+// apps/web/src/app/95-forward/board/page.tsx
+<Topbar title="The Board" subtitle="95 Forward" />
+<div className="f95-page f95-board" data-testid="board">
   <div className="f95-page__header">
     <div className="f95-page__heading">
-      <div className="f95-page__eyebrow">95 Forward</div>
-      <h1 className="f95-page__title">Today</h1>
+      <div className="f95-page__eyebrow">95 Forward · SATURDAY 12 SEPTEMBER</div>
+      <h1 className="f95-page__title">The Board</h1>
       <p className="f95-page__count">…</p>
 ```
 
@@ -327,7 +327,7 @@ their header from `.f95-page__header` markup instead. See §8.4.
 | `interactive` | bool                                               | Pointer + `shadow-md` + 1px lift. 1 use                                               |
 
 ```tsx
-// apps/web/src/app/95-forward/today/page.tsx:30
+// apps/web/src/app/95-forward/prospects/page.tsx
 <Card tone="go" accent pad="lg">
 ```
 
@@ -348,13 +348,27 @@ URL-driven** (`buildHref`), never client state. Pair with `Pagination` (3 uses).
 
 ### 5.4 List rows — all class-only, none is a component
 
-| Pattern                                                    | Where                 | Uses                                                                |
-| ---------------------------------------------------------- | --------------------- | ------------------------------------------------------------------- |
-| `.f95-itemrow` (+`__body`/`__title`/`__meta`/`__actions`)  | `ds-data.css:609-640` | 27 rows / 21 files                                                  |
-| `.f95-stat` (+`__label`/`__value`/`__sub`)                 | `ds-data.css:506-524` | 25 / 11 files — 4 competing compositions (§8.4)                     |
-| `.f95-deflist__item` (+`__term`/`__desc`)                  | `ds-data.css:563-590` | 18; the `DefItem` renderer is re-declared verbatim in 3 route files |
-| `.f95-prow` — ranked prospect row, 3px `--_tier` left rail | `ds.css:873-935`      | 2 screens, composed differently (§8.4)                              |
-| `.f95-mg-stage__head` — `count · total` stage summary      | `ds-data.css:742-757` | 1 screen                                                            |
+| Pattern                                                    | Where                 | Uses                                                                            |
+| ---------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `.f95-itemrow` (+`__body`/`__title`/`__meta`/`__actions`)  | `ds-data.css:609-640` | 27 rows / 21 files                                                              |
+| `.f95-stat` (+`__label`/`__value`/`__sub`)                 | `ds-data.css:506-524` | 25 / 11 files — 4 competing compositions (§8.4). **Settled by I25 — see below** |
+| `.f95-deflist__item` (+`__term`/`__desc`)                  | `ds-data.css:563-590` | 18; the `DefItem` renderer is re-declared verbatim in 3 route files             |
+| `.f95-prow` — ranked prospect row, 3px `--_tier` left rail | `ds.css:873-935`      | 2 screens, composed differently (§8.4)                                          |
+| `.f95-mg-stage__head` — `count · total` stage summary      | `ds-data.css:742-757` | 1 screen                                                                        |
+
+**The stat-block composition, settled (I25).** Four arrangements were live and none was canonical:
+bare tiles in `.f95-statgrid`, `Card`-wrapped tiles in `.f95-tilegrid`, `Card`-wrapped in
+`.f95-statgrid`, and `Card`-wrapped in no grid at all. The Board's metric block is the most
+prominent stat composition in the product, so it picks one and it is the rule going forward:
+
+> **One `Card` wraps the whole block; the tiles sit bare inside one `.f95-statgrid`.**
+> Never wrap each tile in its own `Card` — a grid of cards reads as four unrelated facts rather than
+> one figure and its supporting arithmetic. Never use `.f95-tilegrid` for stats: its 220px track is
+> sized for content tiles, and stats want `.f95-statgrid`'s 150px.
+
+The Board adds one dominant tile above the grid (I17b's `Metric dominant`, 52px) and the monospace
+basis line below it. The 25 existing `.f95-stat` occurrences are **not** refactored — that is a
+separate cleanup — but nothing new should add a fifth arrangement.
 
 ### 5.5 Buttons — `ds/Button.tsx`, `ds.css:1-120` — 209 uses / 78 files
 

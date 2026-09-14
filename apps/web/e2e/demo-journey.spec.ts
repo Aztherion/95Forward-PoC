@@ -144,7 +144,9 @@ async function restoreCandidateBaseline(): Promise<void> {
       "delete from discovery_tasks where origin_key is null or origin_key not like 'seed:%'",
       [],
     );
-    await client.query("update discovery_tasks set status = 'ready' where id = $1", [SANDRA_TASK_ID]);
+    await client.query("update discovery_tasks set status = 'ready' where id = $1", [
+      SANDRA_TASK_ID,
+    ]);
     const { rows } = await client.query("select tenant_id from discovery_tasks where id = $1", [
       SANDRA_TASK_ID,
     ]);
@@ -190,10 +192,7 @@ async function clickCandidateButton(
 ): Promise<void> {
   const button = locate(candidateCard(page, name));
   await expect(button).toBeVisible({ timeout: 15000 });
-  await Promise.all([
-    page.waitForResponse((r) => r.request().method() === "POST"),
-    button.click(),
-  ]);
+  await Promise.all([page.waitForResponse((r) => r.request().method() === "POST"), button.click()]);
   await expect(button).toHaveCount(0, { timeout: 15000 });
 }
 
@@ -246,10 +245,11 @@ test.describe.serial("95 Forward — the headline demo journey (Initiative 13)",
 
     await drainJobs(page);
 
-    await page.goto("/95-forward/today");
-    await expect(page.locator('[data-testid="today-research-jobs"]')).toContainText(
-      "ready to review",
-    );
+    // I25 deleted Today; the job tray is the surface that carries this now, and it rides every
+    // 95 Forward screen rather than one dashboard.
+    await page.goto("/95-forward/board");
+    await page.locator('[data-testid="job-tray-toggle"]').click();
+    await expect(page.locator('[data-testid="job-tray-ready"]')).toContainText("ready to review");
   });
 
   test("planning a visit and entering Visit Mode surfaces the after-phase ask form", async ({

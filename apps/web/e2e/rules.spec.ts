@@ -53,9 +53,9 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
     await expect(evidence).toContainText("the likelihood of booking should be High");
     await expect(evidence.locator("code")).toHaveText("probability-below-evidence");
 
-    await expect(
-      page.locator('[data-testid="rule-probability-above-visit-rating"]'),
-    ).toContainText("If the Visit rating is poor");
+    await expect(page.locator('[data-testid="rule-probability-above-visit-rating"]')).toContainText(
+      "If the Visit rating is poor",
+    );
   });
 
   test("shows the goals in priority order, year before quarter", async ({ page }) => {
@@ -123,11 +123,15 @@ test.describe.serial("95 Forward — the Rules of Robb", () => {
       page.locator('[data-testid="rule-save"]').click(),
     ]);
 
-    await expect(page.locator('[data-testid="param-multiple"]')).toContainText("must be at least 1");
+    await expect(page.locator('[data-testid="param-multiple"]')).toContainText(
+      "must be at least 1",
+    );
 
     // Nothing was written — not the value, and not a clamped stand-in for it.
     const rows = await withDb((client) =>
-      client.query("select parameter_values from rule_overrides where rule_id = 'coverage-multiple'"),
+      client.query(
+        "select parameter_values from rule_overrides where rule_id = 'coverage-multiple'",
+      ),
     );
     expect(rows.rows).toHaveLength(0);
 

@@ -39,6 +39,9 @@ import {
   opportunityEvents,
   opportunityMilestones,
 } from "./schema/forward";
+import { constituents } from "./schema/constituents";
+import { fundingInitiatives } from "./schema/funding";
+import { prospects } from "./schema/prospects";
 
 export type ForwardOpportunityRow = typeof forwardOpportunities.$inferSelect;
 export type OpportunityEventRow = typeof opportunityEvents.$inferSelect;
@@ -461,6 +464,53 @@ export async function getOpportunityDetail(
     lastContactAt: contactAt,
     timeline: movementTimeline(events),
   };
+}
+
+// -------------------------------------------------------------------------------------------
+// Display labels — the names the computation deliberately does not carry
+// -------------------------------------------------------------------------------------------
+
+export interface OpportunityLabel {
+  readonly opportunityId: string;
+  readonly prospectId: string;
+  readonly prospectName: string;
+  /** `individual` | `organization` | `foundation` | … — the constituent type, for the card's subtitle. */
+  readonly prospectType: string;
+  readonly initiativeId: string;
+  readonly initiativeName: string;
+  /** The stored key, not a colour. I17b's InitiativeDot maps it to a token. */
+  readonly initiativeColourKey: string | null;
+}
+
+/**
+ * Every opportunity's prospect and initiative, by name.
+ *
+ * The metrics snapshot carries ids and no names, on purpose — the computation is pure over facts
+ * and a rename must never be able to change a number. So the screen resolves names separately, and
+ * this is that resolution: one query for the whole tenant rather than one per card, because The
+ * Board renders ten of them and a per-card lookup is ten round trips inside one render.
+ */
+export async function loadOpportunityLabels(
+  db: Database,
+  tenantId: string,
+): Promise<Map<string, OpportunityLabel>> {
+  const rows = await db
+    .select({
+      opportunityId: forwardOpportunities.id,
+      prospectId: forwardOpportunities.prospectId,
+      prospectName: constituents.displayName,
+      prospectType: constituents.type,
+      initiativeId: forwardOpportunities.initiativeId,
+      initiativeName: fundingInitiatives.name,
+      initiativeColourKey: fundingInitiatives.colourKey,
+    })
+    .from(forwardOpportunities)
+    .innerJoin(prospects, eq(prospects.id, forwardOpportunities.prospectId))
+    .innerJoin(constituents, eq(constituents.id, prospects.constituentId))
+    .innerJoin(fundingInitiatives, eq(fundingInitiatives.id, forwardOpportunities.initiativeId))
+    .where(eq(forwardOpportunities.tenantId, tenantId));
+
+  return new Map(rows.map((row) => [row.opportunityId, row]));
 }
 
 // -------------------------------------------------------------------------------------------

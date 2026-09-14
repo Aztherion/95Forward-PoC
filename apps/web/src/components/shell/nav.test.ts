@@ -73,8 +73,8 @@ describe("nav configuration", () => {
   });
 
   it("keeps the old prospect-centric dashboard out of the nav", () => {
-    // `/95-forward/today` still resolves — I25 deletes it, and deleting it before The Board exists
-    // would leave a hole. Out of the nav so there is one landing, not two.
+    // `/95-forward/today` is gone as of I25 — deleted, not parked, because two landing screens
+    // means two philosophies and someone eventually demos the wrong one.
     const hrefs = NAV_SECTIONS.flatMap((s) =>
       s.items.flatMap((i) =>
         i.kind === "group" ? i.children.map((c) => c.href) : i.kind === "eyebrow" ? [] : [i.href],

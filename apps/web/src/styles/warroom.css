@@ -487,3 +487,362 @@ a.f95-rulechip:focus-visible {
   font: var(--text-caption);
   text-align: center;
 }
+
+/* ===========================================================================================
+   The Board (I25)
+
+   The hierarchy is the requirement, not a preference. A queue card that reads as a task row has
+   failed even with every element present, so the name and the amount are the two largest things on
+   it and every verb is deliberately smaller than both.
+
+   The page also runs a tighter vertical rhythm than the rest of the app — 24px top padding and a
+   12px stack gap against the standard 32/16 — because item #1 must clear the fold at 1280x800 and
+   I24 measured the standard rhythm failing it by ~66px.
+   =========================================================================================== */
+
+.f95-board {
+  padding-top: var(--space-6);
+  gap: var(--space-3);
+}
+.f95-board__sectionhead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.f95-board__sectionsub {
+  font: var(--text-caption);
+  margin: 2px 0 0;
+}
+.f95-board__belowcut {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-1);
+  font: var(--text-caption);
+}
+
+/* ---- Fix first ----------------------------------------------------------------------------
+   Collapsed to a summary line by default. See FixFirst.tsx for why.
+   ------------------------------------------------------------------------------------------- */
+.f95-fixfirst {
+  --_accent: var(--health-slowing);
+}
+.f95-fixfirst__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.f95-fixfirst__line {
+  font: var(--fw-semibold) var(--fs-body) / 1.35 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-fixfirst__list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-top: 1px solid var(--border-hairline);
+  padding-top: var(--space-4);
+}
+.f95-fixfirst__item {
+  display: flex;
+  gap: var(--space-3);
+}
+.f95-fixfirst__num {
+  flex: none;
+  width: 26px;
+  font: var(--fw-heavy) var(--fs-caption) / 1.4 var(--font-mono);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.f95-fixfirst__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.f95-fixfirst__who {
+  font: var(--text-body-r);
+  color: var(--text-strong);
+}
+.f95-fixfirst__statement {
+  margin: 0;
+  font: var(--text-body-r);
+  color: var(--text-body);
+}
+.f95-fixfirst__actions {
+  margin-top: 2px;
+}
+
+/* ---- The metric block ---------------------------------------------------------------------
+   Horizontal: one dominant figure on the left, three subordinate stacked beside it. Stacking them
+   instead cost 60px, which is 60px item #1 does not have at 1280x800.
+   ------------------------------------------------------------------------------------------- */
+.f95-metricblock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+@media (min-width: 900px) {
+  .f95-metricblock {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-6);
+  }
+}
+.f95-metricblock__primary {
+  min-width: 0;
+}
+.f95-metricblock__benchmark {
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+.f95-metricblock__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.f95-metricblock__side > * + * {
+  border-top: 1px solid var(--border-hairline);
+}
+
+/* The row variant of Metric: label and basis on the left, figure right-aligned. Same component,
+   same tokens — only the arrangement differs, so the three supporting figures cannot drift from
+   the dominant one. */
+.f95-metric--row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: var(--space-4);
+  row-gap: 0;
+  padding: var(--space-2) 0;
+}
+.f95-metric--row .f95-metric__label {
+  grid-column: 1;
+}
+.f95-metric--row .f95-metric__value {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: var(--fs-xl);
+}
+.f95-metric--row .f95-metric__sub {
+  grid-column: 1;
+}
+.f95-metric--row.f95-metric--alert {
+  background: var(--health-stuck-surface);
+  margin: 0 calc(var(--space-3) * -1);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- A queue card --------------------------------------------------------------------------
+   Three columns: the rank, the record, and the verbs. The verbs are in the third column and not
+   under the name on purpose — a card whose actions sit beneath its content reads as a task row,
+   and a task row is precisely the thing this screen replaced.
+   ------------------------------------------------------------------------------------------- */
+.f95-queue {
+  display: block;
+}
+.f95-queue .f95-card__pad {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .f95-queue .f95-card__pad {
+    grid-template-columns: 64px minmax(0, 1fr) 208px;
+    gap: var(--space-4);
+  }
+}
+.f95-queue__rank {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.f95-queue__num {
+  font: var(--fw-heavy) var(--fs-2xl) / 1 var(--font-sans);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.f95-queue__pinned {
+  font: var(--fw-semibold) var(--fs-micro) / 1 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--reg-accent);
+}
+.f95-queue__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The two dominant lines. Everything else on the card is smaller, on purpose. */
+.f95-queue__who {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.f95-queue__name {
+  font: var(--fw-bold) var(--fs-xl) / 1.2 var(--font-sans);
+  letter-spacing: var(--ls-snug);
+  color: var(--text-strong);
+  text-decoration: none;
+}
+.f95-queue__name:hover {
+  color: var(--reg-accent-strong);
+  text-decoration: underline;
+}
+.f95-queue__type {
+  font: var(--text-caption);
+}
+.f95-queue__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.f95-queue__amount {
+  font: var(--fw-heavy) var(--fs-xl) / 1.1 var(--font-sans);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+.f95-queue__stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-caption);
+  color: var(--text-secondary);
+}
+.f95-queue__move {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border-default);
+  margin-top: 2px;
+}
+/* Subordinate to the name and the amount — this is the verb, and it is the smaller thing. */
+.f95-queue__action-title {
+  font: var(--fw-semibold) var(--fs-small) / 1.3 var(--font-sans);
+  color: var(--text-body);
+}
+.f95-queue__rationale {
+  margin: 0;
+  font: var(--text-body-r);
+  color: var(--text-secondary);
+}
+.f95-queue__evidence {
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+
+.f95-queue__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .f95-queue__actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+.f95-queue__actions .f95-btn {
+  justify-content: center;
+}
+.f95-queue__decide {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.f95-queue__why,
+.f95-queue__draft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+}
+.f95-queue__draft {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+}
+.f95-queue__whylist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: var(--text-caption);
+  color: var(--text-body);
+}
+.f95-queue__why-note,
+.f95-queue__draft-note {
+  margin: 0;
+  font: var(--text-caption);
+}
+.f95-queue__draft-line {
+  margin: 0;
+  font: var(--text-body-r);
+  color: var(--text-body);
+}
+
+/* ---- Dismissed, and the way back ----------------------------------------------------------- */
+.f95-dismissed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+.f95-dismissed__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+.f95-dismissed__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font: var(--text-caption);
+}
+.f95-dismissed__who {
+  color: var(--text-body);
+}
+
+@media (max-width: 720px) {
+  .f95-queue__rank {
+    flex-direction: row;
+    align-items: center;
+  }
+}

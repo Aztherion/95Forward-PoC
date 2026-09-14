@@ -357,11 +357,8 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+/* Treatment in tokens/typography.css; only the block spacing lives here (I25). */
 .f95-fieldgroup__legend {
-  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--reg-eyebrow);
   margin-bottom: var(--space-2);
 }
 .f95-textarea {
@@ -441,11 +438,8 @@
   flex: 1;
   min-width: 0;
 }
+/* Treatment in tokens/typography.css; only the block spacing lives here (I25). */
 .f95-page__eyebrow {
-  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--reg-eyebrow);
   margin-bottom: var(--space-2);
 }
 .f95-page__title {
@@ -580,11 +574,6 @@
   font: var(--text-body-r);
   color: var(--text-strong);
 }
-.f95-deflist__desc--empty {
-  color: var(--text-muted);
-  font-style: normal;
-}
-
 .f95-flagboard {
   display: flex;
   flex-wrap: wrap;

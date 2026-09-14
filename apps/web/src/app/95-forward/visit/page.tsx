@@ -51,7 +51,7 @@ export default async function VisitPage({
         data-testid="visit-mode"
       >
         <div className="f95-visit__top">
-          <Link href="/95-forward/today" className="f95-cluster f95-table__cell-link">
+          <Link href="/95-forward/board" className="f95-cluster f95-table__cell-link">
             <X size={18} strokeWidth={1.8} /> Exit
           </Link>
           <div className="f95-visit__top-meta">

@@ -86,12 +86,7 @@
   gap: var(--space-3);
 }
 
-.f95-visit__eyebrow {
-  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
+/* Treatment and the muted colour both in tokens/typography.css (I25). */
 
 .f95-visit__qlist {
   display: flex;

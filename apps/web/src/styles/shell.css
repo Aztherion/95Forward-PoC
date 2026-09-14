@@ -369,11 +369,8 @@
   padding: var(--space-8) var(--space-7);
   max-width: var(--container-max);
 }
+/* Treatment in tokens/typography.css; only the block spacing lives here (I25). */
 .page-placeholder__eyebrow {
-  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-  color: var(--reg-eyebrow);
   margin-bottom: var(--space-3);
 }
 .page-placeholder__title {

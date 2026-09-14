@@ -147,10 +147,12 @@ test.describe("95 Forward inside the Keystone shell", () => {
     await expect(page.locator("h1")).toHaveCount(1);
   });
 
-  test("the old dashboard still resolves but is absent from the nav", async ({ page }) => {
+  test("the old prospect-centric dashboard is deleted, not parked", async ({ page }) => {
+    // I25 deletes it. Two landing screens is two philosophies, and a parked one is a screen
+    // somebody demos by accident.
     const response = await page.goto("/95-forward/today");
-    expect(response?.status()).toBeLessThan(400);
-    await expect(page.locator('[data-testid="today"]')).toBeVisible();
+    expect(response?.status()).toBe(404);
+    await expect(page.locator('[data-testid="today"]')).toHaveCount(0);
     await expect(page.locator(".shell-row__label", { hasText: /^Today$/ })).toHaveCount(0);
   });
 
@@ -159,7 +161,9 @@ test.describe("95 Forward inside the Keystone shell", () => {
     await expect(page).toHaveURL(/\/95-forward\/board$/);
   });
 
-  test("the prospect record hands off to Keystone for the full giving history", async ({ page }) => {
+  test("the prospect record hands off to Keystone for the full giving history", async ({
+    page,
+  }) => {
     await page.goto("/95-forward/prospects");
     await page.locator('[data-testid="prospect-row"]').first().click();
     await page.waitForURL(/\/95-forward\/prospects\/[0-9a-f-]+/, { timeout: 30_000 });

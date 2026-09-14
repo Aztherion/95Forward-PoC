@@ -64,12 +64,41 @@
   --num-tabular: "tnum" 1, "lnum" 1; /* @kind other */
 }
 
-/* Utility: eyebrow / overline label — small caps-spaced meta */
-.f95-overline {
-  font: var(--fw-semibold) var(--fs-micro)/1.2 var(--font-sans);
+/* ONE eyebrow (I25).
+   Five near-identical rules existed — two of them byte-identical — plus `f95-eyebrow` applied in
+   TSX with no rule behind it at all. This is the single treatment; the block contexts below carry
+   nothing but the margin that was the only real difference between them, and `.f95-eyebrow` carries
+   no margin so it is usable inline, which is what made `.f95-page__eyebrow` unusable there.
+   Consumers: .f95-page__eyebrow, .f95-fieldgroup__legend, .page-placeholder__eyebrow,
+   .f95-visit__eyebrow — each of which now declares only its delta, in its own file. */
+.f95-eyebrow,
+.f95-overline,
+.f95-page__eyebrow,
+.f95-fieldgroup__legend,
+.page-placeholder__eyebrow,
+.f95-visit__eyebrow {
+  font: var(--fw-semibold) var(--fs-micro)/1 var(--font-sans);
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
+  color: var(--reg-eyebrow);
+}
+/* Steps back from the register accent — a low-chrome reading surface, or a label that must not
+   compete with the value under it. */
+.f95-eyebrow--quiet,
+.f95-overline,
+.f95-visit__eyebrow {
   color: var(--text-muted);
+}
+
+/* Utility: muted / secondary text (I25).
+   There was no such utility, which is why `.f95-deflist__desc--empty` had accumulated 41 standalone
+   uses across 27 files with no `.f95-deflist` anywhere near them. Both names resolve here now, so
+   those sites converge without editing 27 files, and a new screen has something honest to reach
+   for. Colour only, deliberately: it composes with whatever type the line already has. */
+.f95-muted,
+.f95-deflist__desc--empty {
+  color: var(--text-muted);
+  font-style: normal;
 }
 /* Utility: provenance / citation mono tag */
 .f95-mono {
