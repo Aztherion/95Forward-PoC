@@ -102,7 +102,7 @@ export function forecastVerdict(
  * The second sentence is withheld unless the best-only money really is unconfirmed.
  */
 export function ledgerFooter(simulation: SimulationResult, total: number): string | null {
-  const { count, cents, unqualifiedCents } = simulation.bestOnly;
+  const { count, unqualifiedCents } = simulation.bestOnly;
   if (count === 0) return null;
   const head = `${count} of these ${total} only appear in Best.`;
   if (unqualifiedCents <= 0) return head;
