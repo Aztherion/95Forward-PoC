@@ -1,6 +1,14 @@
 import type { GridRow } from "@95forward/shared";
 import { shortDate } from "./grid-copy";
 
+/**
+ * The demo's anchor, for the one place a component needs a date before the server has answered.
+ *
+ * Never `new Date()`. Every write in this codebase stamps the injected clock, so wall time is not
+ * "today" here — it is a different day from the one every other figure on the screen describes.
+ */
+export const DEMO_TODAY_ISO = "2026-09-12";
+
 export const PRESET_IDS = ["slip-a-quarter", "qualify-best-only", "lose-the-largest"] as const;
 export type PresetId = (typeof PRESET_IDS)[number];
 

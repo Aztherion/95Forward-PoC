@@ -3,7 +3,7 @@
 import { ForecastChart, type ForecastPoint } from "@/components/forecast";
 import { formatCurrencyFromCents } from "@/lib/format";
 import type { WhatIfResultView } from "@/server/data/what-if";
-import { deltaText, deltaTone, type Preset, type PresetId } from "./what-if-copy";
+import { DEMO_TODAY_ISO, deltaText, deltaTone, type Preset, type PresetId } from "./what-if-copy";
 
 export interface WhatIfPanelProps {
   readonly result: WhatIfResultView | null;
@@ -69,7 +69,11 @@ export function WhatIfPanel({
           <ForecastChart
             points={points}
             goalCents={result?.goalCents ?? null}
-            todayIso={result?.todayIso ?? new Date().toISOString().slice(0, 10)}
+            // `todayIso` comes from the injected clock with the result. Before the first
+            // compute lands there is nothing to draw a divider against, so the empty chart takes
+            // the anchor rather than wall time — a `new Date()` here put the divider two days
+            // adrift of every other date on the screen (I30 audit).
+            todayIso={result?.todayIso ?? DEMO_TODAY_ISO}
             height={220}
             ariaLabel={
               changedCount === 0

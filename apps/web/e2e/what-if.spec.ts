@@ -30,25 +30,48 @@ async function withDb<T>(fn: (client: PgClient) => Promise<T>): Promise<T> {
   }
 }
 
-/** Everything a write could possibly disturb, as one comparable string. */
-async function portfolioFingerprint(): Promise<string> {
+/**
+ * Records other specs pin. The guarantee test stays off them.
+ *
+ * Not because a what-if could touch them — it writes nothing, which is the point — but because
+ * this test's evidence is a before/after comparison, and `opportunity-detail.spec.ts` and
+ * `invariants.spec.ts` legitimately write to their own records in parallel. Fingerprinting the
+ * whole database would make their correct writes look like this sandbox's incorrect ones.
+ */
+const RESERVED = [
+  "6fb270ee-e0bf-5766-809e-418b72ad1a7f", // Hallworth — opportunity-detail
+  "de230b11-bea4-5c01-bdb8-b0ab5361cc52", // Sterling — drafts
+  "eee951d9-814f-59b7-985f-cd4978be2233", // Iris — drafts
+  "246531f4-702e-586e-bfbd-7f3531801658", // Clara — drafts
+  "84ea4289-197c-51a6-b5d0-d44dcb2a69f5", // the prep-the-visit record — drafts
+];
+
+/**
+ * Everything a write could possibly disturb, for a named set of records, as one comparable string.
+ *
+ * `updated_at` is in it deliberately: a no-op UPDATE that changed nothing but the timestamp would
+ * still be a write, and this catches it. So is the event count and every event field, because the
+ * failure this guards against is a hypothesis quietly becoming a record on the timeline.
+ */
+async function fingerprint(ids: readonly string[]): Promise<string> {
   return withDb(async (client) => {
-    const { rows } = await client.query(`
-      select
-        (select md5(string_agg(t::text, '|' order by t.id)) from (
+    const { rows } = await client.query(
+      `select
+        (select coalesce(md5(string_agg(t::text, '|' order by t.id)), 'none') from (
             select id, amount_cents, amount_note, close_date, date_confidence, stage,
                    probability, visit_rating, initiative_id, owner_user_id, status, updated_at
-              from forward_opportunities) t) as opportunities,
-        (select count(*) from opportunity_events) as events,
+              from forward_opportunities where id = any($1::uuid[])) t) as opportunities,
+        (select count(*) from opportunity_events where opportunity_id = any($1::uuid[])) as events,
         (select coalesce(md5(string_agg(e::text, '|' order by e.id)), 'none') from (
             select id, opportunity_id, event_type, field, old_value, new_value, prospect_sourced,
                    occurred_at
-              from opportunity_events) e) as event_rows,
+              from opportunity_events where opportunity_id = any($1::uuid[])) e) as event_rows,
         (select coalesce(md5(string_agg(m::text, '|' order by m.id)), 'none') from (
             select id, opportunity_id, milestone_definition_id, confirmed, confirmed_at,
                    confirmed_by_user_id, confirmed_by_name, evidence, document_url
-              from opportunity_milestones) m) as milestones
-    `);
+              from opportunity_milestones where opportunity_id = any($1::uuid[])) m) as milestones`,
+      [ids],
+    );
     const row = rows[0]!;
     return `${row.opportunities}::${row.events}::${row.event_rows}::${row.milestones}`;
   });
@@ -60,6 +83,22 @@ async function enterWhatIf(page: Page): Promise<void> {
   await page.locator('[data-testid="whatif-enter"]').click();
   await expect(page.locator('[data-testid="whatif-banner"]')).toBeVisible();
   await expect(page.locator('[data-testid="whatif-panel"]')).toBeVisible();
+  await settled(page);
+}
+
+/**
+ * Wait for the panel to have computed something.
+ *
+ * The what-if figures come from a server round trip — snapshot load, metrics, a 10,000-trial
+ * simulation — and under a full-suite run another worker's write moves the data version, so every
+ * recompute is a cache miss on a loaded dev server. Playwright's 5-second default is not enough
+ * for that, and a test that asserts on the panel without waiting fails on timing rather than on
+ * behaviour. The same class H3 fixed for server actions, on the read side.
+ */
+async function settled(page: Page): Promise<void> {
+  await expect(page.locator('[data-testid="whatif-metric"]').first()).toBeVisible({
+    timeout: 30000,
+  });
 }
 
 async function firstRowId(page: Page): Promise<string> {
@@ -109,14 +148,16 @@ test.describe("the guarantee: nothing is written", () => {
   test("a full editing session leaves the database byte-identical", async ({ page }) => {
     // The initiative's central promise, tested directly rather than inferred. Every kind of
     // hypothetical change, then a hash of every column any of them could have touched.
-    const before = await portfolioFingerprint();
-
     await enterWhatIf(page);
-    const ids = await page
+    const all = await page
       .locator('[data-testid="grid-row"]')
-      .evaluateAll((rows) =>
-        rows.slice(0, 3).map((r) => r.getAttribute("data-opportunity-id") ?? ""),
-      );
+      .evaluateAll((rows) => rows.map((r) => r.getAttribute("data-opportunity-id") ?? ""));
+    const ids = all.filter((id) => id && !RESERVED.includes(id)).slice(0, 4);
+    expect(ids.length, "not enough unreserved records to drive the session").toBeGreaterThanOrEqual(
+      3,
+    );
+
+    const before = await fingerprint(ids);
 
     // Field edits of several kinds.
     await editCell(page, ids[0]!, "amount", "777000");
@@ -133,12 +174,12 @@ test.describe("the guarantee: nothing is written", () => {
     await dots.first().click();
     await dots.nth(1).click();
 
-    // And a preset on top.
+    // And a preset on top, which touches every open record including these.
     await page.locator('[data-testid="whatif-preset-slip-a-quarter"]').click();
     await expect(page.locator('[data-testid="whatif-count"]')).toContainText("pending");
     await page.waitForTimeout(2500);
 
-    expect(await portfolioFingerprint(), "the sandbox wrote to the database").toBe(before);
+    expect(await fingerprint(ids), "the sandbox wrote to the database").toBe(before);
   });
 
   test("the close-date question does not even appear — there is nothing to attribute", async ({
@@ -213,7 +254,7 @@ test.describe("the mode is unmistakable", () => {
     // Two numbers read as a comparison; one reads as a state, and a state is what this is not.
     await enterWhatIf(page);
     await page.locator('[data-testid="whatif-preset-lose-the-largest"]').click();
-    await expect(page.locator('[data-testid="whatif-metric"]').first()).toBeVisible();
+    await settled(page);
     const first = page.locator('[data-testid="whatif-metric"]').first();
     await expect(first.locator(".f95-wimetric__was")).toBeVisible();
     await expect(first.locator(".f95-wimetric__now")).toBeVisible();
@@ -449,6 +490,7 @@ test.describe("scope is a lens over the overrides, not a container for them", ()
     // the more valuable question, and it is the one this has to answer.
     await page.goto(`${GRID}?whatif=1`);
     await expect(page.locator('[data-testid="whatif-banner"]')).toBeVisible();
+    await settled(page);
 
     const options = await page
       .locator('[data-testid="filter-initiative"] option')
@@ -514,6 +556,7 @@ test.describe("the no-goal scope degrades rather than breaks", () => {
 
     await page.goto(`${GRID}?whatif=1&initiative=${goalless}`);
     await expect(page.locator('[data-testid="whatif-banner"]')).toBeVisible();
+    await settled(page);
     await expect(page.locator('[data-testid="whatif-no-goal"]')).toBeVisible();
 
     const labels = await page.locator(".f95-wimetric__label").allInnerTexts();
@@ -558,16 +601,24 @@ test.describe("recompute", () => {
   test("reports timing with a dozen overrides pending", async ({ page }) => {
     await enterWhatIf(page);
 
-    // A preset, then individual edits on top, to get past a dozen distinct changed records.
-    await page.locator('[data-testid="whatif-preset-slip-a-quarter"]').click();
-    await expect(page.locator('[data-testid="whatif-count"]')).toContainText("pending");
-
+    // Fourteen DISTINCT records, edited one at a time.
+    //
+    // Not a preset plus extras: the pending count counts distinct opportunities, and a preset that
+    // has already touched a row makes a later edit to that row add nothing to it — which is
+    // correct, and made the first version of this test assert an increment that never came.
+    //
+    // Each edit waits for its own cell to show the new value before the next one starts. Fired
+    // blind these race the re-render they cause: the grid re-sorts, the optimistic map clears
+    // when fresh props arrive, and under full-suite load an edit lands on a cell that has moved.
+    // A timing test failing on timing tells you nothing.
     const ids = await page
       .locator('[data-testid="grid-row"]')
       .evaluateAll((rows) =>
         rows.slice(0, 14).map((r) => r.getAttribute("data-opportunity-id") ?? ""),
       );
-    for (const id of ids) {
+    expect(ids.length, "not enough rows to pend a dozen changes").toBeGreaterThanOrEqual(12);
+
+    for (const [index, id] of ids.entries()) {
       const cell = page
         .locator(`[data-opportunity-id="${id}"]`)
         .first()
@@ -577,8 +628,13 @@ test.describe("recompute", () => {
       await cell.press("Enter");
       const input = cell.locator("input");
       await input.waitFor();
-      await input.fill("123456");
+      const value = String(100000 + index * 1000);
+      await input.fill(value);
       await input.press("Enter");
+      await expect(cell.locator(".f95-grid__value")).toContainText(
+        `$${Number(value).toLocaleString("en-US")}`,
+        { timeout: 20000 },
+      );
     }
 
     const pendingText = (await page.locator('[data-testid="whatif-count"]').innerText()).trim();
@@ -586,9 +642,16 @@ test.describe("recompute", () => {
     expect(pendingCount, `only ${pendingText}`).toBeGreaterThanOrEqual(12);
 
     // Now time ONE more change on top of that dozen — the case the brief asks about.
-    await expect(page.locator('[data-testid="whatif-computing"]')).toHaveCount(0, {
-      timeout: 20000,
-    });
+    //
+    // Waits on the RESULT rather than on the pending indicator. Under a full-suite run another
+    // worker's write moves the data version, every recompute misses the cache, and the indicator
+    // can still be up when a 20s ceiling expires — a timeout about suite load rather than about
+    // this feature.
+    await expect
+      .poll(async () => page.locator('[data-testid="whatif-metric-value"]').count(), {
+        timeout: 45000,
+      })
+      .toBeGreaterThan(0);
     const before = await page.locator('[data-testid="whatif-metric-value"]').allInnerTexts();
     const t0 = Date.now();
     await page.locator('[data-testid="whatif-preset-lose-the-largest"]').click();
@@ -635,5 +698,94 @@ test.describe("recompute", () => {
 
     await input.press("Enter");
     await expect.poll(async () => posts.length).toBeGreaterThan(0);
+  });
+});
+
+test.describe("baseline-only figures are marked (I30)", () => {
+  test("derived columns and group subtotals say they are not moving", async ({ page }) => {
+    // I31 leaves rank, next action, impact, flags, scenario and the group subtotals at BASELINE
+    // while a hypothesis is pending, because recomputing them client-side would be a second
+    // implementation of I23's ranking and I19's qualified predicate. The consequence was that the
+    // grid's footer and the chart answered different questions with nothing saying so.
+    await page.goto(`${GRID}?group=stage&whatif=1`);
+    await expect(page.locator('[data-testid="whatif-banner"]')).toBeVisible();
+    await settled(page);
+
+    // Nothing pending yet: the numbers ARE real, so no marker.
+    await expect(page.locator('[data-testid="baseline-only-marker"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="subtotal-baseline-only"]')).toHaveCount(0);
+
+    await page.locator('[data-testid="whatif-preset-lose-the-largest"]').click();
+    await expect(page.locator('[data-testid="whatif-count"]')).toContainText("pending");
+
+    // Now marked, on the derived columns and on every group footer.
+    await expect(page.locator('[data-testid="baseline-only-marker"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="subtotal-baseline-only"]').first()).toBeVisible();
+
+    // And NOT on the editable columns, which do move with the hypothesis.
+    const markedHeaders = await page
+      .locator('th:has([data-testid="baseline-only-marker"])')
+      .allInnerTexts();
+    for (const header of markedHeaders) {
+      expect(header, `${header} is editable and must not be marked baseline`).not.toMatch(
+        /^(Amount|Stage|Close|Conf\.|Prob\.|Visit|Initiative|Rep)/,
+      );
+    }
+    expect(markedHeaders.join(" ")).toMatch(
+      /Real\?|Milestones|Next action|Flags|Silent|Impact|Scenario/,
+    );
+
+    // Discarding takes the marks away again.
+    await page.locator('[data-testid="whatif-discard"]').click();
+    await expect(page.locator('[data-testid="whatif-count"]')).toContainText("No changes yet");
+    await expect(page.locator('[data-testid="baseline-only-marker"]')).toHaveCount(0);
+  });
+});
+
+test.describe("the thesis, in one click (I30)", () => {
+  test("qualifying the best-only asks moves the CLAIM and not the FORECAST", async ({ page }) => {
+    // The demo's sixth beat, and the subtlest thing the product says. Qualifying an ask changes
+    // what you can claim is on the table; it does not change what is likely to happen, because
+    // the simulation already includes unqualified deals — an unqualified ask can still close.
+    //
+    // Pinned because it is exactly the kind of behaviour a future change could break without
+    // looking wrong: make the simulation qualification-aware and every number still renders,
+    // every other test still passes, and the product quietly starts double-counting its own
+    // methodology.
+    await page.goto(`${GRID}?whatif=1&preset=qualify-best-only`);
+    await expect(page.locator('[data-testid="whatif-banner"]')).toBeVisible();
+    await expect(page.locator('[data-testid="whatif-count"]')).toContainText("pending");
+    await settled(page);
+    await expect(page.locator('[data-testid="whatif-computing"]')).toHaveCount(0, {
+      timeout: 20000,
+    });
+
+    const rows = await page.locator('[data-testid="whatif-metric"]').all();
+    const byLabel = new Map<string, string>();
+    for (const row of rows) {
+      byLabel.set(
+        (await row.locator(".f95-wimetric__label").innerText()).trim(),
+        (await row.innerText()).replace(/\n/g, " "),
+      );
+    }
+
+    // The claim moves, upward.
+    const qualified = byLabel.get("Qualified asks on the table") ?? "";
+    expect(qualified, "qualifying the best-only asks did not move qualified asks").toMatch(/\+\$/);
+
+    // Coverage moves with it — same numerator.
+    const coverage = byLabel.get("Coverage") ?? "";
+    const ratios = [...coverage.matchAll(/(\d+\.\d+)×/g)].map((m) => Number(m[1]));
+    expect(ratios.length, `no coverage ratios in: ${coverage}`).toBeGreaterThanOrEqual(2);
+    expect(ratios[1], "coverage did not improve when asks were qualified").toBeGreaterThan(
+      ratios[0]!,
+    );
+
+    // And the forecast does NOT move. This is the half that carries the argument.
+    const mostLikely = byLabel.get("Most likely at year end") ?? "";
+    expect(
+      mostLikely,
+      "qualifying an ask moved the SIMULATION — the model has started double-counting qualification",
+    ).toContain("no change");
   });
 });
