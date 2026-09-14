@@ -569,6 +569,122 @@ which number it is showing rather than appearing to contradict The Board.
 
 ---
 
+## The what-if sandbox (I31)
+
+Not a screen. A **mode** on the Opportunities grid, because a what-if needs editing — many rows,
+eight fields, validation, keyboard navigation — and that exists only there. A second editing
+surface inside the Forecast Room would duplicate I29 for no gain.
+
+### Why a sandbox rather than just showing the chart
+
+I29's grid recomputes correctly on every edit and displays none of it, which is a gap in that
+brief rather than in the build. But co-locating the chart alone would be a trap, because **the
+grid commits every edit**. A leader exploring *"what if Sterling slips a quarter"* would write
+three real close-date moves into the event log, which then surface as slippage flags on the
+movement panel and `pushed 3×` chips on the stage board. The product's own integrity machinery
+would flag the exploration as bad data — and the more compelling the chart, the more people would
+do it.
+
+### Vocabulary
+
+**"Scenario"** is already taken, by BMW membership (`IN ALL THREE`, `BEST ONLY`). This is a
+**what-if**; the untouched state is the **baseline**. Do not overload either.
+
+### The guarantee: no write path exists
+
+**A what-if writes nothing. Ever. There is no commit.** The guarantee is *structural*, not
+procedural — there is no carefully-designed commit flow that has to be followed correctly, because
+there is no code path from pending state to the database at all. It cannot be broken by a
+misclick, a race, or a future refactor of a review step.
+
+- Pending state lives in **one client component's `useState`**. Not in the URL, not in a cookie,
+  not in server session state, not in any store or context another route could read. `whatif=1`
+  and `preset=` are entry flags only.
+- The reducer that records a hypothetical edit (`what-if-state.ts`) **imports nothing from
+  `@/server`**. It is pure functions over a plain object.
+- The one server call is `computeWhatIfAction`, alone in its own file, which loads a snapshot and
+  hands it to `computeMetrics` and `simulate`. It opens no write transaction and revalidates
+  nothing — a hypothesis has no effect on any cached route, and revalidating would be the first
+  step towards behaving as though it did.
+- A reload clears everything. That is correct, not a limitation: state that survives a reload is
+  state that can be mistaken for real.
+
+`no-write-path.test.ts` asserts all of this by **reading the source**, because a behavioural test
+can only sample the states it happens to drive.
+
+If a user likes what they see, they leave the mode and make the changes normally, where every
+per-edit guard applies. That is slightly more work and it is the right amount of friction for
+turning a hypothesis into a record. *A commit path may be worth adding later; it would be its own
+initiative, with its own review of the guards it has to respect.*
+
+### Making the mode unmistakable
+
+Ranked equal with the guarantee: **a user must never be in doubt about whether the numbers in
+front of them are real.** Someone who reads what-if figures as real has been actively misled,
+which is worse than not having the feature.
+
+- A **sticky banner** naming the state plainly — *"What if · These numbers are not real. Nothing
+  is saved."* — with the pending count and an obvious exit.
+- **A tint and a dashed outline over the whole surface**, so a screenshot taken mid-session is
+  self-evidently a what-if with the banner cropped off.
+- **A stamp on the plot itself** (`WHAT IF · NOT REAL`), so a cropped chart still reads as
+  hypothetical.
+- **Every changed cell marked**, with the record's value struck through beside the hypothesis.
+- **The baseline always visible alongside** — the ghosted baseline curve and the before → after
+  metric pairs are what make this legible as a *comparison* rather than a state.
+- Entering and leaving are explicit. Leaving with pending changes warns first.
+
+The palette is the system's **Unknown** one, deliberately not the AI tint: a provisional AI
+suggestion is something you might accept, and a hypothesis is something nobody can accept from
+here.
+
+### What it shows
+
+The BMW chart with the **baseline's most-likely ghosted behind** the what-if curve, and the
+headline metrics as before → after pairs with deltas: qualified asks, most likely at year end,
+coverage, coverage gap.
+
+### Two correctness details
+
+**1. Common random numbers.** `simulate` seeds its PRNG from a hash of the portfolio. If an
+overridden run seeded from the *overridden* state, changing one close date would reshuffle every
+draw and the whole curve would move — including the parts the change could not affect. It now
+seeds from the **baseline in-scope portfolio**, always, so the difference between the two curves
+is genuinely attributable to the hypothesis. This also sharpens I20's consequence quantification,
+which runs `simulate` with overrides for the same purpose.
+
+**2. The cache key carries an override signature.** Without it a hypothesis collides with the
+baseline's cached entry and returns the wrong curve — silently, and the faster the cache the more
+convincingly. Overridden runs are now cached (the sandbox re-renders the same hypothesis on every
+sort, group and scope change) and the shared cache is bounded at 64 entries, because hypotheses
+are unbounded.
+
+### Scoping
+
+Overrides are **scope-independent; the scope is a lens over them.** A change made under one
+initiative keeps affecting the year when you widen to Everything — the more valuable question, and
+the naive implementation (overrides keyed to the current filter) silently discards them on a tab
+change.
+
+The cost is that a pending change can be invisible, which is the worst state this feature could
+produce, so the count is **total** and says what is hidden: *"12 changes pending · 4 outside this
+view"*.
+
+The **no-goal scope** degrades rather than breaks: the curve and qualified asks still render,
+coverage and gap are simply absent, and it never falls back to a parent goal — I19 forbids that,
+because a silently wrong ratio is worse than an absent one.
+
+### Doors
+
+The grid's own toggle, and the Forecast Room — where the question arises even though the grid is
+where it gets answered. The Forecast Room's link carries the selected initiative tab as scope, and
+its `Qualify the best-case asks` action is one instance of this with a preset applied.
+
+**Not a new nav item.** I24 chose seven deliberately; an eighth would imply a separate place with
+separate data. This is the same portfolio, hypothetically.
+
+---
+
 ## Cross-screen invariants
 
 Verify these after building; they are what make the numbers credible under demo scrutiny.

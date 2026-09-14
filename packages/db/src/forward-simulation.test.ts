@@ -14,7 +14,13 @@ import { DEMO_TODAY } from "./demo-clock";
 import { connectTestDb, type TestDb } from "./test-support";
 import type { Database } from "./client";
 import { loadMetricsSnapshot } from "./forward-metrics-repo";
-import { ForwardSimulationService, dataVersion, simulationCacheKey } from "./forward-simulation-repo";
+import {
+  ForwardSimulationService,
+  dataVersion,
+  overridesSignature,
+  simulationCacheKey,
+} from "./forward-simulation-repo";
+import type { SimulationResult } from "@95forward/shared";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -102,7 +108,8 @@ describe("the seeded curve", () => {
       46_920_000,
     ]);
     // Never goes backwards, and moves in each of the last three months.
-    for (let i = 1; i < actuals.length; i += 1) expect(actuals[i]!).toBeGreaterThanOrEqual(actuals[i - 1]!);
+    for (let i = 1; i < actuals.length; i += 1)
+      expect(actuals[i]!).toBeGreaterThanOrEqual(actuals[i - 1]!);
     expect(actuals[8]).toBeGreaterThan(actuals[7]!);
     expect(actuals[7]).toBeGreaterThan(actuals[6]!);
     expect(actuals[6]).toBeGreaterThan(actuals[5]!);
@@ -215,7 +222,11 @@ describe("membership", () => {
   });
 
   maybe("higher bands sit in more scenarios than lower ones", () => {
-    const byId = new Map(service().run(ALL).membership.map((m) => [m.opportunityId, m]));
+    const byId = new Map(
+      service()
+        .run(ALL)
+        .membership.map((m) => [m.opportunityId, m]),
+    );
     const bookable = byId.get(stableId("forward-opportunity:cordova-kamuli")); // bookable
     const longshot = byId.get(stableId("forward-opportunity:bello-forever-promise")); // longshot
     expect(bookable?.inclusionRates.mostLikely).toBeGreaterThan(
@@ -272,11 +283,77 @@ describe("caching", () => {
     expect(cache.size).toBe(2);
   });
 
-  maybe("what-ifs are never cached — they are unbounded and never reused", () => {
+  // I31 reversed the old rule that what-ifs are never cached. It was right that hypotheses are
+  // unbounded and wrong that they are never reused: the sandbox re-renders the same hypothesis
+  // every time the user sorts, groups or changes scope.
+  maybe("a repeated what-if is served from cache", () => {
     const svc = service();
     svc.run(ALL, { excludeOpportunityIds: [OSGOOD] });
     svc.run(ALL, { excludeOpportunityIds: [OSGOOD] });
+    expect(svc.stats.hits).toBe(1);
+    expect(svc.stats.misses).toBe(1);
+  });
+
+  maybe("a what-if does NOT collide with the baseline", () => {
+    // The failure this guards against is silent and convincing: without the override signature in
+    // the key, the hypothesis returns the baseline's cached curve and looks like a change that
+    // did nothing.
+    const svc = service();
+    const baseline = svc.run(ALL);
+    const hypothesis = svc.run(ALL, { excludeOpportunityIds: [OSGOOD] });
     expect(svc.stats.hits).toBe(0);
+    expect(hypothesis.yearEnd.mostLikelyCents).not.toBe(baseline.yearEnd.mostLikelyCents);
+    // And asking for the baseline again still gets the baseline.
+    expect(svc.run(ALL).yearEnd.mostLikelyCents).toBe(baseline.yearEnd.mostLikelyCents);
+  });
+
+  maybe("two different what-ifs over one baseline never see each other's results", () => {
+    const svc = service();
+    const a = svc.run(ALL, { excludeOpportunityIds: [OSGOOD] });
+    const b = svc.run(ALL, { opportunityPatches: { [OSGOOD]: { amountCents: 1_000_00 } } });
+    expect(a.yearEnd.mostLikelyCents).not.toBe(b.yearEnd.mostLikelyCents);
+    // Re-asking each returns its own answer, from cache.
+    expect(svc.run(ALL, { excludeOpportunityIds: [OSGOOD] }).yearEnd.mostLikelyCents).toBe(
+      a.yearEnd.mostLikelyCents,
+    );
+    expect(
+      svc.run(ALL, { opportunityPatches: { [OSGOOD]: { amountCents: 1_000_00 } } }).yearEnd
+        .mostLikelyCents,
+    ).toBe(b.yearEnd.mostLikelyCents);
+    expect(svc.stats.hits).toBe(2);
+  });
+
+  maybe("the override signature is stable across key order and array order", () => {
+    // A signature that moved with object key order would miss on every render, which is a cache
+    // that costs and never pays.
+    const one = overridesSignature({
+      excludeOpportunityIds: ["b", "a"],
+      milestonePatches: { z: ["m2", "m1"], y: ["m3"] },
+      opportunityPatches: { q: { amountCents: 100, stage: "visit_and_ask" } },
+    });
+    const two = overridesSignature({
+      milestonePatches: { y: ["m3"], z: ["m1", "m2"] },
+      opportunityPatches: { q: { stage: "visit_and_ask", amountCents: 100 } },
+      excludeOpportunityIds: ["a", "b"],
+    });
+    expect(one).toBe(two);
+    expect(overridesSignature(undefined)).toBe("-");
+    expect(overridesSignature({})).not.toBe(overridesSignature({ excludeOpportunityIds: ["a"] }));
+  });
+
+  maybe("the cache is bounded, so an exploring user cannot grow it without limit", () => {
+    const cache = new Map<string, SimulationResult>();
+    const svc = new ForwardSimulationService(snapshot, {
+      settings: SETTINGS,
+      clock: CLOCK,
+      dataVersion: version,
+      rulesVersion: RULES_VERSION,
+      cache,
+    });
+    for (let i = 0; i < 80; i += 1) {
+      svc.run(ALL, { opportunityPatches: { [OSGOOD]: { amountCents: 1_000_00 + i } } });
+    }
+    expect(cache.size).toBeLessThanOrEqual(64);
   });
 
   maybe("the cache key moves with settings, not just data", () => {

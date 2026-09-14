@@ -61,12 +61,40 @@ export async function dataVersion(db: Database, tenantId: string): Promise<strin
  * without changing any of them. One counter that moves on ANY doctrine write means a cache added
  * later has exactly one thing to remember to include.
  */
+/**
+ * A stable signature for a set of overrides, for the cache key.
+ *
+ * Sorted at every level and explicitly serialised, because object key order and array order are
+ * never trusted — the same hypothesis must produce the same string, or the cache degenerates into
+ * a miss on every render.
+ */
+export function overridesSignature(overrides: MetricsOverrides | undefined): string {
+  if (!overrides) return "-";
+  const excluded = [...(overrides.excludeOpportunityIds ?? [])].sort().join(",");
+  const patches = Object.entries(overrides.opportunityPatches ?? {})
+    .map(([id, patch]) => {
+      const fields = Object.entries(patch as Record<string, unknown>)
+        .map(([key, value]) => `${key}=${value === null ? "null" : String(value)}`)
+        .sort()
+        .join(",");
+      return `${id}{${fields}}`;
+    })
+    .sort()
+    .join(";");
+  const milestones = Object.entries(overrides.milestonePatches ?? {})
+    .map(([id, keys]) => `${id}{${[...keys].sort().join(",")}}`)
+    .sort()
+    .join(";");
+  return `x:${excluded}|p:${patches}|m:${milestones}`;
+}
+
 export function simulationCacheKey(
   scope: MetricScope,
   dataVersion: string,
   settings: ForwardSettings,
   trialCount: number,
   rulesVersion: string,
+  overrides?: MetricsOverrides,
 ): string {
   const sim = settings.simulation;
   return [
@@ -83,8 +111,21 @@ export function simulationCacheKey(
     sim.membershipThreshold,
     JSON.stringify(sim.dateConfidenceDays),
     JSON.stringify(sim.probabilityPct),
+    // WITHOUT this, a what-if run collides with the baseline's entry and returns the wrong curve
+    // — silently, and the more convincingly the faster the cache is. Two different hypotheses
+    // over one baseline must never see each other's results either.
+    overridesSignature(overrides),
   ].join("::");
 }
+
+/**
+ * How many runs the shared cache holds.
+ *
+ * Sized for the sandbox: one baseline plus a session's worth of hypotheses across a few scopes,
+ * with room for the other screens' entries. A result is a few hundred numbers, so the ceiling is
+ * measured in low megabytes, not in anything that needs tuning.
+ */
+const MAX_CACHED_RUNS = 64;
 
 export interface SimulationServiceOptions {
   readonly settings: ForwardSettings;
@@ -124,15 +165,20 @@ export class ForwardSimulationService {
   }
 
   /**
-   * A what-if simulation is never cached: overrides are hypothetical and unbounded, so caching them
-   * would grow without limit for no reuse. Only the plain scoped run is cached.
+   * Run, or serve a cached run.
+   *
+   * Overridden runs ARE cached, which they were not before I31. The old reasoning — hypotheses
+   * are unbounded, so caching them grows without limit for no reuse — was right about the growth
+   * and wrong about the reuse: the what-if sandbox re-renders the same hypothesis every time the
+   * user sorts, groups or changes scope, and recomputing 10,000 trials for an unchanged
+   * hypothesis is pure waste. So they are cached, and the cache is BOUNDED instead (see `store`).
+   *
+   * The key carries a signature of the overrides. Without it a hypothesis collides with the
+   * baseline's entry and returns the wrong curve — silently, and the faster the cache the more
+   * convincingly.
    */
   run(scope: MetricScope, overrides?: MetricsOverrides, trialCount?: number): SimulationResult {
     const trials = trialCount ?? this.options.settings.simulation.trialCount;
-    if (overrides) {
-      this.misses++;
-      return this.compute(scope, overrides, trials);
-    }
 
     const key = simulationCacheKey(
       scope,
@@ -140,6 +186,7 @@ export class ForwardSimulationService {
       this.options.settings,
       trials,
       this.options.rulesVersion,
+      overrides,
     );
     const cached = this.cache.get(key);
     if (cached) {
@@ -147,9 +194,26 @@ export class ForwardSimulationService {
       return cached;
     }
     this.misses++;
-    const result = this.compute(scope, undefined, trials);
-    this.cache.set(key, result);
+    const result = this.compute(scope, overrides, trials);
+    this.store(key, result);
     return result;
+  }
+
+  /**
+   * Insert, evicting the oldest entries past the cap.
+   *
+   * A Map iterates in insertion order, so the oldest key is the first one. The cap exists because
+   * hypotheses are unbounded — a user dragging a close date across a quarter can mint a hundred
+   * distinct override sets in a minute, and this Map is module-level and shared across requests.
+   * Baseline entries are as evictable as any other; recomputing one costs a single run.
+   */
+  private store(key: string, result: SimulationResult): void {
+    this.cache.set(key, result);
+    while (this.cache.size > MAX_CACHED_RUNS) {
+      const oldest = this.cache.keys().next();
+      if (oldest.done) break;
+      this.cache.delete(oldest.value);
+    }
   }
 
   private compute(

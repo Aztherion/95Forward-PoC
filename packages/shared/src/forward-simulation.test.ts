@@ -86,11 +86,7 @@ describe("the half-pregnant rule — never amount x probability", () => {
   it("a 50% chance of $1M never yields $500,000", () => {
     const o = opportunity({ id: "half", amountCents: 1_000_000_00, probability: "medium" });
     const result = run([o]);
-    const everyValue = result.months.flatMap((m) => [
-      m.bestCents,
-      m.mostLikelyCents,
-      m.worstCents,
-    ]);
+    const everyValue = result.months.flatMap((m) => [m.bestCents, m.mostLikelyCents, m.worstCents]);
     expect(everyValue).not.toContain(500_000_00);
     for (const value of everyValue) expect(value % 1_000_000_00).toBe(0);
   });
@@ -358,9 +354,9 @@ describe("scenario membership is trial-derived, not band-derived", () => {
   it("returns OUTSIDE_BEST rather than dropping an opportunity", () => {
     const result = run([opportunity({ id: "never", probability: "longshot", amountCents: 1_00 })]);
     expect(result.membership).toHaveLength(1);
-    expect(
-      ["IN_ALL_THREE", "MOST_LIKELY_PLUS", "BEST_ONLY", "OUTSIDE_BEST"],
-    ).toContain(result.membership[0]?.badge);
+    expect(["IN_ALL_THREE", "MOST_LIKELY_PLUS", "BEST_ONLY", "OUTSIDE_BEST"]).toContain(
+      result.membership[0]?.badge,
+    );
   });
 });
 
@@ -404,5 +400,132 @@ describe("what-if overrides", () => {
     });
     expect(withoutB.membership.map((m) => m.opportunityId)).toEqual(["a"]);
     expect(withoutB.yearEnd.bestCents).toBeLessThan(withBoth.yearEnd.bestCents);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Common random numbers (I31)
+// ---------------------------------------------------------------------------------------------
+
+describe("a what-if seeds from the BASELINE, so only the change moves the curve", () => {
+  const PORTFOLIO = snapshot([
+    opportunity({ id: "a", amountCents: 500_000_00, closeDate: "2026-10-10" }),
+    opportunity({ id: "b", amountCents: 250_000_00, closeDate: "2026-11-30" }),
+    opportunity({ id: "c", amountCents: 120_000_00, closeDate: "2026-12-15" }),
+    opportunity({ id: "d", amountCents: 80_000_00, closeDate: "2026-10-31" }),
+    opportunity({ id: "e", amountCents: 60_000_00, closeDate: "2026-11-15" }),
+  ]);
+  const run = (overrides?: Parameters<typeof simulate>[0]["overrides"]) =>
+    simulate({ snapshot: PORTFOLIO, scope: SCOPE, settings: SETTINGS, clock: CLOCK, overrides });
+
+  it("uses the same seed for the baseline and for any hypothesis over it", () => {
+    // The whole point. If the seed moved with the override, every trial's draws would be
+    // different and the two curves would be incomparable.
+    const baseline = run();
+    const hypothesis = run({ opportunityPatches: { a: { closeDate: "2027-01-15" } } });
+    expect(hypothesis.meta.seed).toBe(baseline.meta.seed);
+  });
+
+  it("gives an identical curve for the same hypothesis run twice", () => {
+    const once = run({ opportunityPatches: { a: { amountCents: 400_000_00 } } });
+    const twice = run({ opportunityPatches: { a: { amountCents: 400_000_00 } } });
+    expect(twice.months).toEqual(once.months);
+    expect(twice.yearEnd).toEqual(once.yearEnd);
+  });
+
+  it("ISOLATION: removing a deal lowers every month, by no more than that deal", () => {
+    // The observable form of common random numbers. Every other deal keeps its own draws, so
+    // dropping one can only take ITS money out — every month must fall, and by no more than its
+    // amount. Under override-derived seeding this fails outright: the reshuffle can make a month
+    // go UP when you delete a deal, which is the nonsense that makes a sandbox untrustworthy.
+    const baseline = run();
+    const without = run({ excludeOpportunityIds: ["a"] });
+    expect(without.months).toHaveLength(baseline.months.length);
+
+    for (let i = 0; i < baseline.months.length; i += 1) {
+      const before = baseline.months[i]!;
+      const after = without.months[i]!;
+      expect(after.month).toBe(before.month);
+      for (const band of ["bestCents", "mostLikelyCents", "worstCents"] as const) {
+        expect(
+          after[band],
+          `${before.month} ${band} rose when a deal was removed`,
+        ).toBeLessThanOrEqual(before[band]);
+        expect(
+          before[band] - after[band],
+          `${before.month} ${band} moved by more than the removed deal`,
+        ).toBeLessThanOrEqual(500_000_00);
+      }
+    }
+  });
+
+  it("ISOLATION: a change to a field the simulation cannot read moves nothing at all", () => {
+    // The sharpest version: patch something the model does not consult and the result must be
+    // byte-identical. Anything else means the seed is reading the override.
+    const baseline = run();
+    const cosmetic = run({ opportunityPatches: { a: { visitRating: "strong" } } });
+    expect(cosmetic.months).toEqual(baseline.months);
+    expect(cosmetic.yearEnd).toEqual(baseline.yearEnd);
+    expect(cosmetic.meta.seed).toBe(baseline.meta.seed);
+  });
+
+  it("membership MAY move, because the percentile neighbourhood is conditional", () => {
+    // Not a violation of isolation, and worth stating so nobody 'fixes' it. A badge answers "does
+    // this deal appear in the trials near the most-likely total", and removing the largest deal
+    // moves that total — so the neighbourhood is a different set of trials even though every
+    // draw is identical. The curve is isolated; a conditional label over it is not.
+    const baseline = run();
+    const without = run({ excludeOpportunityIds: ["a"] });
+    expect(without.membership.some((m) => m.opportunityId === "a")).toBe(false);
+    expect(without.membership).toHaveLength(baseline.membership.length - 1);
+  });
+
+  it("ISOLATION: an amount change moves the total by roughly its own size, not arbitrarily", () => {
+    // A weaker but more direct statement of the same property: halve one deal and the year-end
+    // most-likely moves by at most that deal's amount. Under reshuffled draws it can move by far
+    // more, in either direction.
+    const baseline = run();
+    const halved = run({ opportunityPatches: { a: { amountCents: 250_000_00 } } });
+    const delta = Math.abs(baseline.yearEnd.mostLikelyCents - halved.yearEnd.mostLikelyCents);
+    expect(delta).toBeLessThanOrEqual(250_000_00);
+  });
+
+  it("still changes the seed when the BASELINE itself changes", () => {
+    // Common random numbers must not become a frozen seed: a real edit to the portfolio is a
+    // different portfolio and deserves fresh draws.
+    const edited = snapshot([
+      opportunity({ id: "a", amountCents: 999_000_00, closeDate: "2026-10-10" }),
+      opportunity({ id: "b", amountCents: 250_000_00, closeDate: "2026-11-30" }),
+      opportunity({ id: "c", amountCents: 120_000_00, closeDate: "2026-12-15" }),
+      opportunity({ id: "d", amountCents: 80_000_00, closeDate: "2026-10-31" }),
+      opportunity({ id: "e", amountCents: 60_000_00, closeDate: "2026-11-15" }),
+    ]);
+    const after = simulate({
+      snapshot: edited,
+      scope: SCOPE,
+      settings: SETTINGS,
+      clock: CLOCK,
+    });
+    expect(after.meta.seed).not.toBe(run().meta.seed);
+  });
+
+  it("seeds per scope, so one initiative's hypothesis does not perturb another's baseline", () => {
+    const mixed = snapshot([
+      opportunity({ id: "k1", initiativeId: "i-kamuli", amountCents: 300_000_00 }),
+      opportunity({ id: "k2", initiativeId: "i-kamuli", amountCents: 100_000_00 }),
+      opportunity({ id: "b1", initiativeId: "i-bolivia", amountCents: 200_000_00 }),
+    ]);
+    const bolivia: MetricScope = { ...SCOPE, initiative: "i-bolivia" };
+    const before = simulate({ snapshot: mixed, scope: bolivia, settings: SETTINGS, clock: CLOCK });
+    const after = simulate({
+      snapshot: mixed,
+      scope: bolivia,
+      settings: SETTINGS,
+      clock: CLOCK,
+      overrides: { opportunityPatches: { k1: { amountCents: 1_00 } } },
+    });
+    // The hypothesis touches an out-of-scope record, so this view must not move at all.
+    expect(after.yearEnd).toEqual(before.yearEnd);
+    expect(after.meta.seed).toBe(before.meta.seed);
   });
 });
