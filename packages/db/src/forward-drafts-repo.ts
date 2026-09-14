@@ -149,6 +149,9 @@ export async function saveDraftEdit(
 }
 
 /** The artifact's name, for the timeline sentence. */
+/** The artifacts nobody sends: they are written for us, not to anybody. */
+const INTERNAL_KINDS = new Set(["prep-the-visit", "get-ask-approved"]);
+
 const ARTIFACT_NAME: Record<string, string> = {
   "follow-up-to-close": "Follow-up",
   "make-specific-ask": "The ask",
@@ -156,7 +159,8 @@ const ARTIFACT_NAME: Record<string, string> = {
   "prep-the-visit": "Visit prep brief",
   "get-ask-approved": "Approval request",
   "use-introduction": "Introduction request",
-  "ask-partner": "Introduction request",
+  // Not the same artifact: one takes up an offered introduction, the other asks for one.
+  "ask-partner": "Ask to your partner",
   "get-the-visit": "Meeting request",
   "steward-the-gift": "Thank-you",
 };
@@ -204,6 +208,11 @@ export async function completeDraft(
     if (!updated) throw new Error("completeDraft: update returned no row");
 
     const name = ARTIFACT_NAME[input.kind] ?? "Draft";
+    // Internal artifacts are not sent anywhere — "Visit prep brief drafted and sent" is simply
+    // false, and the timeline is the one place a leader goes to find out what actually happened.
+    // Derived from the kind, like every other branch here, rather than from the stored `audience`:
+    // the kind is what the caller asked for, the audience is a denormalised copy of it.
+    const verb = INTERNAL_KINDS.has(input.kind) ? "drafted" : "drafted and sent";
     const provenance = updated.edited
       ? `edited by ${updated.actorName ?? input.actor?.name ?? "the officer"} (${updated.editedPercent}% changed)`
       : "unedited";
@@ -218,7 +227,7 @@ export async function completeDraft(
       newValue: updated.editedPercent > 0 ? String(updated.editedPercent) : "0",
       prospectSourced: false,
       actor: input.actor,
-      note: `${name} drafted and sent · ${provenance}`,
+      note: `${name} ${verb} · ${provenance}`,
       occurredAt: now,
     });
 

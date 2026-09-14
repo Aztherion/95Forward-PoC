@@ -90,6 +90,9 @@ async function anyOpportunity(): Promise<string> {
   return row.id;
 }
 
+const INTERNAL = new Set(["prep-the-visit", "get-ask-approved"]);
+const CONNECTOR = new Set(["use-introduction", "ask-partner"]);
+
 async function generate(
   opportunityId: string,
   kind: string,
@@ -98,7 +101,7 @@ async function generate(
   return saveGeneratedDraft(db, tenantId, {
     opportunityId,
     kind,
-    audience: "prospect",
+    audience: INTERNAL.has(kind) ? "internal" : CONNECTOR.has(kind) ? "connector" : "prospect",
     subject: "A subject line",
     generatedText: text,
     provider: "mock",
@@ -410,6 +413,62 @@ describe("completion semantics — done means something different per kind", () 
       .update(visits)
       .set({ goal: visit.goal, discoveryQuestions: visit.q })
       .where(eq(visits.id, visit.id));
+  });
+
+  maybe(
+    "the timeline says what happened, and does not say 'sent' about an internal brief",
+    async () => {
+      const id = await anyOpportunity();
+      await generate(id, "get-ask-approved");
+      await completeDraft(db, tenantId, {
+        opportunityId: id,
+        kind: "get-ask-approved",
+        actor: ACTOR,
+        clock,
+      });
+      const [note] = await db
+        .select({ note: opportunityEvents.note })
+        .from(opportunityEvents)
+        .where(
+          and(
+            eq(opportunityEvents.opportunityId, id),
+            eq(opportunityEvents.occurredAt, DEMO_TODAY),
+            eq(opportunityEvents.field, "get-ask-approved"),
+          ),
+        );
+      expect(note?.note).toBe("Approval request drafted · unedited");
+      expect(note?.note).not.toMatch(/sent/);
+    },
+  );
+
+  maybe("the timeline distinguishes edited from unedited, by name and by measure", async () => {
+    const id = await anyOpportunity();
+    await generate(id, "follow-up-to-close");
+    await saveDraftEdit(db, tenantId, {
+      opportunityId: id,
+      kind: "follow-up-to-close",
+      finalText: "My own words entirely.",
+      editedPercent: 23,
+      actor: ACTOR,
+      clock,
+    });
+    await completeDraft(db, tenantId, {
+      opportunityId: id,
+      kind: "follow-up-to-close",
+      actor: ACTOR,
+      clock,
+    });
+    const [note] = await db
+      .select({ note: opportunityEvents.note })
+      .from(opportunityEvents)
+      .where(
+        and(
+          eq(opportunityEvents.opportunityId, id),
+          eq(opportunityEvents.occurredAt, DEMO_TODAY),
+          eq(opportunityEvents.field, "follow-up-to-close"),
+        ),
+      );
+    expect(note?.note).toBe(`Follow-up drafted and sent · edited by ${ACTOR.name} (23% changed)`);
   });
 
   maybe("completing a draft that does not exist fails loudly", async () => {
