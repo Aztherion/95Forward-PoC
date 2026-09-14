@@ -2,7 +2,7 @@
 
 Build-facing spec for the three redesigned screens. Companion to the Claude Design export and screenshots in this folder.
 
-**Status:** design closed. **Screen 1 (The Board) is built — I25.** Screens 2 and 3 follow in I26 and I27. These screens replace the prospect-centric PoC screens, which are deleted rather than parked.
+**Status:** design closed. **Screen 1 (The Board) is built — I25. Screen 3 (Opportunity Detail) is built — I26.** The Forecast Room follows in I27. These screens replace the prospect-centric PoC screens, which are deleted rather than parked.
 
 ---
 
@@ -263,7 +263,16 @@ Both are **computed from the event log** — see the Opportunity model. Threshol
 
 ## Screen 3 — Opportunity Detail
 
-**Route:** `Opportunities / {id}`. Breadcrumb preserves queue position: `The Board · #1 of 7 · Opportunity`.
+**Route:** `/95-forward/opportunities/{id}`. Breadcrumb preserves queue position: `The Board · #1 of 7 · Opportunity` — **omitted when the record is not in today's queue**, rather than inventing a rank.
+
+> **Built in I26.** Four places where the built screen differs from the drawing or needed something the model did not have. Recorded so a later reader does not "fix" them back.
+>
+> - **The rule chip carries the identifier alone**, per I25 — the compact `> 30d` threshold is a plug that no ranking rule has.
+> - **The evidence line under a confirmed milestone shows its evidence, and does not also prepend the date and the confirmer.** The seeded evidence already reads `Jun 23 · Ellen Hallworth, verbally — nothing in writing`; composing a second date in front of it printed the same fact twice. Who and when are on the record either way — the timeline below carries them for every change.
+> - **Unconfirmed milestones get a COMPUTED sentence**, not the static designed one: `Never given. All 3 close dates were set by us.` is derived from the slippage chain, and `81 days since the verbal yes.` from the silence counter. Both are the designed strings; neither is hardcoded.
+> - **The NEXT ACTION panel falls back to the stage** when no rule fires. `dayWork` only ranks records that fire something, and this screen must work for any record at all — so I26 extracted `rankOne()` from the queue's own scoring and added `stageNextAction()`. A stage IS a statement about what happens next.
+>
+> **`WHAT THIS ASK COUNTS AS` separates qualification from simulation membership, and they disagree on Hallworth.** It is `not counted` in qualified asks and `$250,000` in Most likely: an unqualified ask can still close in the majority of P50 trials. That is not a bug in either number — it is the distinction the three rows exist to show.
 
 **Purpose:** where a rep prepares and records reality. Form-shaped, but it must not feel like a form — **it opens with a verdict, not with fields.**
 

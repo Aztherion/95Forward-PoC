@@ -294,6 +294,13 @@ Nav is data-driven from one static array, `components/shell/nav.ts:62-193`: 4 se
 group containing the current route is force-expanded. The 95 Forward group is `branded` — it renders
 the `Mark` SVG instead of a lucide icon.
 
+**`Topbar` takes `heading`** (I26). Default true, so it emits the page's `<h1>` — most screens build
+their header from `.f95-page__header` markup with no heading of their own. A screen that renders its
+own title passes `heading={false}` and the topbar renders a styled `<div>` instead, so the page's
+title is the `h1`. Seven screens had been demoting their own heading to an `h2` to satisfy the
+one-per-screen rule, which put the host's chrome above the page's content in the document outline.
+Nothing moved visually: `base.css` already zeroes heading margins.
+
 **`Topbar` is not rendered by the shell.** It is imported per-page by **12 of 80 `page.tsx`** files —
 11 of 13 under `95-forward`, **1 of 64** under `(host)` (Settings). 14 call sites in total
 (`search/loading.tsx` and `PagePlaceholder.tsx` are the other two). The remaining host pages build
@@ -591,21 +598,22 @@ var(--space-4)`. Used in **69 files** (57 host, 12 95-forward).
 the **only two `Intl.*` constructions in the entire repo** (`:4`, `:16`). Everything else is
 hand-rolled. There is **no date or number library** in any `package.json`.
 
-| Kind                         | Convention                                                                                                                                                                                                                                                | Where                                                                         |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Currency**                 | Integer **cents** in, `Intl.NumberFormat("en-US", USD, min/max fraction 0)` out — whole dollars, **never cents**: `$250,000`. Null → `—`.                                                                                                                 | `formatCurrencyFromCents` (`format.ts:1-10`)                                  |
-| **Abbreviated money**        | `$1.86M` · `$945K` · `$0`. Millions and billions at 2 decimals, thousands at 0 — which is what keeps `$2.70M` holding its trailing zero beside `$1.86M`. Rounds on the integer cents, not through `toFixed`. **I17b.**                                    | `formatCurrencyAbbreviatedFromCents` (`format.ts`)                            |
-| **A set of related amounts** | Formats figures that will be read together at one precision, raising it only as far as it must so that two different amounts never render identically and the order survives. Falls back to exact dollars past two extra digits. **I17b.**                | `formatCurrencySeriesAbbreviatedFromCents` (`format.ts`)                      |
-| **Dates**                    | `Intl.DateTimeFormat("en-US", {year:numeric, month:short, day:numeric, timeZone:"UTC"})` → `Sep 11, 2025`. UTC is pinned because the columns are Postgres `date` (calendar days, no zone). Null/invalid → `—`. **No time-of-day format exists anywhere.** | `formatDate` (`format.ts:12-22`)                                              |
-| **Machine dates**            | `toISOString().slice(0,10)` for URL params and `<input type="date">` — re-implemented in 4 lib files, no shared helper.                                                                                                                                   | `event-params.ts:53`, `marketing-format.ts:30`, `membership-renewals.ts:8,39` |
-| **Relative time**            | **Four disagreeing implementations** — §8.4.                                                                                                                                                                                                              | —                                                                             |
-| **Counts**                   | `.toLocaleString("en-US")` inline in **3 files / 7 sites**; **raw with no separator** in the 17 page-header `{n} records` ternaries and in table cells. No shared count formatter.                                                                        | `(host)/page.tsx:43,50` vs `constituents/page.tsx:154`                        |
-| **Percentages**              | Computed **server-side**, always `Math.round` to a whole integer — never `toFixed`, never a decimal. Rendered as bare `{n}%`. Some clamp 0–100 server-side.                                                                                               | `analysis-metrics.ts:41,72`, `green-sheet-metrics.ts:33,38`                   |
-| **Hours**                    | Bare `.toFixed(2)` → `12.50`, at 6 display sites in 4 files. No helper. Unit normally carried by the column header.                                                                                                                                       | `volunteers/roster/page.tsx:34`                                               |
-| **Enum labels**              | `titleCaseFromSnake` — `corporate_grant` → `Corporate Grant`. Does **not** lower-case the rest. 9 local `Record<…,string>` label maps exist for enums whose form is not plain title-case.                                                                 | `format.ts:60-65`                                                             |
-| **Null / empty**             | Four conventions, all live: em dash `—` (default, usually in `.f95-table__muted`); a muted phrase ("No gifts yet", "No contact yet", "Unassigned"); a full sentence ("No tags yet — add what you know."); or `EmptyState` for a whole list.               | §8.4                                                                          |
-| **Numeric alignment**        | Opt-in per column on `DataTable` (`align:"right"` → `.f95-table__num`), used 29 times / 14 files. Tabular figures are on globally regardless.                                                                                                             | `DataTable.tsx:10,62,87`                                                      |
-| **Pagination**               | `Showing {from}–{to} of {total}` with an **en dash** (not the em dash used for nulls) and raw unseparated numbers; `No records` at zero.                                                                                                                  | `Pagination.tsx:22,35`                                                        |
+| Kind                         | Convention                                                                                                                                                                                                                                                                                                                                                                   | Where                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Currency**                 | Integer **cents** in, `Intl.NumberFormat("en-US", USD, min/max fraction 0)` out — whole dollars, **never cents**: `$250,000`. Null → `—`.                                                                                                                                                                                                                                    | `formatCurrencyFromCents` (`format.ts:1-10`)                                  |
+| **Abbreviated money**        | `$1.86M` · `$945K` · `$0`. Millions and billions at 2 decimals, thousands at 0 — which is what keeps `$2.70M` holding its trailing zero beside `$1.86M`. Rounds on the integer cents, not through `toFixed`. **I17b.**                                                                                                                                                       | `formatCurrencyAbbreviatedFromCents` (`format.ts`)                            |
+| **Coverage what-ifs**        | `coverageWithout(id)` answers "lose this one and coverage drops"; `coverageWith(id)` (**I26**) answers "qualify this and coverage rises". The second exists because the first returns a delta of exactly zero for an unqualified ask — it was never in the numerator — so the designed sentence is arithmetically false about the record Opportunity Detail is built around. | `packages/shared/src/forward-metrics.ts`                                      |
+| **A set of related amounts** | Formats figures that will be read together at one precision, raising it only as far as it must so that two different amounts never render identically and the order survives. Falls back to exact dollars past two extra digits. **I17b.**                                                                                                                                   | `formatCurrencySeriesAbbreviatedFromCents` (`format.ts`)                      |
+| **Dates**                    | `Intl.DateTimeFormat("en-US", {year:numeric, month:short, day:numeric, timeZone:"UTC"})` → `Sep 11, 2025`. UTC is pinned because the columns are Postgres `date` (calendar days, no zone). Null/invalid → `—`. **No time-of-day format exists anywhere.**                                                                                                                    | `formatDate` (`format.ts:12-22`)                                              |
+| **Machine dates**            | `toISOString().slice(0,10)` for URL params and `<input type="date">` — re-implemented in 4 lib files, no shared helper.                                                                                                                                                                                                                                                      | `event-params.ts:53`, `marketing-format.ts:30`, `membership-renewals.ts:8,39` |
+| **Relative time**            | **Four disagreeing implementations** — §8.4.                                                                                                                                                                                                                                                                                                                                 | —                                                                             |
+| **Counts**                   | `.toLocaleString("en-US")` inline in **3 files / 7 sites**; **raw with no separator** in the 17 page-header `{n} records` ternaries and in table cells. No shared count formatter.                                                                                                                                                                                           | `(host)/page.tsx:43,50` vs `constituents/page.tsx:154`                        |
+| **Percentages**              | Computed **server-side**, always `Math.round` to a whole integer — never `toFixed`, never a decimal. Rendered as bare `{n}%`. Some clamp 0–100 server-side.                                                                                                                                                                                                                  | `analysis-metrics.ts:41,72`, `green-sheet-metrics.ts:33,38`                   |
+| **Hours**                    | Bare `.toFixed(2)` → `12.50`, at 6 display sites in 4 files. No helper. Unit normally carried by the column header.                                                                                                                                                                                                                                                          | `volunteers/roster/page.tsx:34`                                               |
+| **Enum labels**              | `titleCaseFromSnake` — `corporate_grant` → `Corporate Grant`. Does **not** lower-case the rest. 9 local `Record<…,string>` label maps exist for enums whose form is not plain title-case.                                                                                                                                                                                    | `format.ts:60-65`                                                             |
+| **Null / empty**             | Four conventions, all live: em dash `—` (default, usually in `.f95-table__muted`); a muted phrase ("No gifts yet", "No contact yet", "Unassigned"); a full sentence ("No tags yet — add what you know."); or `EmptyState` for a whole list.                                                                                                                                  | §8.4                                                                          |
+| **Numeric alignment**        | Opt-in per column on `DataTable` (`align:"right"` → `.f95-table__num`), used 29 times / 14 files. Tabular figures are on globally regardless.                                                                                                                                                                                                                                | `DataTable.tsx:10,62,87`                                                      |
+| **Pagination**               | `Showing {from}–{to} of {total}` with an **en dash** (not the em dash used for nulls) and raw unseparated numbers; `No records` at zero.                                                                                                                                                                                                                                     | `Pagination.tsx:22,35`                                                        |
 
 **Inline formatting count:** 10 distinct files format numbers for display inline rather than through
 a helper — 8 in `apps/web`, 2 in `packages/ai`. `packages/ai` carries **two private USD formatters**
@@ -704,8 +712,10 @@ variant with more call sites, not the better one.
     and Card-wrapped in no grid at all (2). Counts inside `.f95-stat__value` also disagree — 6 sites
     apply `toLocaleString`, 4 render a raw integer.
 18. **Three page-header treatments coexist** (`.f95-page__header` 33 uses, `.f95-record-head` 10,
-    `Topbar` 14) — and **12 pages render two `<h1>` elements**, one from `Topbar` and one from the
-    page body.
+    `Topbar` 14). ~~**12 pages render two `<h1>` elements**~~ — **fixed in I26** via `Topbar`'s
+    `heading` prop (§5.1). An e2e sweep over fifteen routes plus the two record screens now asserts
+    exactly one `h1` per screen, and that it is the page's own title. The three header treatments
+    themselves are unchanged — that is a separate cleanup.
 19. ~~**Five eyebrow treatments, two byte-identical**~~ — **consolidated in I25.** The treatment is
     declared once in `tokens/typography.css`; `.f95-page__eyebrow`, `.f95-fieldgroup__legend`,
     `.page-placeholder__eyebrow` and `.f95-visit__eyebrow` now declare **only** the margin or colour
@@ -1011,3 +1021,33 @@ own `margin-bottom` and nothing else; `.f95-eyebrow--quiet` (and Visit mode) ste
 **Muted text.** `.f95-muted` — colour only, so it composes with whatever type the line already has.
 `.f95-deflist__desc--empty` resolves to the same rule, which converges its 41 standalone uses
 without touching 27 files.
+
+### 10.9 Opportunity Detail (I26)
+
+The screen is composition over I18–I23, plus four additions to the service layer that the design
+implied and the model did not have.
+
+- **`coverageWith(opportunityId)`** — the forward-looking inverse of `coverageWithout`. States its
+  hypothesis in MILESTONES rather than by patching a status, because qualification is derived from
+  the blocking set and has no field to patch; a test asserts it agrees with really qualifying the
+  record.
+- **`initiativeShare().largestOtherCents`** — the largest qualified ask in the initiative other than
+  this one. Without it an unqualified record cannot honestly claim it "would be the largest single
+  qualified ask in it", which is the designed copy for exactly that case: `isLargest` is false for
+  anything not already counted, and the total says nothing about the biggest part of it.
+- **`rankOne(opportunityId)`** — `dayWork`'s per-opportunity scoring, EXTRACTED into a function both
+  call rather than reimplemented. The queue shows the top few of the records that fire something;
+  this screen must work for any record at all, and a second implementation would eventually disagree
+  with the board about the same record in front of the person being coached.
+- **`stageNextAction(stage)`** — the fallback for a record no rule speaks for, and two new
+  `NextActionKind` members (`get-the-visit`, `steward-the-gift`) that no rule produces. The enum is
+  closed to GENERATION, not to growth: an empty NEXT ACTION panel on a screen that opens with a
+  verdict would undercut its own argument.
+- **`stageCadenceDays(resolved, stage)`** — reads the per-stage cadence off `live-ask-silence`, so
+  "CADENCE FOR THIS STAGE · EVERY 14 DAYS" stays true after an org edits its doctrine.
+
+**The one layout constraint worth recording.** `--initiative-1` resolves to blue-600, which also
+backs `--role-manager` (§8.1.5). `THE FACTS` puts `Initiative` and `Relationship mgr` three rows
+apart, so the initiative there is rendered **without its dot** — the chip with the dot lives in the
+page header, far from any role chip. The same blue meaning two things a centimetre apart is the
+failure this avoids.

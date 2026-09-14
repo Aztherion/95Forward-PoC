@@ -1,6 +1,8 @@
 import "server-only";
 import {
   confirmMilestone,
+  dataVersion,
+  ForwardSimulationService,
   getForwardOpportunity,
   listOpportunityEvents,
   logContact,
@@ -10,6 +12,7 @@ import {
   loadOpportunityFacts,
   opportunityDataVersions,
   resolveTenantCatalogue,
+  rulesVersion,
   updateForwardOpportunity,
   withTenant,
   type ForwardOpportunityRow,
@@ -31,7 +34,6 @@ import {
   registerRankingRules,
   settingsFromCatalogue,
   silenceDays,
-  simulate,
   stageCadenceDays,
   stageNextAction,
   type CloseDateChainResult,
@@ -44,6 +46,7 @@ import {
   type QualificationResult,
   type ScenarioBadge,
   type SnapshotOpportunity,
+  type SimulationResult,
   type SnapshotPartner,
   type UnrankedItem,
 } from "@95forward/shared";
@@ -54,6 +57,18 @@ import { demoClock } from "@/server/data/forward-context";
 // why calling this on every entry point is intentional.
 registerBuiltInRules();
 registerRankingRules();
+
+/**
+ * The simulation cache, shared across requests.
+ *
+ * Opportunity Detail needs ONE row of "what this ask counts as" from a 10,000-trial Monte Carlo.
+ * Running it per render made the dev server stall badly enough under two parallel workers that two
+ * Board tests timed out at 3.9 minutes and then passed on retry in 1.5 seconds — a retry masking a
+ * real cost rather than a flake. The service and its key exist for exactly this, keyed on data
+ * version AND rules version, so a milestone confirmation or a doctrine edit invalidates it and
+ * nothing else does.
+ */
+const SIMULATION_CACHE = new Map<string, SimulationResult>();
 
 export interface QueuePosition {
   readonly rank: number;
@@ -122,16 +137,27 @@ export async function getOpportunityDetail(
   const loaded = await withTenant(getAppDb(), tenantId, async (tx) => {
     const opportunity = await getForwardOpportunity(tx, tenantId, opportunityId);
     if (!opportunity) return null;
-    const [resolved, snapshot, facts, milestones, events, decisionRows, dataVersions] =
-      await Promise.all([
-        resolveTenantCatalogue(tx, tenantId),
-        loadMetricsSnapshot(tx, tenantId, { now }),
-        loadOpportunityFacts(tx, tenantId, opportunityId),
-        loadMilestoneStates(tx, tenantId, opportunityId),
-        listOpportunityEvents(tx, tenantId, opportunityId),
-        listQueueDecisions(tx, tenantId),
-        opportunityDataVersions(tx, tenantId),
-      ]);
+    const [
+      resolved,
+      snapshot,
+      facts,
+      milestones,
+      events,
+      decisionRows,
+      dataVersions,
+      version,
+      rules,
+    ] = await Promise.all([
+      resolveTenantCatalogue(tx, tenantId),
+      loadMetricsSnapshot(tx, tenantId, { now }),
+      loadOpportunityFacts(tx, tenantId, opportunityId),
+      loadMilestoneStates(tx, tenantId, opportunityId),
+      listOpportunityEvents(tx, tenantId, opportunityId),
+      listQueueDecisions(tx, tenantId),
+      opportunityDataVersions(tx, tenantId),
+      dataVersion(tx, tenantId),
+      rulesVersion(tx, tenantId),
+    ]);
     return {
       opportunity,
       resolved,
@@ -141,12 +167,24 @@ export async function getOpportunityDetail(
       events,
       decisionRows,
       dataVersions,
+      version,
+      rules,
     };
   });
 
   if (loaded === null || !loaded.facts) return null;
-  const { opportunity, resolved, snapshot, facts, milestones, events, decisionRows, dataVersions } =
-    loaded;
+  const {
+    opportunity,
+    resolved,
+    snapshot,
+    facts,
+    milestones,
+    events,
+    decisionRows,
+    dataVersions,
+    version,
+    rules,
+  } = loaded;
 
   const settings = settingsFromCatalogue(resolved);
   const period = settings.fiscalPeriods[0]?.label ?? "FY26";
@@ -182,12 +220,13 @@ export async function getOpportunityDetail(
 
   // The simulation is scoped to the whole portfolio: which scenario a record lands in is a claim
   // about the forecast the Forecast Room draws, not about one initiative.
-  const simulation = simulate({
-    snapshot,
-    scope: { rep: "all", initiative: "all", period },
+  const simulation = new ForwardSimulationService(snapshot, {
     settings,
     clock,
-  });
+    dataVersion: version,
+    rulesVersion: rules,
+    cache: SIMULATION_CACHE,
+  }).run({ rep: "all", initiative: "all", period });
   const membership =
     simulation.membership.find((row) => row.opportunityId === opportunityId)?.badge ?? null;
 
