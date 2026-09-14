@@ -11,6 +11,7 @@ export * from "./forward";
 export * from "./forward-events";
 export * from "./forward-settings";
 export * from "./forward-metrics";
+export * from "./forward-grid";
 export * from "./forward-checks";
 export * from "./forward-board";
 export * from "./forward-simulation";

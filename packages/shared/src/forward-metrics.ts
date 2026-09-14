@@ -680,3 +680,64 @@ export function evaluateWhatIf(
 }
 
 export { EMPTY_AGGREGATE };
+
+// ---------------------------------------------------------------------------------------------
+// Group subtotals (I29)
+// ---------------------------------------------------------------------------------------------
+
+export interface GroupSubtotal {
+  /** Open and pre-close, regardless of qualification. */
+  readonly preClose: Aggregate;
+  /** Open, pre-close AND qualified — the same predicate the headline metric uses. */
+  readonly qualified: Aggregate;
+  /** preClose minus qualified. */
+  readonly unqualified: Aggregate;
+  /** celebrate_steward + repeat, open. Outside the headline by design. */
+  readonly closedWork: Aggregate;
+  readonly won: Aggregate;
+}
+
+/**
+ * Subtotal a group of opportunities the way the headline metric counts them.
+ *
+ * The grid groups by rep, initiative or stage, and a group footer is the single easiest place in
+ * this product to contradict the number at the top of the screen. A naive `SUM(amount)` over a
+ * stage group includes unqualified records, so the four pre-close groups would add up to something
+ * larger than "qualified asks on the table" and a leader checking the arithmetic in a Monday
+ * meeting would find the tool wrong. The stage board hit exactly this and I27 answered it with a
+ * two-part reconciliation; a group footer needs the same two parts.
+ *
+ * So this does not define anything. It reuses `isPreCloseStage`, `isQualified` and `aggregate` —
+ * the functions `computeMetrics` itself calls — over whatever subset it is handed. Sum the
+ * `qualified` halves of every group in a scope and you get that scope's `qualifiedAsks`, because
+ * it is the same partition of the same rows.
+ *
+ * Period-bounding is deliberately NOT applied to the open pipeline, matching `computeMetrics`:
+ * "on the table" means live, and slippage past period end is what the movement panels are for.
+ * `won` IS period-bounded, for the same reason it is there.
+ */
+export function subtotals(
+  opportunities: readonly SnapshotOpportunity[],
+  definitions: readonly MilestoneDefinition[],
+  period?: FiscalPeriod,
+): GroupSubtotal {
+  const open = opportunities.filter((o) => o.status === "open");
+  const preCloseOpen = open.filter((o) => isPreCloseStage(o.stage));
+  const qualifiedOpen = preCloseOpen.filter((o) => isQualified(o, definitions));
+  const unqualifiedOpen = preCloseOpen.filter((o) => !isQualified(o, definitions));
+  const wonRows = opportunities.filter(
+    (o) => o.status === "won" && (period ? withinPeriod(o.closeDate, period) : true),
+  );
+  return {
+    preClose: aggregate(preCloseOpen),
+    qualified: aggregate(qualifiedOpen),
+    unqualified: aggregate(unqualifiedOpen),
+    closedWork: aggregate(open.filter((o) => !isPreCloseStage(o.stage))),
+    won: aggregate(wonRows),
+  };
+}
+
+/** The fiscal period a scope names, for callers that need to period-bound `won` themselves. */
+export function periodFor(settings: ForwardSettings, label: string): FiscalPeriod | undefined {
+  return resolveFiscalPeriod(settings, label);
+}

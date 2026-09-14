@@ -457,6 +457,118 @@ front of it. **E2E never hits a model.**
 
 ---
 
+## Screen 4 — Opportunities (I29)
+
+Two situations, one surface. The **Monday meeting**, where a leader wants everything on one screen
+sorted their way; and **sitting beside a rep**, going through a portfolio deal by deal and changing
+things as you talk — *"I don't have to bounce in and out of subpages to make changes, I can make
+them all here and see the effect on the forecast immediately."*
+
+### The line: a data grid, not a spreadsheet
+
+A spreadsheet is defined by its **formula engine** — arbitrary user-authored formulas, a dependency
+graph between cells, free-form structure where meaning lives in cells rather than in a model. None
+of that is built, and the absence is enforced in code rather than in this note:
+
+- Eight editable fields, each validated server-side against an enum, a type or this tenant's own
+  FK set before it lands (`parseGridEdit`).
+- Read-only derived columns, every one **looked up** from the service that owns it.
+- Filter, sort, group. No formula authoring, no row insert, no row delete, no new columns, no
+  arbitrary cell types, no paste-into-range.
+
+**No creation and no deletion, deliberately.** From the source tool: *"DO NOT create new
+opportunities or delete existing opportunities… even in the real PoC, this is not the place to
+delete or create."* They carry consequences a grid cell cannot express. (Creation currently has no
+home anywhere in the product. That is a real gap, and it is not a grid feature.)
+
+**The win over Excel, stated plainly:** the grid, the chart and the queue show the same numbers
+*because they are computed once from one model*. In a spreadsheet they are three formulas that
+drift.
+
+### Columns
+
+Seventeen columns do not fit in the ~950px a 1280-wide window leaves after the host sidebar. Three
+decisions make the first screenful the useful one.
+
+1. **Two columns fold into others.** `health` + `statusLabel` live in the prospect cell — they
+   describe that deal rather than being separate facts about it. The close-date move count lives in
+   the date cell, because it is a fact about that date and is what makes a date suspicious.
+2. **The order is by what you LOOK AT**, not editable-then-derived. The first ten come to 924px:
+   rank · prospect (+ health, status) · amount · stage · close (+ moves) · qualification ·
+   milestones · next action · flags · silence.
+3. **Rank and prospect are sticky.** The rest scrolls: date confidence, probability, visit rating,
+   initiative, rep, impact, scenario — the fields you *change* beside a rep rather than *read* in a
+   meeting.
+
+| Editable (8) | Validation |
+| --- | --- |
+| Amount | Currency, positive, ≤ $100M; accepts `$250,000`, `250,000`, `250000.50` |
+| Stage | Enum, six values |
+| Close date | ISO date or empty — **and the guard below** |
+| Date confidence | Enum |
+| Probability band | Enum |
+| Visit rating | Enum, nullable — clearing it is an edit, not a failure |
+| Initiative | FK, checked against this tenant's set |
+| Owner / rep | FK, checked against this tenant's set |
+
+Read-only: rank · status label + health · next action · qualification · consistency findings ·
+impact · silence days · close-date moves · scenario membership.
+
+**Milestones are display-only.** Six dots, as the source sheet has them — *"a '.' which also turns
+the cell green means yes. Pretty easy to see progress visually."* Fill carries confirmed; **shape
+carries source** (disc for they-said, ring for we-said), because filled-versus-empty already means
+they-said-versus-we-said everywhere else in the product and a confirmed we-said dot must not read
+as the prospect having said it. Clicking one goes to Opportunity Detail's checklist: confirming
+needs `confirmedBy`, `prospectSourced` and evidence, and I26 rejects a they-said confirmation with
+nobody named — a grid checkbox would walk straight past that guard.
+
+> The source sheet's **Key Date** column ("when the next big thing happens") has no model behind it
+> and nothing downstream uses it. Noted as a gap; not added.
+>
+> Its **"In top 60% of full forecast"** column is a proxy for the 5%/95% distribution. The scenario
+> membership badge is the real thing and replaces it.
+
+### Edit semantics
+
+Every edit is one transaction that writes an event through I18's capture path and recomputes
+downstream. All eight fields are already in `TRACKED_OPPORTUNITY_FIELDS`, so the grid is a second
+front end onto the existing capture path rather than a second way to write.
+
+**The close date asks who chose it.** Not a bare inline date picker: the same question Opportunity
+Detail asks, with the same hint, in a popover under the cell. Every other field a rep edits is ours
+by definition; a close date is either one the prospect gave us or one we invented, and that single
+boolean is what *"All three moves made by us"*, the `pushed 2×` flags and the Forecast Room's
+slipping panel are reads over. A grid that wrote `false` silently would be the easiest place in the
+product to do all your date editing, and the slippage argument would become unreproducible.
+
+**A contradiction is surfaced, not prevented.** An edit that makes a record contradict itself still
+commits, and the finding appears on that row immediately. The product's stance is to flag and
+quantify.
+
+**Optimistic, but never silently reverting.** The value appears instantly; a rejection puts the
+stored value back *and* says why, in place, until it is acknowledged.
+
+### Group subtotals — two numbers, never one
+
+Grouping by rep, initiative or stage is the single easiest place in this product to contradict the
+headline. A naive `SUM(amount)` over a stage group includes unqualified records, so the four
+pre-close groups would add up to more than "qualified asks on the table". Every footer therefore
+reads, e.g.:
+
+> `$0 qualified of $240,000 pre-close · 5 not a real ask yet`
+
+Both halves come from the metrics module's own predicates (`subtotals()`), so summing the qualified
+halves of every group gives exactly that scope's `qualifiedAsks` — the same partition of the same
+rows, not a second calculation.
+
+### State lives in the URL
+
+Scope, filters, sort and grouping all travel in the query string, so a leader's Monday view is a
+link and a rep's "just the at-risk ones" survives a reload. When a filter is on, the footer says
+which number it is showing rather than appearing to contradict The Board.
+
+---
+
 ## Cross-screen invariants
 
 Verify these after building; they are what make the numbers credible under demo scrutiny.

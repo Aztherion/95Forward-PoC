@@ -182,5 +182,69 @@ test.describe("vertical budget for The Board", () => {
         `${viewport.name}: the metric cards are cut off — they end at ${bottom} in a ${m.viewportHeight}px viewport`,
       ).toBeLessThanOrEqual(m.viewportHeight);
     });
+
+    test(`the scope controls and five rows clear the fold at ${viewport.name}`, async ({
+      page,
+    }) => {
+      // The grid's two audiences both need the top of it on screen: a leader sorting in a Monday
+      // meeting, and a rep going deal by deal. Controls below the fold means scrolling up to
+      // change scope and back down to read the effect.
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto("/95-forward/opportunities");
+      await expect(page.locator('[data-testid="opportunity-grid"]')).toBeVisible();
+
+      const m = await page.evaluate(() => {
+        const box = (selector: string) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), height: Math.round(r.height) };
+        };
+        const rows = [...document.querySelectorAll('[data-testid="grid-row"]')];
+        const fifth = rows[4]?.getBoundingClientRect();
+        return {
+          viewportHeight: window.innerHeight,
+          header: box(".f95-page__header"),
+          controls: box('[data-testid="grid-controls"]'),
+          head: box(".f95-grid__th"),
+          rowCount: rows.length,
+          fifthBottom: fifth ? Math.round(fifth.bottom) : null,
+          // Seventeen columns do not fit; the FIRST screenful of them has to be the useful one.
+          visibleColumns: (() => {
+            const wrap = document.querySelector(".f95-grid-wrap");
+            if (!wrap) return 0;
+            const right = wrap.getBoundingClientRect().right;
+            return [...document.querySelectorAll(".f95-grid__th")].filter(
+              (th) => th.getBoundingClientRect().right <= right + 1,
+            ).length;
+          })(),
+        };
+      });
+      const controlsBottom = m.controls ? m.controls.top + m.controls.height : null;
+
+      console.log(
+        `[grid ${viewport.name}] viewport=${m.viewportHeight} header=${m.header?.height} ` +
+          `controlsTop=${m.controls?.top} controlsH=${m.controls?.height} ` +
+          `controlsBottom=${controlsBottom} rows=${m.rowCount} fifthRowBottom=${m.fifthBottom} ` +
+          `slack=${m.fifthBottom === null ? "n/a" : m.viewportHeight - m.fifthBottom} ` +
+          `visibleColumns=${m.visibleColumns}`,
+      );
+
+      expect(m.controls, "the scope controls did not render").not.toBeNull();
+      expect(
+        controlsBottom!,
+        `${viewport.name}: the scope controls are below the fold`,
+      ).toBeLessThanOrEqual(m.viewportHeight);
+      expect(m.rowCount, "fewer than five rows in the seeded portfolio").toBeGreaterThanOrEqual(5);
+      expect(
+        m.fifthBottom!,
+        `${viewport.name}: the fifth row is cut off — it ends at ${m.fifthBottom}`,
+      ).toBeLessThanOrEqual(m.viewportHeight);
+      // The rank, the name, the money, the stage, the date and at least one verdict column.
+      expect(
+        m.visibleColumns,
+        `${viewport.name}: only ${m.visibleColumns} columns fit without scrolling`,
+      ).toBeGreaterThanOrEqual(7);
+    });
   }
 });
