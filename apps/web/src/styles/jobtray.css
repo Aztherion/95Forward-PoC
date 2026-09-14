@@ -37,7 +37,7 @@
   border-radius: var(--radius-pill);
   background: var(--ai-surface);
   border: 1px solid var(--iris-300);
-  box-shadow: var(--elevation-sm, 0 2px 8px rgba(20, 30, 50, 0.1));
+  box-shadow: var(--shadow-sm);
   font: var(--text-label);
   color: var(--ai-ink);
   /* See (2) above. Re-enabled on the controls below, and on the whole tray once expanded. */

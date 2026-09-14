@@ -64,18 +64,18 @@ The fix workflow already exports these (mirrors CI). For local work, copy `.env.
 
 Run from the repo root with **pnpm 9.15.4** and **Node 22**.
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm install --frozen-lockfile` | Install |
-| `pnpm build` | Build all packages/apps |
-| `pnpm lint` | ESLint (flat config) |
-| `pnpm typecheck` | `tsc --noEmit` across the workspace |
-| `pnpm test` | Vitest unit tests (whole workspace) |
-| `pnpm test:e2e` | Playwright e2e (whole suite — slow) |
-| `pnpm db:wait && pnpm db:migrate` | Bring DB up to schema |
-| `pnpm --filter @95forward/worker migrate:jobs` | Jobs queue schema |
-| `pnpm --filter @95forward/db seed` | Seed Water For People + users + demo data |
-| `pnpm --filter @95forward/ai embed` | Embed the seed (mock) |
+| Command                                        | Purpose                                   |
+| ---------------------------------------------- | ----------------------------------------- |
+| `pnpm install --frozen-lockfile`               | Install                                   |
+| `pnpm build`                                   | Build all packages/apps                   |
+| `pnpm lint`                                    | ESLint (flat config)                      |
+| `pnpm typecheck`                               | `tsc --noEmit` across the workspace       |
+| `pnpm test`                                    | Vitest unit tests (whole workspace)       |
+| `pnpm test:e2e`                                | Playwright e2e (whole suite — slow)       |
+| `pnpm db:wait && pnpm db:migrate`              | Bring DB up to schema                     |
+| `pnpm --filter @95forward/worker migrate:jobs` | Jobs queue schema                         |
+| `pnpm --filter @95forward/db seed`             | Seed Water For People + users + demo data |
+| `pnpm --filter @95forward/ai embed`            | Embed the seed (mock)                     |
 
 ### Writing an e2e spec: wait for the server action, never for the clock
 
@@ -110,13 +110,13 @@ none worked. So the pattern is byte-identical everywhere instead, which keeps it
 `grep -rn "waitForResponse" apps/web/e2e` finds all of it.
 
 **None of these count as a fix:** raising the global timeout (hides genuinely slow paths and makes
-every real failure take six times longer to surface), `waitForTimeout` (non-deterministic *and*
+every real failure take six times longer to surface), `waitForTimeout` (non-deterministic _and_
 permanently slower), lowering `workers` (the parallelism is what exposes the race), or leaning on
 `retries` (masks it, and a retry inherits whatever the failed attempt left behind).
 
 **Two things this is not for.** A click that only changes client state — expanding a panel, opening a
 form, toggling the nav — makes no request, and waiting for one would hang; leave those alone. And a
-test whose subject is the *pending* state must not wait, or the state it asserts has already cleared.
+test whose subject is the _pending_ state must not wait, or the state it asserts has already cleared.
 `copilot-pending.spec.ts` is the worked example and says so in place.
 
 **Cleanups must be retry-safe.** A cleanup that drives the browser can only work if the page is
@@ -165,7 +165,8 @@ means "works in the live demo." Never weaken a mock or a seam just to make a tes
 
 ## Known, benign noise (not regressions)
 
-- One pre-existing ESLint warning in `apps/web/.../Avatar.tsx` (`<img>` vs `next/image`). 0 errors.
+- Two pre-existing ESLint warnings, 0 errors: `apps/web/.../Avatar.tsx` (`<img>` vs `next/image`)
+  and an unused `ctx` in `packages/db/src/forward-checks.test.ts` (from I18b).
 - Benign webpack "Critical dependency" warnings from `graphile-worker` / `@auth0/nextjs-auth0`.
 - The `constituents.spec.ts` ("saves a view") and `prospect-overview.spec.ts` ("adds a natural
   partner") flakes were two instances of one class: mutate through a server action, then assert or

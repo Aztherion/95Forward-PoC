@@ -1,0 +1,489 @@
+/* ===========================================================================================
+   War-room primitives (I17b)
+
+   The tokens and components the three redesigned screens need and the system did not have.
+   Scoped to its own stylesheet for the same reason ds-data.css was: a new component family in a
+   new generation, kept greppable rather than interleaved with two files that already disagree
+   about whether spacing is a token or a literal. This file is all tokens.
+
+   Nothing here renders a colour literal. Every value is a semantic alias, and the health triad
+   and the initiative palette are defined once in tokens/colors.css.
+   =========================================================================================== */
+
+/* -------------------------------------------------------------------------------------------
+   1. Health — Moving / Slowing / Stuck
+
+   Keyed from @95forward/shared's QueueHealth, which STATUS_HEALTH maps each of the seven status
+   labels onto. The label text comes from STATUS_LABEL_TEXT, never from the screen: two sources
+   for one value is how they come to disagree.
+
+   Colour is not the only channel on the chip — the word is. It is the only channel on the bare
+   dot, which is why the dot carries an accessible name.
+   ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
+.f95-status {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font: var(--fw-semibold) var(--fs-micro) / 1 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.f95-status__dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+.f95-status--moving {
+  background: var(--health-moving-surface);
+  border-color: var(--health-moving-border);
+  color: var(--health-moving-text);
+}
+.f95-status--slowing {
+  background: var(--health-slowing-surface);
+  border-color: var(--health-slowing-border);
+  color: var(--health-slowing-text);
+}
+.f95-status--stuck {
+  background: var(--health-stuck-surface);
+  border-color: var(--health-stuck-border);
+  color: var(--health-stuck-text);
+}
+
+/* The bare dot — timeline rows, stage chips, legends. */
+.f95-healthdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+.f95-healthdot--moving {
+  background: var(--health-moving);
+}
+.f95-healthdot--slowing {
+  background: var(--health-slowing);
+}
+.f95-healthdot--stuck {
+  background: var(--health-stuck);
+}
+
+/* -------------------------------------------------------------------------------------------
+   2. Monospace evidence — the rule chip, and the caption beside it
+
+   The system's mono treatments were all 11px or 13px and NONE combined mono with uppercase, so
+   this is the first. It stays at --fs-micro so it sits level with SourceTag, the citation chip it
+   is a sibling of: both answer "where did this come from".
+
+   Letter-spacing is --ls-wide, not --ls-caps. Mono is already wide; 0.08em on top of a monospaced
+   face reads as spaced-out rather than as a label.
+   ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
+.f95-rulechip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius-xs);
+  background: var(--ai-tint);
+  color: var(--ai-ink);
+  font: var(--fw-medium) var(--fs-micro) / 1.3 var(--font-mono);
+  letter-spacing: var(--ls-wide);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+a.f95-rulechip:hover {
+  background: var(--iris-100);
+  border-color: var(--ai-ink);
+}
+a.f95-rulechip:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+/* Only the prefix is uppercase. SCREENS.md writes `RULE · live-ask-silence > 30d`, and rendering
+   the identifier in caps turns something you scan into something that shouts — LIVE-ASK-SILENCE is
+   measurably harder to read at 11px than live-ask-silence. Verified in the gallery. */
+.f95-rulechip__kind {
+  color: var(--ai-ink);
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+/* Consequence lines, column subtitles and inline arithmetic. Text, not a chip. */
+.f95-monocap {
+  font: var(--fw-medium) var(--fs-micro) / 1.35 var(--font-mono);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.f95-monocap--strong {
+  color: var(--text-body);
+}
+.f95-monocap--alert {
+  color: var(--color-danger);
+}
+.f95-monocap--quiet {
+  color: var(--unknown-ink);
+}
+
+/* -------------------------------------------------------------------------------------------
+   3. Milestone badges — THEY SAID · WE SAID · BLOCKING · NOT ASKED
+
+   The they-said/we-said asymmetry is the most novel idea in the product, and if it reads as
+   decoration it is invisible. So it is carried by SHAPE before colour, the way RoleChip separates
+   manager from partner: what the prospect said is SOLID and filled; what we said is an empty
+   dashed outline, and each carries a different quote glyph. Turn the page greyscale and the
+   distinction survives.
+   ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
+.f95-msbadge {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: var(--fw-semibold) var(--fs-micro) / 1 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.f95-msbadge__glyph {
+  width: 9px;
+  height: 9px;
+  flex: none;
+}
+/* What the prospect said — solid, filled, the only thing that counts. */
+.f95-msbadge--they-said {
+  background: var(--health-moving);
+  border-color: var(--health-moving);
+  color: var(--text-on-accent);
+}
+/* What we said — empty and dashed. Our own claim, worth nothing alone. */
+.f95-msbadge--we-said {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+}
+.f95-msbadge--blocking {
+  background: var(--health-stuck-surface);
+  border-color: var(--health-stuck-border);
+  color: var(--health-stuck-text);
+}
+/* Not asked is an honourable gap, not an error — the system's Unknown palette, dashed. */
+.f95-msbadge--not-asked {
+  background: var(--unknown-surface);
+  border: 1px dashed var(--unknown-border);
+  color: var(--unknown-ink);
+}
+
+/* -------------------------------------------------------------------------------------------
+   4. Scenario badges — the names ledger under the BMW curve
+
+   A confidence ladder, and it is ordered: money that closes even in Worst, then money that needs
+   Most likely, then money that needs Best, then money in no scenario at all. The colours descend
+   with it — green, amber, red, then the dashed Unknown treatment for "in none of them".
+
+   SCREENS.md assigns `MOST LIKELY +` red and `BEST ONLY` amber, which puts red in the middle of
+   a green-to-amber ramp. That is a design slip rather than a decision: it makes the second-safest
+   band louder than the least safe one, and a ladder whose colours are not monotonic teaches a
+   reader that the colours mean nothing. Documented in docs/design-system.md and noted in
+   SCREENS.md; the copy is untouched.
+   ------------------------------------------------------------------------------------------- */
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
+.f95-scenario {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font: var(--fw-semibold) var(--fs-micro) / 1 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.f95-scenario--in-all-three {
+  background: var(--health-moving-surface);
+  border-color: var(--health-moving-border);
+  color: var(--health-moving-text);
+}
+.f95-scenario--most-likely-plus {
+  background: var(--health-slowing-surface);
+  border-color: var(--health-slowing-border);
+  color: var(--health-slowing-text);
+}
+.f95-scenario--best-only {
+  background: var(--health-stuck-surface);
+  border-color: var(--health-stuck-border);
+  color: var(--health-stuck-text);
+}
+.f95-scenario--outside-best {
+  background: var(--unknown-surface);
+  border: 1px dashed var(--unknown-border);
+  color: var(--unknown-ink);
+}
+
+/* -------------------------------------------------------------------------------------------
+   5. Initiative colour dots
+
+   One shared dot, keyed from the stored colour_key. I17 found seven dot primitives in the app and
+   none shared; this consolidates for the new screens rather than refactoring all seven.
+   ------------------------------------------------------------------------------------------- */
+.f95-initdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--initiative-none);
+}
+.f95-initdot--1 {
+  background: var(--initiative-1);
+}
+.f95-initdot--2 {
+  background: var(--initiative-2);
+}
+.f95-initdot--3 {
+  background: var(--initiative-3);
+}
+.f95-initdot--4 {
+  background: var(--initiative-4);
+}
+.f95-initdot--5 {
+  background: var(--initiative-5);
+}
+/* Chips never stretch. `.f95-stack` is a column flex, so an inline-flex child is stretched to the
+   full width of the card by the default `align-items: stretch` — which turns a status pill into a
+   full-width bar. The house convention is to wrap chips in `.f95-cluster`, but a chip that only
+   looks right when its parent remembers is a trap, and the war-room screens put these inside
+   stacks constantly. Found by looking at the gallery, not by a test. */
+.f95-initchip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  color: var(--text-body);
+  font: var(--fw-medium) var(--fs-caption) / 1 var(--font-sans);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* -------------------------------------------------------------------------------------------
+   6. The metric block — one dominant figure, three subordinate
+
+   .f95-stat tops out at 21px and has no notion of a dominant member. The dominant step binds
+   --fs-5xl (52px), which had zero consumers: above every heading in the system (h1 is 32px) and
+   deliberately BELOW the QPI number's 64px, whose binding is untouched. 88px was the other
+   orphan and is the wrong answer here — The Board is already ~66px over budget at 1280x800, and
+   a headline that costs the queue its first card has defeated the screen.
+   ------------------------------------------------------------------------------------------- */
+.f95-metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.f95-metric__label {
+  font: var(--fw-semibold) var(--fs-micro) / 1.2 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.f95-metric__value {
+  font: var(--fw-heavy) var(--fs-xl) / var(--lh-tight) var(--font-sans);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+.f95-metric--dominant .f95-metric__value {
+  font-size: var(--fs-5xl);
+}
+.f95-metric--alert .f95-metric__value {
+  color: var(--color-danger);
+}
+.f95-metric__sub {
+  font: var(--text-caption);
+  color: var(--text-secondary);
+}
+.f95-metric__basis {
+  font: var(--fw-medium) var(--fs-micro) / 1.35 var(--font-mono);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------------------------------------
+   7. Progress bar
+
+   Rides .f95-progress (ds-data.css), which already exists at 8px and 12px. What is added here is
+   the health/accent fill and nothing else; the component supplies the clamping and the ARIA that
+   none of the five existing .f95-progress sites have.
+   ------------------------------------------------------------------------------------------- */
+.f95-progress__fill--moving {
+  background: var(--health-moving);
+}
+.f95-progress__fill--slowing {
+  background: var(--health-slowing);
+}
+.f95-progress__fill--stuck {
+  background: var(--health-stuck);
+}
+.f95-progress__fill--accent {
+  background: var(--reg-accent);
+}
+
+/* -------------------------------------------------------------------------------------------
+   8. Navigation tabs with valid ARIA
+
+   The six hand-rolled *Nav components set aria-selected on plain links, because
+   .f95-tab[aria-selected="true"] is the only rule that styles an active tab and nothing targets
+   aria-current. aria-selected is not valid on a link. This styles aria-current="page", which is,
+   and adds the two things the initiative tabs need and Tabs does not have: a colour dot per item
+   and a disabled state for the undesigned Team / All-reps toggles.
+
+   The existing six are left exactly as they are.
+   ------------------------------------------------------------------------------------------- */
+.f95-tabnav {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border-hairline);
+  overflow-x: auto;
+}
+.f95-tabnav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font: var(--fw-semibold) var(--fs-body) / 1 var(--font-sans);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.f95-tabnav__item:hover {
+  color: var(--text-strong);
+}
+.f95-tabnav__item[aria-current="page"] {
+  color: var(--reg-accent-strong);
+  border-bottom-color: var(--reg-accent);
+}
+.f95-tabnav__item[aria-disabled="true"] {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.f95-tabnav__item[aria-disabled="true"]:hover {
+  color: var(--text-muted);
+}
+.f95-tabnav__item:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
+/* -------------------------------------------------------------------------------------------
+   9. The forecast chart frame
+
+   The chart itself is Recharts, which styles inline and cannot see a custom property — the
+   component reads the tokens in JS and passes them down. What stays in CSS is everything around
+   the plot: the frame, the caption, the in-chart label type.
+   ------------------------------------------------------------------------------------------- */
+.f95-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.f95-forecast__plot {
+  width: 100%;
+  min-width: 0;
+}
+.f95-forecast__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+.f95-forecast__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-caption);
+  color: var(--text-secondary);
+}
+.f95-forecast__swatch {
+  width: 14px;
+  height: 3px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+}
+.f95-forecast__swatch--band {
+  height: 10px;
+  border-radius: var(--radius-xs);
+}
+.f95-forecast__swatch--goal {
+  /* A gradient rather than `border-top: dashed`, because a browser's dash length is derived from
+     the border width and at this size it drew one dash — a swatch that reads solid, for the one
+     line in the chart that is dashed. The 5/4 pattern is the chart's own strokeDasharray. */
+  width: 20px;
+  height: 2px;
+  border: 0;
+  border-radius: 0;
+  background: repeating-linear-gradient(to right, var(--text-muted) 0 5px, transparent 5px 9px);
+}
+.f95-forecast__empty {
+  padding: var(--space-7) var(--space-5);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  color: var(--text-muted);
+  font: var(--text-caption);
+  text-align: center;
+}

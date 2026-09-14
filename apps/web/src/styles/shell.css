@@ -13,14 +13,14 @@
   background: var(--surface-card);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);
-  color: var(--ink-strong);
+  color: var(--text-strong);
   text-decoration: none;
-  transition: top var(--motion-fast, 120ms) ease;
+  transition: top var(--dur-fast) var(--ease-out);
 }
 
 .skip-link:focus {
   top: var(--space-3);
-  outline: 2px solid var(--reg-accent, var(--role-manager));
+  outline: 2px solid var(--reg-accent);
   outline-offset: 2px;
 }
 
