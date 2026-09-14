@@ -223,8 +223,17 @@ export function ForecastChart({
               stroke={tokens.grid}
               tickLine={false}
             />
+            {/* The domain INCLUDES the goal. Recharts scales to the data, and a goal above the
+                best case would fall outside it and be clipped — silently removing the one line the
+                whole chart is a comparison against. I27 found this with a rep-scoped goal of
+                $2.70M against a $1.72M best case: the legend said "Goal" and the plot had none. */}
             <YAxis
               tickFormatter={(value: number) => formatCurrencyAbbreviatedFromCents(value)}
+              domain={[
+                0,
+                (dataMax: number) =>
+                  goalCents === null ? dataMax : Math.max(dataMax, goalCents * 1.04),
+              ]}
               tick={{ fill: tokens.axis, fontSize: 11 }}
               stroke={tokens.grid}
               tickLine={false}

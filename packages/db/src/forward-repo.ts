@@ -515,6 +515,32 @@ export async function loadOpportunityLabels(
   return new Map(rows.map((row) => [row.opportunityId, row]));
 }
 
+/** Events for several opportunities at once — the movement panel needs a date chain per row. */
+export async function listEventsForOpportunities(
+  db: Database,
+  tenantId: string,
+  opportunityIds: readonly string[],
+): Promise<Map<string, OpportunityEventRow[]>> {
+  const out = new Map<string, OpportunityEventRow[]>();
+  if (opportunityIds.length === 0) return out;
+  const rows = await db
+    .select()
+    .from(opportunityEvents)
+    .where(
+      and(
+        eq(opportunityEvents.tenantId, tenantId),
+        inArray(opportunityEvents.opportunityId, [...opportunityIds]),
+      ),
+    )
+    .orderBy(desc(opportunityEvents.occurredAt));
+  for (const row of rows) {
+    const list = out.get(row.opportunityId);
+    if (list) list.push(row);
+    else out.set(row.opportunityId, [row]);
+  }
+  return out;
+}
+
 export interface OpportunityFacts extends OpportunityLabel {
   /** "over three years" — rendered as `$250,000 over three years`. */
   readonly amountNote: string | null;
