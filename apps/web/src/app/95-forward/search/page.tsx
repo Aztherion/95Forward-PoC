@@ -50,11 +50,7 @@ function InterpretedQuery({ interpretation }: { interpretation: QueryInterpretat
       </div>
       <div className="f95-cluster">
         {interpretation.filters.map((filter, i) => (
-          <Tag
-            key={`${filter.field}-${i}`}
-            color="var(--ai-ink)"
-            data-testid="interpreted-filter"
-          >
+          <Tag key={`${filter.field}-${i}`} color="var(--ai-ink)" data-testid="interpreted-filter">
             {filterChipLabel(filter)}
           </Tag>
         ))}

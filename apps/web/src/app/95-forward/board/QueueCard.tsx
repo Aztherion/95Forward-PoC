@@ -32,6 +32,10 @@ const ARTIFACT: Record<NextActionKind, string> = {
   "get-it-in-writing": "a confirmation letter",
   "use-introduction": "an introduction request",
   "ask-partner": "a note asking them to open the door",
+  // Stage-derived fallbacks (I26). A rule never produces these, but the type is closed and the
+  // maps have to be total, so a future rule that does cannot land without a label.
+  "get-the-visit": "a request for the meeting",
+  "steward-the-gift": "a thank-you and a stewardship note",
 };
 
 /**
@@ -49,6 +53,8 @@ const PRIMARY_CTA: Record<NextActionKind, string> = {
   "get-it-in-writing": "Draft the confirmation letter",
   "use-introduction": "Draft the introduction request",
   "ask-partner": "Draft the ask to your partner",
+  "get-the-visit": "Draft the meeting request",
+  "steward-the-gift": "Draft the thank-you",
 };
 
 export interface QueueCardProps {

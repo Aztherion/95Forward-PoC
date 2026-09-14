@@ -40,6 +40,7 @@ import {
   opportunityMilestones,
 } from "./schema/forward";
 import { constituents } from "./schema/constituents";
+import { users } from "./schema/users";
 import { fundingInitiatives } from "./schema/funding";
 import { prospects } from "./schema/prospects";
 
@@ -511,6 +512,109 @@ export async function loadOpportunityLabels(
     .where(eq(forwardOpportunities.tenantId, tenantId));
 
   return new Map(rows.map((row) => [row.opportunityId, row]));
+}
+
+export interface OpportunityFacts extends OpportunityLabel {
+  /** "over three years" — rendered as `$250,000 over three years`. */
+  readonly amountNote: string | null;
+  readonly relationshipManager: string | null;
+}
+
+/** The one record's labels, plus the facts panel's own fields. One query, like the bulk read. */
+export async function loadOpportunityFacts(
+  db: Database,
+  tenantId: string,
+  opportunityId: string,
+): Promise<OpportunityFacts | undefined> {
+  const [row] = await db
+    .select({
+      opportunityId: forwardOpportunities.id,
+      prospectId: forwardOpportunities.prospectId,
+      prospectName: constituents.displayName,
+      prospectType: constituents.type,
+      initiativeId: forwardOpportunities.initiativeId,
+      initiativeName: fundingInitiatives.name,
+      initiativeColourKey: fundingInitiatives.colourKey,
+      amountNote: forwardOpportunities.amountNote,
+      relationshipManager: users.name,
+    })
+    .from(forwardOpportunities)
+    .innerJoin(prospects, eq(prospects.id, forwardOpportunities.prospectId))
+    .innerJoin(constituents, eq(constituents.id, prospects.constituentId))
+    .innerJoin(fundingInitiatives, eq(fundingInitiatives.id, forwardOpportunities.initiativeId))
+    .leftJoin(users, eq(users.id, prospects.rmUserId))
+    .where(
+      and(eq(forwardOpportunities.tenantId, tenantId), eq(forwardOpportunities.id, opportunityId)),
+    );
+  return row;
+}
+
+export interface MilestoneState {
+  readonly key: string;
+  readonly label: string;
+  readonly source: "they_said" | "we_said";
+  readonly blocking: boolean;
+  readonly sortOrder: number;
+  readonly confirmed: boolean;
+  readonly confirmedAt: Date | null;
+  /** A staff user, or a named external person — "Ellen Hallworth, verbally". */
+  readonly confirmedBy: string | null;
+  readonly evidence: string | null;
+  readonly documentUrl: string | null;
+}
+
+/**
+ * Every milestone for one opportunity, confirmed or not.
+ *
+ * `confirmedMilestoneKeys` answers "is this qualified"; the screen has to show the four rows that
+ * are NOT confirmed as prominently as the two that are, with whatever evidence each carries. An
+ * absent row means not confirmed — that is the model — so the definitions drive the list and the
+ * state is joined onto them.
+ */
+export async function loadMilestoneStates(
+  db: Database,
+  tenantId: string,
+  opportunityId: string,
+): Promise<readonly MilestoneState[]> {
+  const rows = await db
+    .select({
+      key: milestoneDefinitions.key,
+      label: milestoneDefinitions.label,
+      source: milestoneDefinitions.source,
+      blocking: milestoneDefinitions.blocking,
+      sortOrder: milestoneDefinitions.sortOrder,
+      confirmed: opportunityMilestones.confirmed,
+      confirmedAt: opportunityMilestones.confirmedAt,
+      confirmedByName: opportunityMilestones.confirmedByName,
+      confirmedByUser: users.name,
+      evidence: opportunityMilestones.evidence,
+      documentUrl: opportunityMilestones.documentUrl,
+    })
+    .from(milestoneDefinitions)
+    .leftJoin(
+      opportunityMilestones,
+      and(
+        eq(opportunityMilestones.milestoneDefinitionId, milestoneDefinitions.id),
+        eq(opportunityMilestones.opportunityId, opportunityId),
+        eq(opportunityMilestones.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(users, eq(users.id, opportunityMilestones.confirmedByUserId))
+    .where(eq(milestoneDefinitions.tenantId, tenantId))
+    .orderBy(milestoneDefinitions.sortOrder);
+
+  return rows.map((row) => ({
+    key: row.key,
+    label: row.label,
+    source: row.source,
+    blocking: row.blocking,
+    sortOrder: row.sortOrder,
+    confirmed: row.confirmed ?? false,
+    confirmedAt: row.confirmedAt,
+    confirmedBy: row.confirmedByName ?? row.confirmedByUser ?? null,
+    evidence: row.evidence,
+    documentUrl: row.documentUrl,
+  }));
 }
 
 // -------------------------------------------------------------------------------------------

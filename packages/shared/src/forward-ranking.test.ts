@@ -9,10 +9,13 @@ import {
   assertStatusLabel,
   computeSuperlatives,
   dayWork,
+  FORWARD_STAGES,
   isDismissalLive,
   QUEUE_STATUS_LABELS,
   RANKING_RULES,
   RANKING_RULE_IDS,
+  rankOne,
+  stageNextAction,
   STATUS_HEALTH,
   urgencyFactor,
   type QueueDecision,
@@ -239,9 +242,21 @@ describe("multipliers combine by maximum, not product", () => {
 describe("stability", () => {
   it("two runs on identical data produce an identical order", () => {
     const rows = [
-      opportunity({ id: "z", confirmedMilestoneKeys: ["specific_ask_made"], lastContactAt: daysAgo(60) }),
-      opportunity({ id: "a", confirmedMilestoneKeys: ["specific_ask_made"], lastContactAt: daysAgo(60) }),
-      opportunity({ id: "m", confirmedMilestoneKeys: ["specific_ask_made"], lastContactAt: daysAgo(60) }),
+      opportunity({
+        id: "z",
+        confirmedMilestoneKeys: ["specific_ask_made"],
+        lastContactAt: daysAgo(60),
+      }),
+      opportunity({
+        id: "a",
+        confirmedMilestoneKeys: ["specific_ask_made"],
+        lastContactAt: daysAgo(60),
+      }),
+      opportunity({
+        id: "m",
+        confirmedMilestoneKeys: ["specific_ask_made"],
+        lastContactAt: daysAgo(60),
+      }),
     ];
     const first = run(rows).queue.map((i) => i.opportunityId);
     const second = run([...rows].reverse()).queue.map((i) => i.opportunityId);
@@ -445,9 +460,7 @@ describe("rationales", () => {
     ]).queue[0]!;
     expect(oneDay.rationale).toContain("15 days ago");
 
-    const oneVisit = run([
-      opportunity({ id: "one-visit", visitCount: 1 }),
-    ]).queue;
+    const oneVisit = run([opportunity({ id: "one-visit", visitCount: 1 })]).queue;
     // The default threshold is two visits, so one does not fire at all — the rule does not nag
     // somebody for having had a single meeting.
     expect(oneVisit).toHaveLength(0);
@@ -482,7 +495,13 @@ describe("pin and dismiss", () => {
     expect(plain.queue[0]!.opportunityId).toBe("big");
 
     const pinned = run(rows, [
-      { kind: "pin", opportunityId: "small", ruleId: null, dataVersion: "v1", decidedAt: daysAgo(1) },
+      {
+        kind: "pin",
+        opportunityId: "small",
+        ruleId: null,
+        dataVersion: "v1",
+        decidedAt: daysAgo(1),
+      },
     ]);
     expect(pinned.queue[0]!.opportunityId).toBe("small");
     expect(pinned.queue[0]!.pinned).toBe(true);
@@ -491,7 +510,13 @@ describe("pin and dismiss", () => {
 
   it("a dismissal removes the item", () => {
     const result = run(rows, [
-      { kind: "dismiss", opportunityId: "big", ruleId: null, dataVersion: "v1", decidedAt: daysAgo(1) },
+      {
+        kind: "dismiss",
+        opportunityId: "big",
+        ruleId: null,
+        dataVersion: "v1",
+        decidedAt: daysAgo(1),
+      },
     ]);
     expect(result.queue.some((i) => i.opportunityId === "big")).toBe(false);
   });
@@ -590,7 +615,11 @@ describe("catalogue integration", () => {
     resetCatalogue();
     const result = dayWork({
       snapshot: snapshotOf([
-        opportunity({ id: "a", confirmedMilestoneKeys: ["specific_ask_made"], lastContactAt: daysAgo(90) }),
+        opportunity({
+          id: "a",
+          confirmedMilestoneKeys: ["specific_ask_made"],
+          lastContactAt: daysAgo(90),
+        }),
       ]),
       scope: ALL,
       settings: SETTINGS,
@@ -630,7 +659,11 @@ describe("below the cut", () => {
       snapshot: {
         orgRefId: "org",
         opportunities: [
-          opportunity({ id: "a", confirmedMilestoneKeys: ["specific_ask_made"], lastContactAt: daysAgo(60) }),
+          opportunity({
+            id: "a",
+            confirmedMilestoneKeys: ["specific_ask_made"],
+            lastContactAt: daysAgo(60),
+          }),
         ],
         definitions: DEFS,
         goals: [],
@@ -656,5 +689,90 @@ describe("closed work is not coached", () => {
       }),
     ]);
     expect(result.queue).toHaveLength(0);
+  });
+});
+
+describe("rankOne — one record, wherever it sits", () => {
+  const rows = [
+    opportunity({
+      id: "silent",
+      amountCents: 400_000_00,
+      stage: "follow_up_and_close",
+      confirmedMilestoneKeys: ["specific_ask_made", "amount_agreed"],
+      milestoneConfirmedAt: { amount_agreed: daysAgo(81) },
+      lastContactAt: daysAgo(81),
+      closeDate: daysAhead(40),
+    }),
+    opportunity({ id: "quiet", amountCents: 50_000_00, stage: "get_the_visit" }),
+    opportunity({ id: "closed", stage: "repeat", amountCents: 10_000_00 }),
+  ];
+  // Built per test, not once: `resolveCatalogue` reads the module-global registry, which
+  // `beforeEach` populates. Resolving it in the describe body would capture an empty catalogue.
+  const input = () => ({
+    snapshot: snapshotOf(rows),
+    scope: ALL,
+    settings: SETTINGS,
+    clock: CLOCK,
+    resolved: resolveCatalogue([]),
+  });
+
+  it("returns the same verdict the queue would give, for a record in the queue", () => {
+    const top = run(rows).queue.find((i) => i.opportunityId === "silent")!;
+    const one = rankOne({ ...input(), opportunityId: "silent" });
+
+    // Not merely "a" verdict — the SAME one. A second implementation of the scoring would
+    // eventually disagree with the queue about the same record, in front of the person coached.
+    expect(one).not.toBeNull();
+    expect(one!.primaryRuleId).toBe(top.primaryRuleId);
+    expect(one!.statusLabel).toBe(top.statusLabel);
+    expect(one!.rationale).toBe(top.rationale);
+    expect(one!.impactCents).toBe(top.impactCents);
+    expect([...one!.firingRuleIds]).toEqual([...top.firingRuleIds]);
+    expect(one!.nextAction.label).toBe(top.nextAction.label);
+  });
+
+  it("computes superlatives over the whole scope, not the one record", () => {
+    // "The biggest amount on your board" is a claim about the board. Computed from a single
+    // opportunity every record would be the biggest, and the rationale would be a lie on all of
+    // them.
+    const one = rankOne({ ...input(), opportunityId: "silent" });
+    const alone = rankOne({
+      ...input(),
+      snapshot: snapshotOf([rows[0]!]),
+      opportunityId: "silent",
+    });
+    expect(one!.rationale).toBe(alone!.rationale);
+    expect(computeSuperlatives(rows.slice(0, 2), ANCHOR).biggestOnBoardId).toBe("silent");
+  });
+
+  it("returns null rather than inventing a verdict", () => {
+    expect(rankOne({ ...input(), opportunityId: "does-not-exist" })).toBeNull();
+    // A record nothing fires on.
+    expect(rankOne({ ...input(), opportunityId: "quiet" })).toBeNull();
+    // Closed work is out of the queue by design, so it is out of this too.
+    expect(rankOne({ ...input(), opportunityId: "closed" })).toBeNull();
+  });
+
+  it("is never pinned — a pin is a board decision, not a property of the record", () => {
+    expect(rankOne({ ...input(), opportunityId: "silent" })!.pinned).toBe(false);
+  });
+});
+
+describe("stageNextAction — the fallback for a record no rule speaks for", () => {
+  const target = { opportunityId: "o1", prospectId: "p1" };
+
+  it("gives every one of the six stages an action", () => {
+    for (const stage of FORWARD_STAGES) {
+      const action = stageNextAction(stage, target);
+      expect(action.label.length, stage).toBeGreaterThan(0);
+      expect(action.target.opportunityId).toBe("o1");
+    }
+  });
+
+  it("reads the stage as the statement about what happens next that it is", () => {
+    expect(stageNextAction("get_the_visit", target).label).toBe("Get the visit");
+    expect(stageNextAction("get_the_visit", target).kind).toBe("get-the-visit");
+    expect(stageNextAction("visit_and_ask", target).kind).toBe("make-specific-ask");
+    expect(stageNextAction("follow_up_and_close", target).kind).toBe("follow-up-to-close");
   });
 });

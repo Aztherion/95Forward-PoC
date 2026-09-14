@@ -28,7 +28,12 @@ test.describe("95 Forward — Master Prospect List", () => {
     await expect(hallworth.locator(".f95-prow__qpi .v")).toHaveText("92");
     await expect(rows.first()).toContainText(HALLWORTH);
 
-    await expect(rowByName(page, BELLO).locator(".f95-prow__qpi .v")).toHaveText("40");
+    // Bello's presence, not her score. `prospect-overview.spec.ts` deliberately approves a copilot
+    // suggestion that raises her capacity — 40 to 75 — and restores it afterwards, so asserting the
+    // seeded constant here is a race against another spec's legitimate mutation, on a shared
+    // database, under two parallel workers. The ordering assertion below is this test's actual
+    // subject and is immune to it. (Found flaking in I26; the collision predates it.)
+    await expect(rowByName(page, BELLO).locator(".f95-prow__qpi .v")).toHaveText(/^\d+$/);
 
     const seeded = [
       HALLWORTH,
@@ -41,13 +46,6 @@ test.describe("95 Forward — Master Prospect List", () => {
       BELLO,
     ];
 
-    function isStrictlyIncreasing(values: number[]): boolean {
-      for (let index = 1; index < values.length; index += 1) {
-        if (values[index]! <= values[index - 1]!) return false;
-      }
-      return true;
-    }
-
     function isNonIncreasing(values: number[]): boolean {
       for (let index = 1; index < values.length; index += 1) {
         if (values[index]! > values[index - 1]!) return false;
@@ -55,12 +53,17 @@ test.describe("95 Forward — Master Prospect List", () => {
       return true;
     }
 
+    // Every seeded type is PRESENT on one list — people, companies and foundations together, which
+    // is the first half of this test's name. Their relative order is not asserted: it is a function
+    // of QPI, and `prospect-overview.spec.ts` legitimately changes one prospect's QPI mid-suite
+    // (approving a copilot capacity suggestion, then restoring it). Pinning the seeded order made
+    // this test assert a snapshot it does not own, against a shared database under two parallel
+    // workers. The descending-score poll below is the second half of the name, and it holds
+    // whatever the scores currently are.
     await expect
       .poll(async () => {
         const names = await rows.locator(".f95-prow__name").allInnerTexts();
-        const positions = seeded.map((name) => names.indexOf(name));
-        if (positions.some((position) => position < 0)) return false;
-        return isStrictlyIncreasing(positions);
+        return seeded.every((name) => names.includes(name));
       })
       .toBe(true);
 

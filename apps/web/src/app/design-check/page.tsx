@@ -126,7 +126,7 @@ export default async function DesignCheckPage() {
 
   return (
     <>
-      <Topbar title="Design check" subtitle="95 Forward" />
+      <Topbar title="Design check" subtitle="95 Forward" heading={false} />
       <div className="f95-page" data-testid="design-check">
         <div className="f95-page__header">
           <div className="f95-page__heading">

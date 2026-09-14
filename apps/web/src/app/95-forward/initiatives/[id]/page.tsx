@@ -82,7 +82,7 @@ export default async function InitiativeDetailPage({
 
   return (
     <>
-      <Topbar title={detail.name} subtitle="95 Forward · Funding initiative" />
+      <Topbar title={detail.name} subtitle="95 Forward · Funding initiative" heading={false} />
       <div className="f95-page" data-testid="initiative-detail">
         <Link href="/95-forward/initiatives" className="f95-table__cell-link f95-cluster">
           <ArrowLeft size={15} strokeWidth={1.8} /> Funding initiatives
@@ -90,7 +90,7 @@ export default async function InitiativeDetailPage({
 
         <div className="f95-record-head">
           <div className="f95-record-head__main">
-            <h2 className="f95-record-head__title">{detail.name}</h2>
+            <h1 className="f95-record-head__title">{detail.name}</h1>
             <div className="f95-record-head__meta">
               <HorizonTag horizon={detail.frame} solid />
               <span>· Goal {formatCurrencyFromCents(detail.goalCents)}</span>

@@ -13,6 +13,7 @@ import {
 
 const summary = (over: Partial<DayWorkSummary> = {}): DayWorkSummary => ({
   findingCount: 3,
+  totalEffortSeconds: 150,
   queueCount: 6,
   topItemFact: { opportunityId: "o1", kind: "idle-days", value: 81 },
   ...over,

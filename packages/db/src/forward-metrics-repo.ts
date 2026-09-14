@@ -7,6 +7,7 @@
 import { eq } from "drizzle-orm";
 import {
   computeMetrics,
+  coverageWith,
   coverageWithout,
   evaluateWhatIf,
   initiativeShare,
@@ -298,7 +299,11 @@ export async function loadMetricsSnapshot(
     coachingFactsByOpportunity(db, tenantId),
     visitFactsByProspect(db, tenantId, now),
     partnersByProspect(db, tenantId),
-    milestoneConfirmedAtByOpportunity(db, tenantId, opportunityRows.map((row) => row.id)),
+    milestoneConfirmedAtByOpportunity(
+      db,
+      tenantId,
+      opportunityRows.map((row) => row.id),
+    ),
   ]);
 
   const opportunities: SnapshotOpportunity[] = opportunityRows.map((row) => ({
@@ -399,21 +404,17 @@ export class ForwardMetricsService {
   }
 
   initiativeShare(opportunityId: string) {
-    return initiativeShare(
-      this.snapshot,
-      opportunityId,
-      this.options.settings,
-      this.options.clock,
-    );
+    return initiativeShare(this.snapshot, opportunityId, this.options.settings, this.options.clock);
+  }
+
+  /** "Qualify this and Kamuli goes from 0.61x to 0.87x" — the question worth asking of an ask
+      that is not real yet, which is the one Opportunity Detail is built around. */
+  coverageWith(opportunityId: string) {
+    return coverageWith(this.snapshot, opportunityId, this.options.settings, this.options.clock);
   }
 
   coverageWithout(opportunityId: string) {
-    return coverageWithout(
-      this.snapshot,
-      opportunityId,
-      this.options.settings,
-      this.options.clock,
-    );
+    return coverageWithout(this.snapshot, opportunityId, this.options.settings, this.options.clock);
   }
 }
 

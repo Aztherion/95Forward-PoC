@@ -12,14 +12,14 @@ export default async function NewInitiativePage() {
 
   return (
     <>
-      <Topbar title="Add initiative" subtitle="95 Forward · Funding" />
+      <Topbar title="Add initiative" subtitle="95 Forward · Funding" heading={false} />
       <div className="f95-page">
         <Link href="/95-forward/initiatives" className="f95-table__cell-link f95-cluster">
           <ArrowLeft size={15} strokeWidth={1.8} /> Funding initiatives
         </Link>
         <div className="f95-page__heading">
           <div className="f95-page__eyebrow">95 Forward</div>
-          <h2 className="f95-page__title">Add a funding initiative</h2>
+          <h1 className="f95-page__title">Add a funding initiative</h1>
         </div>
         <NewInitiativeForm />
       </div>

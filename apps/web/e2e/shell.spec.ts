@@ -118,6 +118,28 @@ test.describe("95 Forward inside the Keystone shell", () => {
     }
   });
 
+  test("exactly one h1 per screen, and it is the page's own title", async ({ page }) => {
+    // I26 fixed this properly: `Topbar` takes `heading={false}` on screens that render their own
+    // title, and those titles went back to being `h1`s. Seven screens had been demoting their own
+    // heading to an `h2`, which put the host's chrome above the page's content in the outline.
+    //
+    // Deliberately a SMALL sample. The first version walked fifteen routes and took 22 seconds,
+    // which under two parallel workers destabilised four unrelated specs — the same mistake I24
+    // made with its nav walk. The invariant is held statically instead, over every Topbar call site
+    // in the source: see components/shell/topbar-heading.test.tsx. This is the smoke test that the
+    // static check corresponds to something real.
+    for (const [label, href] of [
+      ["Board", "/95-forward/board"],
+      ["Opportunities (placeholder)", "/95-forward/opportunities"],
+      ["Rules", "/rules"],
+      ["Constituents", "/constituents"],
+    ] as [string, string][]) {
+      const response = await page.goto(href);
+      expect(response?.status(), `${label} → ${href}`).toBeLessThan(400);
+      await expect(page.locator("h1"), `${label} h1 count`).toHaveCount(1);
+    }
+  });
+
   test("Keystone's own sections are muted but still navigable", async ({ page }) => {
     await page.goto("/95-forward/board");
 
