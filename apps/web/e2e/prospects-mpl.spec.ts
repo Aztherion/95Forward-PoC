@@ -28,7 +28,12 @@ test.describe("95 Forward — Master Prospect List", () => {
     await expect(hallworth.locator(".f95-prow__qpi .v")).toHaveText("92");
     await expect(rows.first()).toContainText(HALLWORTH);
 
-    await expect(rowByName(page, BELLO).locator(".f95-prow__qpi .v")).toHaveText("40");
+    // Bello's presence, not her score. `prospect-overview.spec.ts` deliberately approves a copilot
+    // suggestion that raises her capacity — 40 to 75 — and restores it afterwards, so asserting the
+    // seeded constant here is a race against another spec's legitimate mutation, on a shared
+    // database, under two parallel workers. The ordering assertion below is this test's actual
+    // subject and is immune to it. (Found flaking in I26; the collision predates it.)
+    await expect(rowByName(page, BELLO).locator(".f95-prow__qpi .v")).toHaveText(/^\d+$/);
 
     const seeded = [
       HALLWORTH,
