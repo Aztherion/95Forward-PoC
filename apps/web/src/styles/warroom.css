@@ -410,6 +410,18 @@ a.f95-rulechip:focus-visible {
 .f95-tabnav__item:hover {
   color: var(--text-strong);
 }
+/* Initiative names are long marketing strings — "Everyone in Kamuli — Uganda 2026" — and the
+   designed tabs use short names the data does not carry. Truncated with the full name on hover
+   rather than shortened by a rule: every rule I tried turned "Everyone in Kamuli — Uganda 2026"
+   into something that was not "Kamuli 2026". See docs/design/SCREENS.md. */
+.f95-tabnav__label {
+  display: inline-block;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
 .f95-tabnav__item[aria-current="page"] {
   color: var(--reg-accent-strong);
   border-bottom-color: var(--reg-accent);
@@ -1129,4 +1141,280 @@ a.f95-rulechip:focus-visible {
 /* The payoff for prospectSourced: every row says who moved it and whether they were involved. */
 .f95-timeline__who {
   font: var(--text-caption);
+}
+
+/* ===========================================================================================
+   The Forecast Room (I27)
+
+   The Monday-meeting screen. Two constraints shape it: every figure has to tie to every other
+   one — hence the monospace working lines under the ratios and the reconciliation footer under
+   the stage board — and no aggregate stands alone, hence the ledger, the named chips and the
+   two movement panels.
+
+   The stage board is a WALL, not a table: six columns of chips you scan, with a hard divider
+   between the four that count towards the headline and the two that do not.
+   =========================================================================================== */
+
+.f95-fc {
+  padding-top: var(--space-6);
+  gap: var(--space-3);
+}
+.f95-fc__lede {
+  margin: 2px 0 0;
+  font: var(--text-caption);
+}
+.f95-fc__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+.f95-fc__lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+@media (min-width: 1100px) {
+  .f95-fc__lower {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .f95-fc__rail {
+    position: sticky;
+    top: var(--space-4);
+  }
+}
+.f95-fc__verdict {
+  margin: 0;
+  font: var(--fw-semibold) var(--fs-body) / 1.4 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-fc__stagehead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.f95-fc__legend {
+  gap: var(--space-3);
+}
+.f95-fc__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption);
+  color: var(--text-secondary);
+}
+.f95-fc__panelcount {
+  margin: 2px 0 var(--space-2);
+  font: var(--fw-semibold) var(--fs-small) / 1.35 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-fc__ledgerfoot {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-hairline);
+  font: var(--text-caption);
+  color: var(--text-body);
+}
+.f95-fc__reconcile {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-hairline);
+}
+.f95-fc__reconcile-left {
+  margin: 0;
+  font: var(--fw-semibold) var(--fs-small) / 1.4 var(--font-sans);
+  color: var(--text-strong);
+  max-width: 60ch;
+}
+
+/* ---- The wall ------------------------------------------------------------------------------ */
+.f95-stageboard {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-2);
+  overflow-x: auto;
+}
+@media (max-width: 1000px) {
+  .f95-stageboard {
+    grid-template-columns: repeat(6, minmax(150px, 1fr));
+  }
+}
+.f95-stagecol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+/* Left is work; right is money. The divider is the line the headline metric stops at. */
+.f95-stagecol--divider {
+  padding-left: var(--space-3);
+  border-left: 2px dashed var(--border-strong);
+}
+.f95-stagecol--closed {
+  opacity: 0.72;
+}
+.f95-stagecol__head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-hairline);
+}
+.f95-stagecol__name {
+  font: var(--fw-semibold) var(--fs-small) / 1.25 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-stagecol__count {
+  font: var(--text-caption);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.f95-stagecol__chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* A chip. Health is the left border; QUALIFICATION is the fill — amendment 1's visual answer.
+   A pre-close column holds both kinds, and the column total is not the headline metric: its
+   qualified subset is. Told apart by fill rather than by colour, so it survives greyscale and
+   does not fight the health triad for the same channel. */
+.f95-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  /* FILLED means qualified. The health triad already owns colour on the left border, so the
+     qualified/unqualified split takes the other channel the system uses for exactly this — filled
+     versus empty and dashed, the same vocabulary as the they-said / we-said badges. Transparent on
+     a white card is not a distinction; a tint is. */
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  text-decoration: none;
+  min-width: 0;
+}
+.f95-chip:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.f95-chip--moving {
+  border-left-color: var(--health-moving);
+}
+.f95-chip--slowing {
+  border-left-color: var(--health-slowing);
+}
+.f95-chip--stuck {
+  border-left-color: var(--health-stuck);
+}
+.f95-chip--unqualified {
+  background: var(--surface-card);
+  border-style: dashed;
+  border-color: var(--border-strong);
+  border-left-style: solid;
+}
+.f95-chip--unqualified .f95-chip__name,
+.f95-chip--unqualified .f95-chip__amount {
+  color: var(--text-secondary);
+}
+.f95-chip--legend {
+  width: 22px;
+  height: 14px;
+  padding: 0;
+  border-left-width: 3px;
+  border-left-color: var(--text-muted);
+}
+.f95-chip__name {
+  font: var(--fw-semibold) var(--fs-caption) / 1.25 var(--font-sans);
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.f95-chip__amount {
+  font: var(--fw-semibold) var(--fs-caption) / 1.2 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-body);
+}
+.f95-chip__meta {
+  font: var(--fw-medium) var(--fs-micro) / 1.2 var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* ---- Ledger, movement panels and the names disclosure --------------------------------------- */
+.f95-ledger,
+.f95-movement {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.f95-ledger__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px var(--space-2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-hairline);
+}
+.f95-ledger__row:last-child {
+  border-bottom: none;
+}
+.f95-ledger__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-caption);
+  min-width: 0;
+}
+.f95-ledger__amount {
+  grid-column: 2;
+  font: var(--fw-semibold) var(--fs-caption) / 1.2 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+  text-align: right;
+}
+.f95-movement__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-hairline);
+  font: var(--text-caption);
+}
+.f95-movement__row:last-child {
+  border-bottom: none;
+}
+
+.f95-names__list {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.f95-names__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 3px 0;
+  font: var(--text-caption);
+}
+.f95-names__amount {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-body);
 }

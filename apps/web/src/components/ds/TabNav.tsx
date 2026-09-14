@@ -43,7 +43,9 @@ export function TabNav({ items, active, label, children }: TabNavProps) {
           const body = (
             <>
               {item.colourKey !== undefined ? <InitiativeDot colourKey={item.colourKey} /> : null}
-              {item.label}
+              <span className="f95-tabnav__label" title={item.label}>
+                {item.label}
+              </span>
             </>
           );
           if (item.disabled) {

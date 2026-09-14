@@ -104,6 +104,15 @@ export interface MilestoneDefinition {
   /** Qualification counts blocking milestones. INDEPENDENT of `source` — see the seed set below. */
   readonly blocking: boolean;
   readonly sortOrder: number;
+  /**
+   * The verb on the button that records this milestone — "Record their date", "Ask at close".
+   *
+   * Data, like everything else about a milestone, because Robb's set will change and a screen that
+   * hardcoded six verbs would drift the moment it did. I26 rendered a generic "Record their answer"
+   * on all six; the specific verbs are part of what makes the checklist read as a scoreboard rather
+   * than a form. Optional — a definition without one falls back to the generic verb.
+   */
+  readonly actionLabel?: string | null;
 }
 
 /**
@@ -121,14 +130,23 @@ export const DEFAULT_MILESTONE_DEFINITIONS: readonly MilestoneDefinition[] = [
     source: "they_said",
     blocking: true,
     sortOrder: 0,
+    actionLabel: "Record their date",
   },
-  { key: "amount_agreed", label: "Amount agreed", source: "they_said", blocking: true, sortOrder: 1 },
+  {
+    key: "amount_agreed",
+    label: "Amount agreed",
+    source: "they_said",
+    blocking: true,
+    sortOrder: 1,
+    actionLabel: "Record what they agreed",
+  },
   {
     key: "confirmed_in_writing",
     label: "Confirmed in writing",
     source: "they_said",
     blocking: true,
     sortOrder: 2,
+    actionLabel: "Attach the letter",
   },
   {
     key: "permission_to_share",
@@ -136,6 +154,7 @@ export const DEFAULT_MILESTONE_DEFINITIONS: readonly MilestoneDefinition[] = [
     source: "they_said",
     blocking: false,
     sortOrder: 3,
+    actionLabel: "Ask at close",
   },
   {
     key: "ask_approved_by_leader",
@@ -143,6 +162,7 @@ export const DEFAULT_MILESTONE_DEFINITIONS: readonly MilestoneDefinition[] = [
     source: "we_said",
     blocking: false,
     sortOrder: 4,
+    actionLabel: "Record the approval",
   },
   {
     key: "specific_ask_made",
@@ -150,6 +170,7 @@ export const DEFAULT_MILESTONE_DEFINITIONS: readonly MilestoneDefinition[] = [
     source: "we_said",
     blocking: false,
     sortOrder: 5,
+    actionLabel: "Record the ask",
   },
 ] as const;
 

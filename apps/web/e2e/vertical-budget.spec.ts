@@ -143,5 +143,44 @@ test.describe("vertical budget for The Board", () => {
         `${viewport.name}: the verdict is cut off — it ends at ${bottom} in a ${m.viewportHeight}px viewport`,
       ).toBeLessThanOrEqual(m.viewportHeight);
     });
+
+    test(`the metric cards clear the fold at ${viewport.name}`, async ({ page }) => {
+      // The Monday meeting opens on the NUMBERS, not on a chart title. The room may scroll; the
+      // five cards may not be below the fold when it loads.
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto("/95-forward/forecast");
+      await expect(page.locator('[data-testid="forecast-room"]')).toBeVisible();
+
+      const m = await page.evaluate(() => {
+        const box = (selector: string) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { top: Math.round(r.top), height: Math.round(r.height) };
+        };
+        const plot = document.querySelector(".f95-forecast__plot");
+        return {
+          viewportHeight: window.innerHeight,
+          header: box(".f95-page__header"),
+          tabs: box(".f95-tabnav"),
+          metrics: box('[data-testid="forecast-metrics"]'),
+          plotWidth: plot ? Math.round(plot.getBoundingClientRect().width) : null,
+        };
+      });
+      const bottom = m.metrics ? m.metrics.top + m.metrics.height : null;
+
+      console.log(
+        `[forecast ${viewport.name}] viewport=${m.viewportHeight} header=${m.header?.height} ` +
+          `tabs=${m.tabs?.height} metricsTop=${m.metrics?.top} metricsH=${m.metrics?.height} ` +
+          `metricsBottom=${bottom} slack=${bottom === null ? "n/a" : m.viewportHeight - bottom} ` +
+          `plotWidth=${m.plotWidth}`,
+      );
+
+      expect(m.metrics, "the metric row did not render").not.toBeNull();
+      expect(
+        bottom!,
+        `${viewport.name}: the metric cards are cut off — they end at ${bottom} in a ${m.viewportHeight}px viewport`,
+      ).toBeLessThanOrEqual(m.viewportHeight);
+    });
   }
 });

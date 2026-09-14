@@ -2,7 +2,7 @@
 
 Build-facing spec for the three redesigned screens. Companion to the Claude Design export and screenshots in this folder.
 
-**Status:** design closed. **Screen 1 (The Board) is built — I25. Screen 3 (Opportunity Detail) is built — I26.** The Forecast Room follows in I27. These screens replace the prospect-centric PoC screens, which are deleted rather than parked.
+**Status:** design closed. **All three screens are built — The Board (I25), Opportunity Detail (I26), The Forecast Room (I27).** They replace the prospect-centric PoC screens, which are deleted rather than parked.
 
 ---
 
@@ -167,7 +167,15 @@ Plus `See the full portfolio`
 
 ## Screen 2 — The Forecast Room
 
-**Route:** `Forecast`.
+**Route:** `/95-forward/forecast`, with the scope in the URL (`?initiative=<id>`) so a tab is linkable and each scope's simulation caches independently.
+
+> **Built in I27.** Three places where the built screen differs from the drawing, recorded so a later reader does not "fix" them back.
+>
+> - **The initiative tabs are truncated, not shortened.** The design's labels are short names — `Kamuli 2026`, `Bolivia Scale-Up`, `Forever Promise` — that the data does not carry: the seeded names are `Everyone in Kamuli — Uganda 2026`, `Everyone Forever: Bolivia Scale-Up`, `The Forever Promise — Sustainability & Legacy`. Every mechanical shortening rule tried (text before the separator, text after it) produced something that was not the designed label for at least two of the four. The tabs truncate at 22ch with the full name on hover. **The real fix is a `short_name` column on `funding_initiatives`**, which is a data decision rather than a rendering one.
+> - **The chart's y-domain is extended to include the goal.** Recharts scales to the data, so a goal above the best case falls outside an auto-scaled domain and is silently clipped — the legend says `Goal` and the plot has none. Found at rep scope, where a $2.70M goal sits well above a $1.72M best case, i.e. exactly when the comparison matters most.
+> - **`WON SO FAR`'s link counts opportunities**, per amendment 4 — `N closed this year · see them`, not `17 closed gifts`.
+>
+> **The stage board's qualified/unqualified treatment** (amendment 1's visual answer) is **filled versus empty-and-dashed**: the health triad already owns colour on the chip's left border, so the qualification split takes the other channel the system uses for this — the same one the they-said / we-said badges use. See `docs/design-system.md` §10.10.
 
 **Purpose:** the Monday-meeting screen. Maximum factual density that still ends in *"I need to call someone."* If the reaction after ten seconds is "huh, interesting" rather than a name, it is wrong.
 

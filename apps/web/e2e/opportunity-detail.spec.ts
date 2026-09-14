@@ -129,6 +129,20 @@ test.describe("Opportunity Detail — the verdict", () => {
     await expect(we).toHaveAttribute("fill", "none");
   });
 
+  test("each milestone carries its own verb, from the definition", async ({ page }) => {
+    // I26 rendered a generic "Record their answer" on all six, because the definitions carried no
+    // action label. The specific verbs are part of what makes the checklist read as a scoreboard
+    // rather than a form, and they are data, so an org that reworded one sees its own word.
+    await openDetail(page, await opportunityIdFor(HALLWORTH));
+    await expect(page.locator('[data-key="close_date_confirmed"]')).toContainText(
+      "Record their date",
+    );
+    await expect(page.locator('[data-key="permission_to_share"]')).toContainText("Ask at close");
+    await expect(page.locator('[data-key="confirmed_in_writing"]')).toContainText(
+      "Attach the letter",
+    );
+  });
+
   test("says something specific about each unconfirmed milestone", async ({ page }) => {
     await openDetail(page, await opportunityIdFor(HALLWORTH));
     // "Not confirmed" is true of every unconfirmed milestone and therefore says nothing.
@@ -212,10 +226,16 @@ test.describe.serial("Opportunity Detail — recording reality", () => {
             and md.key in ('close_date_confirmed', 'confirmed_in_writing', 'permission_to_share')`,
         [hallworth],
       );
+      // At the DEMO ANCHOR, not "in the last hour". Every write on these screens uses the injected
+      // fixed clock, so a test's events land at 2026-09-12T12:00:00Z — which is in the past
+      // relative to wall-clock now, so the old predicate matched nothing and two close-date moves
+      // leaked into every later test in the run. The seed's own events are at other timestamps, so
+      // the anchor is an exact discriminator. (Found in I27: the stage board showed Hallworth
+      // "pushed 5×" against three seeded moves.)
       await client.query(
         `delete from opportunity_events
           where opportunity_id = $1
-            and occurred_at > now() - interval '1 hour'`,
+            and occurred_at = timestamptz '2026-09-12T12:00:00Z'`,
         [hallworth],
       );
       await client.query(

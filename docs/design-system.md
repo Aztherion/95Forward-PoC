@@ -1051,3 +1051,39 @@ backs `--role-manager` (§8.1.5). `THE FACTS` puts `Initiative` and `Relationshi
 apart, so the initiative there is rendered **without its dot** — the chip with the dot lives in the
 page header, far from any role chip. The same blue meaning two things a centimetre apart is the
 failure this avoids.
+
+### 10.10 The Forecast Room (I27)
+
+**The chip, and the two channels it uses.** A stage-board chip carries two independent facts, so it
+uses two independent channels:
+
+| Fact                              | Channel                            | Treatment                                                                                             |
+| --------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Health (Moving / Slowing / Stuck) | **Colour**, on the 3px left border | `--health-*`, as everywhere else                                                                      |
+| Qualified, or not yet             | **Fill**, plus border style        | Filled `--surface-sunk` + solid border versus `--surface-card` + **dashed** border and secondary text |
+
+Amendment 1 is why the second one exists: a pre-close column holds qualified AND unqualified chips,
+and its total is **not** the headline metric — the qualified subset is. Without a visible
+distinction the column total appears to contradict the header, and the first person to do that
+arithmetic stops believing the rest of the screen.
+
+Fill was chosen over a second colour deliberately. Colour is spoken for by the health triad, and a
+chip carrying two colour codings would make neither legible. Filled-versus-empty is the same channel
+`MilestoneBadge` uses for they-said against we-said (§10.5), so the vocabulary is already learned,
+and it survives greyscale.
+
+**`ForecastChart` gained a goal-aware domain.** The y-domain now extends to include `goalCents`.
+Recharts scales to the data; a goal above the best case fell outside the domain and was silently
+clipped, which removed the one line the chart is a comparison against — and did so precisely when
+the gap was largest.
+
+**`TabNav` labels truncate** at 22ch with the full text as a `title`. Initiative names are long
+marketing strings and the design's tabs use short names the data does not carry; see
+`docs/design/SCREENS.md`.
+
+**New catalogue entries.** `movement-untouched-days` (30) and `movement-pushes` (2) — the two
+movement panels' thresholds, as doctrine rather than constants.
+
+**Milestone `actionLabel`.** The verb on a milestone's record button is data now, seeded with the
+designed verbs (`Record their date`, `Ask at close`). I26 rendered a generic verb on all six
+because the definition carried none.

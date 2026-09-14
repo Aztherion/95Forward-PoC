@@ -1,0 +1,1 @@
+ALTER TABLE "milestone_definitions" ADD COLUMN "action_label" text;
