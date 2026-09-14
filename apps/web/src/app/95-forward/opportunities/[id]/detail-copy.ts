@@ -258,6 +258,9 @@ export function timelineSentence(
     case "guidance_dismissed":
       return event.field ? `Dismissed the ${event.field} finding.` : "Dismissed from the board.";
     case "note":
+      // Draft completions land here: "Follow-up drafted and sent · edited by Dana Reese (18%
+      // changed)" against "· unedited". That visible difference is the whole point of the log —
+      // it is what lets a leader see guidance was worked with rather than rubber-stamped.
       return event.note ?? "Note added.";
     default:
       return "Changed.";

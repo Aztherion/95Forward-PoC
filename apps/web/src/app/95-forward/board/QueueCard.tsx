@@ -13,30 +13,10 @@ import {
   RuleChip,
   StatusLabel,
 } from "@/components/ds";
+import { DraftPanel } from "@/components/drafts/DraftPanel";
 import { formatCurrencyFromCents, formatDate } from "@/lib/format";
 import { decideBoardItemAction, undecideBoardItemAction } from "@/server/actions/board";
 import { closeDateLine, prospectTypeLabel, stageLabel } from "./board-copy";
-
-/**
- * What the primary action will produce, named honestly.
- *
- * I28 generates these. Until then the panel says what is coming and shows no draft — a
- * plausible-looking generated email in a screenshot reads as working software, and somebody asks
- * to send one.
- */
-const ARTIFACT: Record<NextActionKind, string> = {
-  "follow-up-to-close": "a follow-up email",
-  "get-ask-approved": "an approval request for your leader",
-  "make-specific-ask": "the ask",
-  "prep-the-visit": "a visit prep brief",
-  "get-it-in-writing": "a confirmation letter",
-  "use-introduction": "an introduction request",
-  "ask-partner": "a note asking them to open the door",
-  // Stage-derived fallbacks (I26). A rule never produces these, but the type is closed and the
-  // maps have to be total, so a future rule that does cannot land without a label.
-  "get-the-visit": "a request for the meeting",
-  "steward-the-gift": "a thank-you and a stewardship note",
-};
 
 /**
  * The primary button's label — specific, and NOT the move's own title.
@@ -177,17 +157,15 @@ export function QueueCard({
         ) : null}
 
         {draft ? (
-          <div className="f95-queue__draft" data-testid="draft-placeholder">
-            <div className="f95-eyebrow f95-eyebrow--quiet">Not built yet</div>
-            <p className="f95-queue__draft-line">
-              This is where your copilot will draft{" "}
-              <strong>{ARTIFACT[item.nextAction.kind]}</strong> for {prospectName}, for you to
-              review before anything is sent.
-            </p>
-            <p className="f95-queue__draft-note f95-muted">
-              Drafting arrives in I28. Nothing is shown here yet on purpose — a draft that looks
-              real but was never generated is worse than no draft.
-            </p>
+          // I28 replaced the honest placeholder that stood here. The panel is server-agnostic and
+          // fetches nothing on mount: the draft is generated on demand, from this card.
+          <div className="f95-queue__draft">
+            <DraftPanel
+              opportunityId={item.opportunityId}
+              kind={item.nextAction.kind}
+              prospectName={prospectName}
+              initial={null}
+            />
           </div>
         ) : null}
       </div>

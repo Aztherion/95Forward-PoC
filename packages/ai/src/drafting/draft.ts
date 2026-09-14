@@ -14,10 +14,18 @@ export interface DraftResult {
   readonly grounding: GroundingReport;
 }
 
-/** `Subject: …` on the first line, for the ones that are emails. */
-function extractSubject(text: string): string | null {
-  const match = /^\s*Subject:\s*(.+)$/m.exec(text);
-  return match?.[1]?.trim() ?? null;
+/**
+ * Split `Subject: …` off the front of the ones that are emails.
+ *
+ * The subject is its own column and its own line in the panel, so the body must not repeat it — the
+ * panel rendered "Subject: …" twice, once as a heading and again as the first line of the letter,
+ * which reads as a bug. Copy-out re-composes the two, so nothing is lost on the way to a mail
+ * client. Internal briefs have no subject and are returned untouched.
+ */
+function splitSubject(text: string): { subject: string | null; body: string } {
+  const match = /^\s*Subject:\s*(.+?)\s*(?:\n|$)/.exec(text);
+  if (!match) return { subject: null, body: text };
+  return { subject: match[1]!.trim(), body: text.slice(match[0].length).replace(/^\s+/, "") };
 }
 
 /**
@@ -65,14 +73,16 @@ export async function generateDraft(options: GenerateDraftOptions): Promise<Draf
   const audience = DRAFT_AUDIENCE[context.kind];
 
   if (mode === "mock") {
-    const text = fixtureDraft(context);
+    const { subject, body } = splitSubject(fixtureDraft(context));
     return {
       kind: context.kind,
       audience,
-      subject: extractSubject(text),
-      text,
+      subject,
+      text: body,
       provider: "mock",
-      grounding: checkGrounding(text, context),
+      // Grounding reads the whole artifact, subject line included — an invented amount in a subject
+      // is just as wrong as one in the body.
+      grounding: checkGrounding(`${subject ? `Subject: ${subject}\n\n` : ""}${body}`, context),
     };
   }
 
@@ -92,11 +102,12 @@ export async function generateDraft(options: GenerateDraftOptions): Promise<Draf
       .trim(),
   );
 
+  const { subject, body } = splitSubject(text);
   return {
     kind: context.kind,
     audience,
-    subject: extractSubject(text),
-    text,
+    subject,
+    text: body,
     provider: "live",
     grounding: checkGrounding(text, context),
   };

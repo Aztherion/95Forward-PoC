@@ -171,7 +171,7 @@ Plus `See the full portfolio`
 
 > **Built in I27.** Three places where the built screen differs from the drawing, recorded so a later reader does not "fix" them back.
 >
-> - **The initiative tabs are truncated, not shortened.** The design's labels are short names — `Kamuli 2026`, `Bolivia Scale-Up`, `Forever Promise` — that the data does not carry: the seeded names are `Everyone in Kamuli — Uganda 2026`, `Everyone Forever: Bolivia Scale-Up`, `The Forever Promise — Sustainability & Legacy`. Every mechanical shortening rule tried (text before the separator, text after it) produced something that was not the designed label for at least two of the four. The tabs truncate at 22ch with the full name on hover. **The real fix is a `short_name` column on `funding_initiatives`**, which is a data decision rather than a rendering one.
+> - **The initiative tabs are truncated, not shortened.** The design's labels are short names — `Kamuli 2026`, `Bolivia Scale-Up`, `Forever Promise` — that the data does not carry: the seeded names are `Everyone in Kamuli — Uganda 2026`, `Everyone Forever: Bolivia Scale-Up`, `The Forever Promise — Sustainability & Legacy`. Every mechanical shortening rule tried (text before the separator, text after it) produced something that was not the designed label for at least two of the four. **Fixed in I28** by the data decision this note called for: `funding_initiatives.short_name` carries the designed label, and a tab falls back to the full name when it is absent. The 22ch truncation and the hover title remain as a backstop for a tenant who sets a long short name.
 > - **The chart's y-domain is extended to include the goal.** Recharts scales to the data, so a goal above the best case falls outside an auto-scaled domain and is silently clipped — the legend says `Goal` and the plot has none. Found at rep scope, where a $2.70M goal sits well above a $1.72M best case, i.e. exactly when the comparison matters most.
 > - **`WON SO FAR`'s link counts opportunities**, per amendment 4 — `N closed this year · see them`, not `17 closed gifts`.
 >
@@ -374,6 +374,89 @@ Timeline entries — date · health dot · what changed · **who moved it and wh
 
 ---
 
+## The drafted action (I28)
+
+Not a screen of its own. The drafter is a panel that appears in two places — in place on a Board
+queue card when the primary action is pressed, and above the milestone list on Opportunity Detail —
+so the rep never leaves the record to act on it.
+
+### One drafter per next-action kind
+
+There is no single "write me an email" prompt. The artifact, the recipient and what "done" means all
+change per kind, and collapsing them produces the wrong letter in front of an audience.
+
+| Kind | Artifact | Addressed to | Done means |
+| --- | --- | --- | --- |
+| `follow-up-to-close` | follow-up email | the prospect | contact logged — silence resets, queue re-ranks |
+| `make-specific-ask` | ask | the prospect | contact logged |
+| `get-it-in-writing` | confirmation letter | the prospect | contact logged |
+| `get-the-visit` | meeting request | the prospect | contact logged |
+| `steward-the-gift` | thank-you | the prospect | contact logged |
+| `use-introduction` | introduction request | **the connector** | `intro_used_at` set, outreach logged against the connector |
+| `ask-partner` | ask to your partner | **the connector** | `asked_to_open_door_at` set — but **not** `intro_used_at` |
+| `prep-the-visit` | visit prep brief | internal | the next scheduled visit gains a goal **and** discovery questions |
+| `get-ask-approved` | approval request | internal | the **request** is recorded, and nothing else |
+
+The last two rows are the ones that carry judgement.
+
+- **A prepped visit is a goal AND discovery questions.** A goal alone is a heading, and
+  `visit-within-7d-unprepped` would keep firing — correctly.
+- **An approval request does not confirm `ask_approved_by_leader`.** Requesting approval is not
+  receiving it; a drafter that quietly confirmed the milestone would let a rep approve their own ask.
+  That is the we-said / they-said distinction the whole product rests on, applied internally.
+- **`ask-partner` does not mark an introduction used.** It fires precisely when nobody has offered
+  one. Marking it used would record a thing that did not happen, and would spend the offer before it
+  was ever made — so the offer→use rule could never fire afterwards.
+- **A connector letter is not prospect contact.** Logging it as such would reset a silence counter
+  that has not moved: the donor still has not heard from anybody.
+
+### Grounding
+
+No fact may appear in a draft that is not in the briefing the drafter was handed. Three layers,
+strongest first:
+
+1. **The drafter runs with no tools.** It physically cannot reach past its briefing. This is the
+   layer that actually holds.
+2. **The system prompt says so**, per kind, including who the recipient is.
+3. **`checkGrounding` re-reads the output.** Money is a hard check — every `$…` in the draft must
+   appear in the briefing. Names and promises (naming rights, plaques, board seats, reporting
+   commitments, guarantees) are reported as warnings. The report travels with the draft and is shown
+   as advice, not as a block, because a human reads it before it goes anywhere.
+
+Amounts are pre-formatted into the briefing as strings. The model never handles cents.
+
+### Nothing is sent
+
+The PoC has no send path — not a disabled button, no path at all. The panel says so in place, and
+the flow ends in **copy out, then mark the action done**. "Never auto-send" is structural rather
+than a policy anyone has to remember.
+
+### The log
+
+Every draft is recorded in `opportunity_drafts`: generated text, final text, `edited`,
+`edited_percent`, `regenerated_count`, actor, kind, audience, provider, timestamps. The generated
+text is never overwritten by an edit — the comparison is the whole point of the record. Completion
+writes an `opportunity_events` row so it lands on the timeline, reading either
+
+> Follow-up drafted and sent · edited by Dana Reese (23% changed)
+
+or
+
+> Follow-up drafted and sent · unedited
+
+Regenerating replaces the row and increments the counter rather than appending a second row: the
+question the log answers is "what did they use, and how much of it was the model's", not "how many
+times did they press the button".
+
+### Mock mode
+
+`AI_MODE` picks the drafter's provider. In mock the drafts are deterministic fixtures **composed
+from the same briefing** the live path gets — not static strings — so the mock path passes the
+grounding checks for the same reason the live path should, and a demo reads about the record in
+front of it. **E2E never hits a model.**
+
+---
+
 ## Cross-screen invariants
 
 Verify these after building; they are what make the numbers credible under demo scrutiny.
@@ -396,6 +479,10 @@ Seed from the dataset in the designs — it is arithmetically coherent and tells
 **Fix before seeding:**
 - **Tom Bradley appears in two roles** — as a prospect with his own opportunity, and as the natural partner on Hallworth. Realistic, but it reads as a bug in a demo. Split into two names.
 - **Goal mismatch:** The Board shows a `$1,500,000` FY26 goal; the Forecast Room shows `$2,700,000`. Decide whether these are rep-level and org-level (then label both explicitly) or mock drift (then reconcile), before anyone sees both screens in one sitting.
+- **Initiative names are too long for a tab.** "Everyone in Kamuli — Uganda 2026" truncates to
+  nothing useful in the Forecast Room's tab strip. `funding_initiatives.short_name` carries a
+  designed label — `Kamuli 2026`, `Bolivia Scale-Up`, `Forever Promise`, `Unrestricted` — and every
+  tab falls back to the full name when a tenant has not set one. _(I28 fold-in.)_
 - Known and acceptable: **Sofia Lin** appears on The Board's "Fix first" *and* in Untouched 30+ days. Same opportunity surfacing through two lenses — consistent, and arguably a feature.
 
 ---

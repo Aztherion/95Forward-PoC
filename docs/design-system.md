@@ -1087,3 +1087,40 @@ movement panels' thresholds, as doctrine rather than constants.
 **Milestone `actionLabel`.** The verb on a milestone's record button is data now, seeded with the
 designed verbs (`Record their date`, `Ask at close`). I26 rendered a generic verb on all six
 because the definition carried none.
+
+---
+
+## 11. The draft panel (I28)
+
+One component, `components/drafts/DraftPanel.tsx`, rendered in two places: in place on a Board queue
+card when the primary action is pressed, and above the milestone list on Opportunity Detail. It is a
+`Card tone="ai" accent` — the same provisional treatment as every other thing the model proposes
+(§10.5), because a draft is exactly that: proposed, not applied.
+
+**It carries its kind.** `data-kind` on the card is the next-action kind, which determines the
+artifact noun, the recipient and what "done" writes back. Tests select the connector panels by it
+rather than by matching prose; so should anything else that needs to.
+
+**Copy that had to be got right, and was not on the first pass:**
+
+- **The subject line is a sentence, not a caption.** It renders as `.f95-draft__subject`, a plain
+  paragraph. Passing it through `MonoCaption` uppercased a line a human wrote —
+  `EVERYONE IN KAMULI — UGANDA 2026 — WHERE ARE WE?` — which no one would send.
+- **Three of the nine artifact nouns start with a vowel** (`ask`, `approval request`,
+  `introduction request`), and the lede reads the noun aloud. There is an `article()` helper; use it
+  rather than a hard-coded "A".
+- **The artifact noun must match the CTA that opened the panel.** `ask-partner`'s board CTA is
+  "Draft the ask to your partner", so its artifact is "ask to your partner" — not "introduction
+  request", which is `use-introduction`'s. Two different acts.
+
+**States.** Generating shows a disabled button reading "Drafting…" plus a line saying what it is
+doing, so it is never mistaken for a hang — the failure the copilot trigger shipped once already
+(§10). Failure keeps the panel **open** with the error and a retry in place; closing it would leave
+a rep looking at the button they just pressed with no sign anything happened.
+
+**There is no Send button**, because there is no send path. `.f95-draft__nosend` says so in place.
+Do not add one that only pretends.
+
+**The grounding warning** (`.f95-draft__warn`) is advisory and never blocks. A human reads the draft
+before it goes anywhere, and a false positive that blocks the flow is worse than one that annotates
+it.

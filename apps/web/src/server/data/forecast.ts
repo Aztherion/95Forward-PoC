@@ -135,6 +135,7 @@ export async function getForecastData(
           .select({
             id: fundingInitiatives.id,
             name: fundingInitiatives.name,
+            shortName: fundingInitiatives.shortName,
             colourKey: fundingInitiatives.colourKey,
           })
           .from(fundingInitiatives)
@@ -161,7 +162,11 @@ export async function getForecastData(
       { name: l.initiativeName, colourKey: l.initiativeColourKey },
     ]),
   );
-  for (const row of initiatives) byId.set(row.id, { name: row.name, colourKey: row.colourKey });
+  // The tab label, which is the short name when the org has one. I27 truncated at 22ch because the
+  // data carried only the long marketing name; I28 added the column (§ short_name).
+  for (const row of initiatives) {
+    byId.set(row.id, { name: row.shortName ?? row.name, colourKey: row.colourKey });
+  }
 
   const tabs: ForecastTab[] = [
     { id: "everything", label: "Everything", colourKey: null, initiative: "all" },

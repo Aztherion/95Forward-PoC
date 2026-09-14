@@ -146,6 +146,94 @@ describe("the connector drafts address the connector, not the prospect", () => {
   });
 });
 
+describe("a letter is never addressed to our own side of the table", () => {
+  // The mirror of the connector case, and it shipped: a milestone's `confirmedBy` is whoever is
+  // recorded against it, which on some records is the officer who wrote the note down. The
+  // confirmation draft for Blue Mesa Industries opened "Dear Dana Reese" — signed, of course, by
+  // Dana Reese.
+  const OURS: DraftContext = {
+    ...BASE,
+    kind: "get-it-in-writing",
+    prospect: { name: "Blue Mesa Industries", type: "company", facts: [] },
+    milestones: [
+      {
+        label: "Amount agreed",
+        source: "they_said",
+        blocking: true,
+        confirmed: true,
+        confirmedBy: "Dana Reese", // our relationship manager, not a person at Blue Mesa
+        confirmedOn: "Aug 13, 2026",
+        evidence: null,
+      },
+    ],
+  };
+
+  it("does not open a letter with the relationship manager's own name", () => {
+    const draft = fixtureDraft(OURS);
+    expect(draft).not.toContain("Dear Dana Reese");
+    expect(draft).not.toContain("Hi Dana");
+    // It falls back to the organisation, which is stiff but true.
+    expect(draft).toContain("Dear Blue Mesa Industries");
+  });
+
+  it("does not credit the sender as the other party to the conversation", () => {
+    expect(fixtureDraft(OURS)).not.toMatch(/with Dana Reese/);
+  });
+
+  it("excludes the leader too", () => {
+    const draft = fixtureDraft({
+      ...OURS,
+      milestones: [{ ...OURS.milestones[0]!, confirmedBy: "Priya Nair" }],
+    });
+    expect(draft).not.toContain("Dear Priya Nair");
+  });
+
+  it("still uses a real prospect-side contact when the record has one", () => {
+    const draft = fixtureDraft({
+      ...OURS,
+      prospect: { ...OURS.prospect, name: "The Hallworth Family Foundation" },
+      milestones: [{ ...OURS.milestones[0]!, confirmedBy: "Ellen Hallworth" }],
+    });
+    expect(draft).toContain("Dear Ellen Hallworth");
+  });
+});
+
+describe("the ask reads as sentences", () => {
+  it("does not trail a fragment after the initiative name", () => {
+    // "…towards Bolivia Scale-Up. our work on Bolivia Scale-Up" — the no-story fallback landed
+    // after a full stop, lower-cased, repeating the name it had just used.
+    const draft = fixtureDraft({
+      ...BASE,
+      kind: "make-specific-ask",
+      initiative: { ...BASE.initiative, story: null },
+    });
+    expect(draft).not.toMatch(/our work on/);
+    for (const sentence of draft.split(/(?<=[.!?])\s+/)) {
+      const trimmed = sentence.trim();
+      if (!trimmed || trimmed.startsWith("Subject:")) continue;
+      // Every sentence starts the way a sentence starts.
+      expect(trimmed[0]).toBe(trimmed[0]!.toUpperCase());
+    }
+  });
+
+  it("keeps the story when the record has one, as its own sentence", () => {
+    const draft = fixtureDraft({ ...BASE, kind: "make-specific-ask" });
+    expect(draft).toContain(BASE.initiative.story!);
+  });
+});
+
+describe("an internal memo states absences rather than printing a dash", () => {
+  it("says who to address when no leader is on record", () => {
+    const draft = fixtureDraft({
+      ...BASE,
+      kind: "get-ask-approved",
+      people: { ...BASE.people, leader: null },
+    });
+    expect(draft).not.toMatch(/^To: —$/m);
+    expect(draft).toMatch(/no leader on record/i);
+  });
+});
+
 describe("grounding catches what a plausible letter would invent", () => {
   // The adversarial fixture: a briefing with NO gift history, NO named contact beyond the one on
   // record, and no programme detail beyond one line. A letter-writing model reaching for warmth
@@ -251,8 +339,22 @@ describe("generateDraft", () => {
       context: BASE,
       mode: "live",
     });
-    expect(result.text.startsWith("Subject: X")).toBe(true);
+    // The subject is split into its own field, so the body starts at the salutation and does not
+    // repeat it — the panel shows the two separately and copy-out re-joins them.
+    expect(result.subject).toBe("X");
+    expect(result.text.startsWith("Dear Ellen Hallworth,")).toBe(true);
+    expect(result.text).not.toContain("Subject:");
     expect(result.text).not.toContain("```");
+  });
+
+  it("leaves an internal brief alone — it has no subject line", async () => {
+    const result = await generateDraft({
+      providers: providers(),
+      context: { ...BASE, kind: "prep-the-visit" },
+      mode: "mock",
+    });
+    expect(result.subject).toBeNull();
+    expect(result.text.startsWith("WHO WE ARE SEEING")).toBe(true);
   });
 
   it("returns the grounding report rather than throwing, so a human can see it", async () => {

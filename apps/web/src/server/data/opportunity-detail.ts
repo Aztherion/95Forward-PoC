@@ -52,6 +52,7 @@ import {
 } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
 import { demoClock } from "@/server/data/forward-context";
+import { loadDraft, type DraftView } from "@/server/data/drafts";
 
 // The catalogue registry is module-global and populated by import side effect — see board.ts for
 // why calling this on every entry point is intentional.
@@ -101,6 +102,8 @@ export interface OpportunityDetailData {
   readonly cadenceDays: number;
   readonly timeline: readonly OpportunityEventLike[];
   readonly ruleStatements: Readonly<Record<string, string | null>>;
+  /** The drafted artifact for this record's next action, if one has been generated (I28). */
+  readonly draft: DraftView | null;
   readonly asOf: Date;
 }
 
@@ -217,6 +220,11 @@ export async function getOpportunityDetail(
   // Rank the record itself regardless — it may sit below the cut, or be one the rep reached from a
   // search. `rankOne` is the board's own scoring, so the two can never contradict each other.
   const ranked = rankOne({ snapshot, scope, settings, clock, resolved, opportunityId });
+  const fallbackAction = stageNextAction(snapshotOpportunity.stage, {
+    opportunityId,
+    prospectId: snapshotOpportunity.prospectId,
+  });
+  const actionKind = (ranked?.nextAction ?? fallbackAction).kind;
 
   // The simulation is scoped to the whole portfolio: which scenario a record lands in is a claim
   // about the forecast the Forecast Room draws, not about one initiative.
@@ -241,10 +249,7 @@ export async function getOpportunityDetail(
     ),
     queuePosition: inQueue ? { rank: inQueue.rank, total: work.queue.length } : null,
     ranked,
-    fallbackAction: stageNextAction(snapshotOpportunity.stage, {
-      opportunityId,
-      prospectId: snapshotOpportunity.prospectId,
-    }),
+    fallbackAction,
     share: initiativeShare(snapshot, opportunityId, settings, clock, period),
     coverageIfLost: coverageWithout(snapshot, opportunityId, settings, clock, period),
     coverageIfQualified: coverageWith(snapshot, opportunityId, settings, clock, period),
@@ -256,6 +261,7 @@ export async function getOpportunityDetail(
     cadenceDays: stageCadenceDays(resolved, snapshotOpportunity.stage),
     timeline: movementTimeline(eventLikes),
     ruleStatements: Object.fromEntries(resolved.map((entry) => [entry.id, entry.statement])),
+    draft: await loadDraft(tenantId, opportunityId, actionKind),
     asOf: now,
   };
 }

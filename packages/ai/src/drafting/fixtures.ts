@@ -24,14 +24,33 @@ function firstName(full: string): string {
  * is a named human who actually spoke to us, which is both the right recipient and grounded — so it
  * is used when present, and the institution's name minus a leading "The" when it is not.
  */
+/**
+ * The named human on the PROSPECT's side, if the record has one.
+ *
+ * A milestone's `confirmedBy` is just "who is recorded against this" — sometimes a person at the
+ * prospect (Ellen Hallworth), sometimes our own officer who wrote the note down. Addressing a
+ * letter to our own relationship manager is the same class of failure as addressing a connector
+ * letter to the prospect, and it happened: the confirmation draft for Blue Mesa Industries opened
+ * "Dear Dana Reese". Anyone on our side of the table is excluded by name.
+ */
+function prospectSideContact(context: DraftContext): string | null {
+  const ours = new Set(
+    [context.people.relationshipManager, context.people.leader].filter(
+      (n): n is string => typeof n === "string" && n.length > 0,
+    ),
+  );
+  const found = context.milestones.find(
+    (m) => m.source === "they_said" && m.confirmed && m.confirmedBy && !ours.has(m.confirmedBy),
+  )?.confirmedBy;
+  return found ?? null;
+}
+
 function salutation(context: DraftContext): string {
   const recipient = draftRecipient(context);
   if (recipient !== context.prospect.name || context.prospect.type === "individual") {
     return `Hi ${firstName(recipient)}`;
   }
-  const contact = context.milestones.find(
-    (m) => m.source === "they_said" && m.confirmed && m.confirmedBy,
-  )?.confirmedBy;
+  const contact = prospectSideContact(context);
   if (contact) return `Dear ${contact}`;
   return `Dear ${context.prospect.name.replace(/^The\s+/i, "")}`;
 }
@@ -76,12 +95,13 @@ function followUp(context: DraftContext): string {
 }
 
 function specificAsk(context: DraftContext): string {
-  const what = context.initiative.story
-    ? `${context.initiative.story}`
-    : `our work on ${context.initiative.name}`;
+  // The initiative's story, as a sentence of its own — or nothing. The fallback used to be the
+  // fragment "our work on <name>", which landed after a full stop and directly after the same name:
+  // "…towards Bolivia Scale-Up. our work on Bolivia Scale-Up".
+  const what = context.initiative.story ? `\n\n${context.initiative.story}` : "";
   return email(
     `An ask for ${context.initiative.name}`,
-    `I want to be direct rather than circle the subject.\n\nI would like to ask you for ${amountPhrase(context)} towards ${context.initiative.name}. ${what}\n\nIf that is the wrong number, tell me and I will listen. If it is the right one, the next step is a conversation about timing.\n\nCan we find half an hour?`,
+    `I want to be direct rather than circle the subject.\n\nI would like to ask you for ${amountPhrase(context)} towards ${context.initiative.name}.${what}\n\nIf that is the wrong number, tell me and I will listen. If it is the right one, the next step is a conversation about timing.\n\nCan we find half an hour?`,
     context,
   );
 }
@@ -89,7 +109,10 @@ function specificAsk(context: DraftContext): string {
 function confirmation(context: DraftContext): string {
   const agreed = milestone(context, "Amount agreed");
   const when = agreed?.confirmedOn ? ` on ${agreed.confirmedOn}` : "";
-  const who = agreed?.confirmedBy ? `, with ${agreed.confirmedBy},` : "";
+  // Only if they are on the prospect's side. "our conversation with Dana Reese" in a letter signed
+  // by Dana Reese reads as though she met herself.
+  const contact = prospectSideContact(context);
+  const who = agreed?.confirmedBy && agreed.confirmedBy === contact ? `, with ${contact},` : "";
   return email(
     `Confirming ${amountPhrase(context)} for ${context.initiative.name}`,
     `I am putting our conversation${when}${who} in writing, so we both have the same note on file.\n\nAs I understood it: ${amountPhrase(context)} towards ${context.initiative.name}.\n\nIf that matches your understanding, a reply saying so is all I need. If I have any of it wrong, tell me and I will correct the record.`,
@@ -186,7 +209,7 @@ function approvalRequest(context: DraftContext): string {
         ? `It has been ${context.opportunity.silenceDays} days since any contact.`
         : "Nothing on record argues strongly against it.";
   return [
-    `To: ${context.people.leader ?? "—"}`,
+    `To: ${context.people.leader ?? "(no leader on record — address this yourself)"}`,
     `From: ${context.people.relationshipManager ?? "—"}`,
     `Re: approval to ask ${context.prospect.name} for ${amountPhrase(context)}`,
     "",

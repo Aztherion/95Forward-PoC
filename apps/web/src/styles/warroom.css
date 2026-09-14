@@ -664,14 +664,18 @@ a.f95-rulechip:focus-visible {
 .f95-queue {
   display: block;
 }
-.f95-queue .f95-card__pad {
+/* `>` and not a descendant selector: I28 nests a Card (the draft panel) INSIDE a queue card, and
+   `align-items: start` was reaching into it — a flex column whose items no longer stretch, which
+   collapsed the draft textarea to its 20-column intrinsic width. Scope a card's own layout to its
+   own pad. */
+.f95-queue > .f95-card__pad {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   gap: var(--space-3);
   align-items: start;
 }
 @media (min-width: 900px) {
-  .f95-queue .f95-card__pad {
+  .f95-queue > .f95-card__pad {
     grid-template-columns: 64px minmax(0, 1fr) 208px;
     gap: var(--space-4);
   }
@@ -912,7 +916,7 @@ a.f95-rulechip:focus-visible {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-.f95-verdict .f95-card__pad {
+.f95-verdict > .f95-card__pad {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1417,4 +1421,79 @@ a.f95-rulechip:focus-visible {
 .f95-names__amount {
   font-variant-numeric: tabular-nums;
   color: var(--text-body);
+}
+
+/* ===========================================================================================
+   Drafted actions (I28)
+
+   The panel a primary action opens. It is an AI surface — iris, per the reserved palette — and it
+   opens on the artifact rather than on a form, because "it's drafted, just hit click" is the moment
+   it exists to create.
+   =========================================================================================== */
+
+.f95-draft > .f95-card__pad {
+  display: flex;
+  flex-direction: column;
+  /* Explicit, not inherited: the panel is nested inside other cards, and it must fill the width it
+     is given wherever it lands. */
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.f95-draft__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.f95-draft__lede {
+  margin: 2px 0 0;
+  font: var(--text-caption);
+  color: var(--text-secondary);
+}
+.f95-draft__empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+/* Says what it is doing, so it is never mistaken for a hang — this codebase has shipped one. */
+.f95-draft__pending {
+  font: var(--text-caption);
+  color: var(--ai-ink);
+}
+.f95-draft .f95-textarea {
+  min-height: 260px;
+  font: var(--fw-regular) var(--fs-small) / 1.55 var(--font-sans);
+  background: var(--surface-card);
+}
+.f95-draft__subject {
+  margin: 0;
+  font: var(--fw-semibold) var(--fs-body) / 1.35 var(--font-sans);
+  color: var(--text-strong);
+}
+.f95-draft__actions {
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+.f95-draft__warn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--health-slowing-border);
+  border-radius: var(--radius-sm);
+  background: var(--health-slowing-surface);
+  color: var(--health-slowing-text);
+  font: var(--text-caption);
+}
+.f95-draft__nosend {
+  margin: 0;
+  font: var(--text-caption);
+}
+.f95-draft__effect {
+  margin: 0;
+  font: var(--fw-semibold) var(--fs-caption) / 1.4 var(--font-sans);
+  color: var(--health-moving-text);
 }
