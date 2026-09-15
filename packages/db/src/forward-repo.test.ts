@@ -57,7 +57,9 @@ const maybe = (name: string, fn: () => Promise<void>, timeout?: number) =>
   );
 
 /** A throwaway opportunity so write-path tests never mutate the demo dataset. */
-async function scratchOpportunity(stage: "get_the_visit" | "follow_up_and_close" = "get_the_visit") {
+async function scratchOpportunity(
+  stage: "get_the_visit" | "follow_up_and_close" = "get_the_visit",
+) {
   const row = await createForwardOpportunity(
     db,
     tenantId,
@@ -146,8 +148,9 @@ describe("event capture at the write path", () => {
     });
 
     const events = await listOpportunityEvents(db, tenantId, opportunity.id);
-    expect(events.some((e) => e.eventType === "stage_change" && e.newValue === "prep_the_visit"))
-      .toBe(true);
+    expect(
+      events.some((e) => e.eventType === "stage_change" && e.newValue === "prep_the_visit"),
+    ).toBe(true);
   });
 
   maybe("writes no event when nothing actually changed", async () => {
@@ -340,16 +343,28 @@ describe("scope-level totals — Contradiction 1 resolved in the model", () => {
 });
 
 describe("goals", () => {
-  maybe("resolves one goal per (scope, period) — Contradiction 2", async () => {
-    const danaId = stableId("prospect:hallworth"); // deliberately wrong ref, see below
+  maybe("resolves one goal per (scope, ref, period) — Contradiction 2", async () => {
     const rows = await db.select().from(goals).where(eq(goals.tenantId, tenantId));
-    const repGoal = rows.find((r) => r.scope === "rep");
 
-    expect(repGoal?.amountCents).toBe(270_000_000);
-    expect(repGoal?.fiscalPeriod).toBe("FY26");
-    // One row, not two: the Board and the Forecast Room cannot disagree.
-    expect(rows.filter((r) => r.scope === "rep" && r.fiscalPeriod === "FY26")).toHaveLength(1);
-    expect(danaId).toBeTruthy();
+    // One row per (scope, ref, period), which is what stops the Board and the Forecast Room
+    // disagreeing. NOT "one rep goal in the tenant" — D1 gave every rep a goal proportionate to
+    // the portfolio they carry, so there are as many rep rows as there are reps.
+    const keys = rows.map((r) => `${r.scope}:${r.scopeRefId}:${r.fiscalPeriod}`);
+    expect(new Set(keys).size).toBe(keys.length);
+
+    const repRows = rows.filter((r) => r.scope === "rep" && r.fiscalPeriod === "FY26");
+    expect(repRows.length).toBeGreaterThan(1);
+
+    // A rep's goal is a SHARE of the org's, not the whole thing. Dana carried the org number
+    // while holding 59% of the portfolio, and the demo runs at her scope — so the only screen a
+    // stakeholder saw said "even flawless execution misses by a million" (D1 Part 3).
+    const org = rows.find((r) => r.scope === "org" && r.fiscalPeriod === "FY26");
+    expect(org?.amountCents).toBe(270_000_000);
+    for (const rep of repRows) {
+      expect(rep.amountCents).toBeLessThan(org!.amountCents);
+    }
+    // And they sum to it exactly.
+    expect(repRows.reduce((sum, r) => sum + r.amountCents, 0)).toBe(org!.amountCents);
   });
 
   maybe("returns ABSENT rather than falling back to a parent goal", async () => {
@@ -403,18 +418,22 @@ describe("seed shape", () => {
     expect(rows.every((r) => r.occurredAt.getTime() <= DEMO_TODAY.getTime())).toBe(true);
   });
 
-  maybe("is idempotent — re-running the seed does not duplicate", async () => {
-    const before = await db
-      .select()
-      .from(forwardOpportunities)
-      .where(eq(forwardOpportunities.tenantId, tenantId));
-    await seed(db);
-    const after = await db
-      .select()
-      .from(forwardOpportunities)
-      .where(eq(forwardOpportunities.tenantId, tenantId));
-    expect(after.length).toBe(before.length);
-  }, 120_000);
+  maybe(
+    "is idempotent — re-running the seed does not duplicate",
+    async () => {
+      const before = await db
+        .select()
+        .from(forwardOpportunities)
+        .where(eq(forwardOpportunities.tenantId, tenantId));
+      await seed(db);
+      const after = await db
+        .select()
+        .from(forwardOpportunities)
+        .where(eq(forwardOpportunities.tenantId, tenantId));
+      expect(after.length).toBe(before.length);
+    },
+    120_000,
+  );
 });
 
 // =================================================================================================
@@ -482,9 +501,7 @@ describe("prospect contact is never staler than opportunity silence", () => {
     // Raw SQL comes back as a string, not a Date.
     const newest = (rows.rows[0] as unknown as { newest: string | null }).newest;
     expect(newest).not.toBeNull();
-    const daysAgo = Math.floor(
-      (DEMO_TODAY.getTime() - new Date(newest!).getTime()) / 86_400_000,
-    );
+    const daysAgo = Math.floor((DEMO_TODAY.getTime() - new Date(newest!).getTime()) / 86_400_000);
     expect(daysAgo).toBeGreaterThanOrEqual(100);
   });
 

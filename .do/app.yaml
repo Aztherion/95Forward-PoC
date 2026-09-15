@@ -12,9 +12,19 @@
 # with its own minimal env (getWorkerEnv): no Auth0 vars; it needs APP_DATABASE_URL for RLS-scoped
 # job handlers (its NestJS server binds internally on WORKER_PORT).
 #
-# Demo AI config (Initiative 13): AI_MODE=live + EMBEDDING_MODE=live give real reasoning and
-# embeddings, while RESEARCH_MODE=demo keeps OSINT on seeded data only (the responsible-AI
-# guardrail forbids live research on real individuals). Supply ANTHROPIC_API_KEY + OPENAI_API_KEY.
+# Demo AI config: AI_MODE=mock + EMBEDDING_MODE=live, with RESEARCH_MODE=demo keeping OSINT on
+# seeded data only (the responsible-AI guardrail forbids live research on real individuals).
+#
+# D1 flipped AI_MODE from live to mock. I28's fixture drafts are composed FROM the record in front
+# of them, so they are what you want on screen anyway — and they are instant, deterministic, and
+# cannot invent a fact or a person mid-demo. A live call adds a few seconds of visible wait and a
+# class of failure nobody wants in front of a stakeholder. EMBEDDING_MODE stays live because
+# retrieval quality is real work the demo shows off; it needs OPENAI_API_KEY.
+#
+# DEMO_TODAY is the anchor every relative figure is computed against — "81 days silent", the
+# slippage chain, the forecast's vintage date, and the deterministic simulation seed. It matches
+# the seed's own anchor. Unset, the app falls back to the compiled-in constant; a malformed value
+# fails at boot rather than silently reverting to wall time.
 #
 # ALLOW_DESTRUCTIVE_RESET=true (app-level) lets the operator run the guarded truncate-and-reseed
 # against THIS demo database from a Console shell (see docs/deployment-and-ops-runbook.md). It is
@@ -26,6 +36,12 @@ region: ams
 envs:
   - key: ALLOW_DESTRUCTIVE_RESET
     value: "true"
+  # The fourth reset guard (D1). The other three establish that SOME database may be reset and say
+  # nothing about WHICH — an operator with a Console shell here and a DATABASE_URL from elsewhere
+  # exported in their own shell satisfies all three. Set this to the demo database's name and the
+  # reset refuses to run anywhere else. It must match the database in ${forward-db.DATABASE_URL}.
+  - key: DEMO_DATABASE_NAME
+    value: REPLACE_ME_WITH_THE_DEMO_DB_NAME
 
 databases:
   - name: forward-db # keep this logical name — bindings use ${forward-db.DATABASE_URL}
@@ -106,8 +122,12 @@ services:
       - key: APP_BASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${APP_URL}
+      # The demo's "today". Must match the seed's anchor or every relative figure drifts — see the
+      # header note. Same value on web and worker.
+      - key: DEMO_TODAY
+        value: "2026-09-12"
       - key: AI_MODE
-        value: live
+        value: mock
       - key: EMBEDDING_MODE
         value: live
       - key: RESEARCH_MODE
@@ -165,8 +185,10 @@ workers:
         value: "3"
       - key: JOBS_SCHEMA
         value: graphile_worker
+      - key: DEMO_TODAY
+        value: "2026-09-12"
       - key: AI_MODE
-        value: live
+        value: mock
       - key: EMBEDDING_MODE
         value: live
       - key: RESEARCH_MODE

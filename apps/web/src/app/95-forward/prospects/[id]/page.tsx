@@ -22,6 +22,7 @@ import {
 } from "@/server/data/prospects";
 import { listConstituentDrafts, listProspectProposals } from "@/server/data/prospect-copilot";
 import { getConstituentIdForProspect, getProspectExecution } from "@/server/data/execution-data";
+import { demoClock } from "@/server/data/forward-context";
 import { listInitiativeRefs } from "@/server/data/initiatives";
 import { AdjustScore } from "./AdjustScore";
 import { CopilotSuggestions } from "./CopilotSuggestions";
@@ -108,7 +109,8 @@ export default async function ProspectDetailPage({
       ? await (async () => {
           const constituentId = await getConstituentIdForProspect(user.tenantId, id);
           const [execution, initiatives, drafts] = await Promise.all([
-            getProspectExecution(user.tenantId, id),
+            // Injected, so the follow-up heartbeat is measured from the demo's today.
+            getProspectExecution(user.tenantId, id, demoClock().now()),
             listInitiativeRefs(user.tenantId),
             constituentId
               ? listConstituentDrafts(user.tenantId, user, constituentId)

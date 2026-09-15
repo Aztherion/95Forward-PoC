@@ -681,16 +681,37 @@ const FORWARD_OPPORTUNITIES: OpportunitySpec[] = [
   },
 ];
 
-/** Dana's FY26 goal — ONE value, read by both the Board and the Forecast Room (Contradiction 2). */
-const DANA_FY26_GOAL_CENTS = 270_000_000;
 /**
  * The org x all-initiatives FY26 goal.
  *
- * Equal to Dana's because this demo is Dana-centric — the Forecast Room labels the same $2,700,000
- * "DANA'S FY26 GOAL · ALL INITIATIVES". Both scopes exist and both resolve strictly; that they
- * currently carry the same figure is a demo-data choice, not a fallback.
+ * I18b tuned the portfolio so the simulated band straddles this: best $2.84M › goal $2.70M ›
+ * most likely $2.43M. A goal a flawless year reaches and an ordinary year misses is the whole
+ * shape of the story.
  */
 const ORG_FY26_GOAL_CENTS = 270_000_000;
+
+/**
+ * Per-rep FY26 goals, each PROPORTIONATE to the portfolio that rep carries.
+ *
+ * Dana used to carry the ORG number — $2,700,000, the whole thing — while holding 59% of the
+ * opportunities. The demo runs as Dana, so the only scope a stakeholder ever sees said *even
+ * flawless execution misses by a million*: her best case is $1.73M against a $2.70M goal. That is
+ * the bleak story I18b was commissioned to replace, still present at the only scope that mattered,
+ * and it is also why I27 found the goal line clipped out of the chart's domain — the figure was
+ * wrong, not just the axis.
+ *
+ * Dana holds $2,454,200 of the $4,177,200 the org carries in won + pre-close, which is 58.75%.
+ * These two split the org goal 59/41 and sum to it exactly, so `ALL` is unchanged and her scope
+ * straddles: best $1.73M › goal $1.60M › most likely $1.51M › worst $0.88M.
+ *
+ * They must continue to sum to ORG_FY26_GOAL_CENTS. A rep goal is a share of the org's, not an
+ * independent target, and two halves that quietly stop adding up is the kind of arithmetic a
+ * stakeholder checks.
+ */
+const REP_FY26_GOAL_CENTS: Record<Rm, number> = {
+  dana: 160_000_000,
+  priya: 110_000_000,
+};
 const FISCAL_PERIOD = "FY26";
 
 export async function seedForward(
@@ -738,22 +759,23 @@ export async function seedForward(
   }
 
   // ---- Goals: one per (scope, period). ----
-  const danaId = rmIds.dana;
-  if (danaId) {
+  // Every rep, not only Dana. A rep whose goal is missing resolves `goalDefined: false` and their
+  // Forecast Room degrades to the no-goal path — correct behaviour for an absent goal, and the
+  // wrong thing to show for a rep who simply was not seeded one.
+  for (const [rm, amountCents] of Object.entries(REP_FY26_GOAL_CENTS) as [Rm, number][]) {
+    const repId = rmIds[rm];
+    if (!repId) continue;
     await db
       .insert(goals)
       .values({
-        id: stableId(`goal:rep:dana:${FISCAL_PERIOD}`),
+        id: stableId(`goal:rep:${rm}:${FISCAL_PERIOD}`),
         tenantId,
         scope: "rep",
-        scopeRefId: danaId,
+        scopeRefId: repId,
         fiscalPeriod: FISCAL_PERIOD,
-        amountCents: DANA_FY26_GOAL_CENTS,
+        amountCents,
       })
-      .onConflictDoUpdate({
-        target: goals.id,
-        set: { amountCents: DANA_FY26_GOAL_CENTS },
-      });
+      .onConflictDoUpdate({ target: goals.id, set: { amountCents } });
   }
   // The org goal. For scope "org" the ref is the tenant itself — see the schema comment.
   await db
@@ -879,7 +901,9 @@ export async function seedForward(
 /** Exported for the seed test, so the arithmetic in the header comment is asserted, not asserted-to. */
 export const FORWARD_SEED_FACTS = {
   anchor: DEMO_TODAY,
-  danaFy26GoalCents: DANA_FY26_GOAL_CENTS,
+  danaFy26GoalCents: REP_FY26_GOAL_CENTS.dana,
+  repGoalCents: REP_FY26_GOAL_CENTS,
+  orgFy26GoalCents: ORG_FY26_GOAL_CENTS,
   fiscalPeriod: FISCAL_PERIOD,
   opportunityKeys: FORWARD_OPPORTUNITIES.map((o) => o.key),
   wonTotalCents: FORWARD_OPPORTUNITIES.filter((o) => o.status === "won").reduce(
