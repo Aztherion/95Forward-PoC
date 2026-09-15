@@ -26,7 +26,8 @@
     "wait": "tsx src/wait.ts",
     "studio": "drizzle-kit studio",
     "test": "vitest run",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "verify": "tsx src/verify.ts"
   },
   "dependencies": {
     "@95forward/shared": "workspace:*",

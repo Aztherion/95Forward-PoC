@@ -32,17 +32,23 @@ for a routine fix. It needs its own change with its own review.
 
 **Impact if ignored:** cosmetic now; a hard error on the day the project takes `pg@9`.
 
-### 1.2 The prospect screens still read wall time
+### 1.2 Two prospect screens still read wall time
 
-`apps/web/src/app/95-forward/prospects/page.tsx` and `.../prospects/[id]/page.tsx` default their
-`now` to `new Date()`, so "3 days ago" on those screens is measured from the real date while every
-seeded write is stamped **2026-09-12**. The gap grows by a day every day.
+`apps/web/src/app/95-forward/prospects/page.tsx` (`pickNextMove`) and `.../prospects/[id]/page.tsx`
+(`relativeDate`) default their `now` to `new Date()`, so "3 days ago" on those screens is measured
+from the real date while every seeded write is stamped **2026-09-12**. The gap grows by a day
+every day.
 
-I30 fixed the same class on the Green Sheet (§4.1) and in the what-if panel, but left these: they
-are the pre-I18 prospect-centric screens, which the six-surface product does not lead with.
+I30 fixed the Green Sheet and the what-if chart divider; **D1 fixed the two that could write or
+mislead** — `debriefVisit`, which stamped `occurred_at` and the 24-hour follow-up SLA with wall
+time, and the follow-up heartbeat that read it back (§4.5). These two remain because they are
+display-only, on the pre-I18 prospect-centric screens the six-surface product does not lead with.
 
 **Impact if ignored:** relative dates on two secondary screens drift further from the demo's
-arithmetic the longer the PoC sits. At six months they are visibly wrong.
+arithmetic the longer the PoC sits. They are reachable from the demo nav, so a stakeholder who
+wanders there sees dates that disagree with every other screen. **Decision for the demo walk: they
+are not on the route, and the drift is currently three days.** Worth fixing before any demo more
+than a month out.
 
 ### 1.3 Running `pnpm test` straight after `pnpm test:e2e` fails one assertion
 
@@ -226,6 +232,25 @@ deals' badges can change — even though every random draw is identical (I31 see
 baseline). This is correct and it is surprising. It is asserted as correct in
 `forward-simulation.test.ts` so nobody "fixes" it.
 
+### 4.5 The visit debrief stamped wall time — fixed in D1
+
+`debriefVisit` set `occurred_at` and started the 24-hour follow-up SLA from `new Date()`, and no
+caller injected a clock. A visit debriefed during a demo therefore landed **days in the future**
+relative to everything around it, and the Green Sheet — which D1's predecessor had just corrected
+to read the demo's week — could not see it.
+
+Recorded because of the shape: it was a **write** path, so the damage would have persisted in the
+database rather than merely rendering oddly, and nothing caught it because no test debriefs a visit
+and then reads the date back.
+
+### 4.6 A rep whose goal is not seeded degrades to the no-goal path
+
+Correct behaviour for an absent goal, and the wrong thing to show for a rep who simply was not
+seeded one. Before D1 only Dana had a rep goal, so any other rep's Forecast Room rendered "no goal
+defined for this view". D1 seeds every rep a goal proportionate to their portfolio, and a test
+asserts the rep goals sum to the org goal exactly — but **the model still has no opinion about a
+rep added later**, who will silently get the no-goal path.
+
 ### 4.4 No test covers the host CRM's own screens beyond smoke
 
 Constituents, Revenue, Lists, Events, Volunteers, Memberships, Marketing and Analysis have a spec
@@ -247,4 +272,10 @@ Stated plainly, in order.
    omits gifts recorded in the host CRM is the one class of error this product cannot afford,
    because its entire claim is that its numbers tie out.
 4. **§3.8 (model pin) blocks a live-mode demo** until it is pointed at a current model — a
-   one-line change, listed so it is not discovered on the day.
+   one-line change, listed so it is not discovered on the day. **D1 set the deployed app to
+   `AI_MODE=mock`**, which sidesteps it for the demo entirely.
+5. **The fourth reset guard is inactive until an operator fills it in.** `.do/app.yaml` ships
+   `DEMO_DATABASE_NAME: REPLACE_ME_WITH_THE_DEMO_DB_NAME`, so the "which database" check does not
+   yet apply. The other three guards still hold; this one is the difference between "a demo
+   database may be reset" and "_this_ demo database may be reset". Fill it in before anyone with a
+   second `DATABASE_URL` in their shell opens a Console.

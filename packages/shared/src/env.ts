@@ -28,6 +28,27 @@ const baseEnvShape = {
   FEEDBACK_GITHUB_TOKEN: z.string().optional(),
   FEEDBACK_REPO: z.string().optional(),
   FEEDBACK_ENABLED: z.enum(["true", "false"]).optional(),
+
+  /**
+   * The demo's "today", as `YYYY-MM-DD`. Unset means the real clock (D1).
+   *
+   * Every relative figure in 95 Forward is computed against this: "81 days silent", "pushed 3×",
+   * the slippage chain, the silence counter against per-stage cadence, the forecast's vintage
+   * date — and the deterministic simulation seed, which I21 hashes from portfolio state PLUS
+   * vintage date. The seed writes its rows relative to the same anchor, so an app computing
+   * against a different one reports a silence counter that grows by a day every day and a
+   * forecast curve that changes shape overnight.
+   *
+   * It was a compiled-in constant before D1, which worked and was invisible: an operator reading
+   * the deploy spec could not see what day the demo thinks it is. Now it is declared.
+   *
+   * A malformed value is a hard failure rather than a silent fall-back to wall time — the whole
+   * point is that the app and the seed agree, and "nearly agree" is the failure this prevents.
+   */
+  DEMO_TODAY: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "DEMO_TODAY must be an ISO date, e.g. 2026-09-12")
+    .optional(),
 };
 
 function applyAiKeyRefinement(

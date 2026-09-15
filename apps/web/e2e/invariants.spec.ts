@@ -610,3 +610,100 @@ test.describe("The negative — no expected value is rendered anywhere", () => {
     }
   });
 });
+
+// =============================================================================================
+// D1 — demo readiness at the scope the demo actually runs at
+// =============================================================================================
+
+test.describe("D1 — the demo reads correctly as Dana", () => {
+  test("the silence counter is computed from the injected clock, not wall time", async ({
+    page,
+  }) => {
+    // 81 days is arithmetic, not a string: Hallworth's last contact is 23 June 2026 and the anchor
+    // is 12 September 2026. If the app fell through to the real clock this would read however many
+    // days have actually passed — and would change every morning.
+    await page.goto("/95-forward/opportunities/6fb270ee-e0bf-5766-809e-418b72ad1a7f");
+    await expect(page.locator('[data-testid="opportunity-detail"]')).toBeVisible();
+
+    const silence = await page.locator('[data-testid="silence"]').innerText();
+    expect(silence, `silence panel reads: ${silence}`).toMatch(/\b81 days\b/);
+    expect(silence).toContain("Jun 23, 2026");
+
+    // And the header date agrees.
+    await page.goto(BOARD);
+    await expect(page.locator(".f95-page__eyebrow")).toContainText(/12 SEPTEMBER/i);
+  });
+
+  test("the band straddles the goal at Dana's scope, and the chart draws the line", async ({
+    page,
+  }) => {
+    // Before D1, Dana carried the ORG goal — $2,700,000 against a $1.72M best case — so the only
+    // scope the demo ever shows said "even flawless execution misses by a million", and the goal
+    // line fell outside the chart's domain and was clipped. The figure was wrong, not the axis.
+    await page.goto(ROOM);
+    // Recharts renders client-side once `readChartTokens()` has run, so wait for a plotted label
+    // rather than reading the frame. And `textContent`, not `innerText`: the labels live in the
+    // SVG, which innerText does not see.
+    await expect(
+      page.locator('[data-testid="forecast-chart"] svg text').filter({ hasText: /GOAL/ }).first(),
+    ).toBeAttached({ timeout: 20000 });
+    const bmw = (await page.locator('[data-testid="forecast-chart"]').textContent()) ?? "";
+    // The goal label is drawn at all — I27 found it clipped out of the auto-scaled domain when
+    // the figure was three times the best case. The chart abbreviates ($1.72M), so the exact
+    // arithmetic is checked by `verify` and by Invariant 2; what is checked here is that the line
+    // is on the plot.
+    expect(bmw, "the goal line is not drawn — it is outside the domain again").toMatch(/GOAL/);
+    expect(bmw).toMatch(/BEST/);
+
+    const verdict = await page.locator('[data-testid="bmw-verdict"]').innerText();
+    // A straddle reads as "most likely lands short". A miss reads as the best case falling short,
+    // which is the bleak story D1 Part 3 removed.
+    expect(verdict, `verdict: ${verdict}`).toMatch(/lands \$[\d,]+ short/i);
+  });
+
+  test("the queue shows varied status labels, not a run of identical ones", async ({ page }) => {
+    // Seven identical ambers reads as a bug rather than as a portfolio.
+    await page.goto(BOARD);
+    const statuses = await page.locator('[data-testid="queue-card"] .f95-status').allInnerTexts();
+    expect(statuses.length).toBeGreaterThanOrEqual(5);
+    expect(
+      new Set(statuses.map((s) => s.trim())).size,
+      `only these statuses: ${statuses.join(", ")}`,
+    ).toBeGreaterThanOrEqual(3);
+
+    const healths = await page
+      .locator('[data-testid="queue-card"] .f95-status')
+      .evaluateAll((n) => n.map((s) => s.getAttribute("data-health")));
+    expect(new Set(healths).size, "every card is the same colour").toBeGreaterThan(1);
+  });
+
+  test("all four scenario badges appear, and below-cut is populated", async ({ page }) => {
+    await page.goto(ROOM);
+    const badges = await page
+      .locator('[data-testid="ledger-row"]')
+      .evaluateAll((n) => n.map((r) => r.getAttribute("data-badge")));
+    expect(new Set(badges).size, `badges present: ${[...new Set(badges)].join(", ")}`).toBe(4);
+
+    await page.goto(BOARD);
+    const below = await page.locator('[data-testid="below-cut"]').innerText();
+    expect(below).toMatch(/\d+ more opportunit/);
+    expect(below, "below-cut rendered the inert branch — nothing is below the cut").toMatch(
+      /together they hold \$[\d,]+/,
+    );
+  });
+
+  test("both chip states and both movement panels are populated", async ({ page }) => {
+    await page.goto(ROOM);
+    const chips = await page
+      .locator('[data-testid="stage-chip"]')
+      .evaluateAll((n) => n.map((c) => c.getAttribute("data-qualified")));
+    expect(chips.filter((c) => c === "true").length, "no qualified chips").toBeGreaterThan(0);
+    expect(chips.filter((c) => c === "false").length, "no unqualified chips").toBeGreaterThan(0);
+
+    for (const panel of ["untouched", "slipping"]) {
+      const text = await page.locator(`[data-testid="${panel}"]`).innerText();
+      expect(text, `${panel} is empty`).toMatch(/\d+ opportunit/);
+      expect(text).toMatch(/\$[\d,]+/);
+    }
+  });
+});

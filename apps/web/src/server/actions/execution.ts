@@ -26,6 +26,7 @@ import {
   type CurrentUser,
 } from "@95forward/shared";
 import { getCurrentUser } from "@/lib/auth";
+import { demoClock } from "@/server/data/forward-context";
 import { getAppDb } from "@/server/db";
 import {
   createAsk,
@@ -114,7 +115,11 @@ export async function debriefVisitAction(_prev: FormState, formData: FormData): 
   if (!parsed.success) {
     return { ok: false, fieldErrors: fieldErrorsFrom(parsed.error.flatten().fieldErrors) };
   }
-  await debriefVisit(user.tenantId, user.id, parsed.data);
+  // THE CLOCK IS INJECTED. This write stamps `occurred_at` and starts the 24-hour follow-up SLA,
+  // and it was taking wall time while every other write in the demo takes the anchor — so a visit
+  // debriefed during a demo landed days in the future relative to everything around it, and the
+  // Green Sheet's "this week" could not see it. (D1 audit.)
+  await debriefVisit(user.tenantId, user.id, parsed.data, demoClock().now());
   revalidateProspect(parsed.data.prospectId);
   return { ok: true };
 }

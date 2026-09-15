@@ -135,3 +135,35 @@ describe("parseWorkerEnv", () => {
     expect(() => parseWorkerEnv(VALID_WORKER)).not.toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// D1 — the demo clock anchor
+// ---------------------------------------------------------------------------------------------
+
+describe("DEMO_TODAY", () => {
+  const base = {
+    DATABASE_URL: "postgres://u:p@localhost:5432/forward",
+    AUTH0_DOMAIN: "x.us.auth0.com",
+    AUTH0_CLIENT_ID: "id",
+    AUTH0_CLIENT_SECRET: "secret",
+    AUTH0_SECRET: "a".repeat(64),
+    APP_BASE_URL: "http://localhost:3000",
+  };
+
+  it("is optional — local development and the tests need no configuration", () => {
+    expect(parseEnv(base).DEMO_TODAY).toBeUndefined();
+  });
+
+  it("accepts an ISO date", () => {
+    expect(parseEnv({ ...base, DEMO_TODAY: "2026-09-12" }).DEMO_TODAY).toBe("2026-09-12");
+  });
+
+  it("REFUSES a malformed value rather than falling back to wall time", () => {
+    // The whole point of the anchor is that the app and the seed agree about what day it is.
+    // "Nearly agree" is the failure this prevents: a typo that silently reverted to the real
+    // clock would make every relative figure drift by a day per day, quietly.
+    for (const bad of ["12 September 2026", "2026-9-12", "2026-09-12T12:00:00Z", "today", ""]) {
+      expect(() => parseEnv({ ...base, DEMO_TODAY: bad }), bad).toThrow();
+    }
+  });
+});

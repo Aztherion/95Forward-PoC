@@ -1,8 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   DEFAULT_FORWARD_SETTINGS,
   fixedClock,
+  resolveGoalForScope,
+  settingsFromCatalogue,
+  simulate,
   type MetricScope,
   type MetricsSnapshot,
 } from "@95forward/shared";
@@ -12,6 +15,8 @@ import { DEMO_TODAY } from "./demo-clock";
 import { connectTestDb, type TestDb } from "./test-support";
 import type { Database } from "./client";
 import { users } from "./schema/users";
+import { goals } from "./schema/forward";
+import { resolveTenantCatalogue } from "./rules-repo";
 import { ForwardMetricsService, loadMetricsSnapshot } from "./forward-metrics-repo";
 
 let handle: TestDb | null = null;
@@ -215,8 +220,7 @@ describe("strict goal resolution against the seed", () => {
 describe("what-if against the seed", () => {
   maybe("excluding a qualified opportunity moves the headline by exactly its amount", () => {
     const cordova = stableId("forward-opportunity:cordova-kamuli");
-    const amount =
-      snapshot.opportunities.find((o) => o.id === cordova)?.amountCents ?? 0;
+    const amount = snapshot.opportunities.find((o) => o.id === cordova)?.amountCents ?? 0;
     expect(amount).toBe(42_500_000);
 
     const result = service.whatIf(ALL, { excludeOpportunityIds: [cordova] });
@@ -301,5 +305,100 @@ describe("clock", () => {
     expect(service.metrics(ALL).weeksLeft).toBe(15);
     expect(january.metrics(ALL).weeksLeft).toBe(52);
     expect(january.metrics(ALL).asOf.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// D1 — the goal model, and the straddle at the scope the demo actually runs at.
+// ---------------------------------------------------------------------------------------------
+
+describe("goal scoping (D1)", () => {
+  maybe("org, rep and initiative each resolve their own goal", async () => {
+    const snapshot = await loadMetricsSnapshot(db, tenantId, { now: DEMO_TODAY });
+    const period = "FY26";
+
+    const org = resolveGoalForScope(snapshot, { rep: "all", initiative: "all", period });
+    expect(org.defined).toBe(true);
+    expect(org.scope).toBe("org");
+    expect(org.amountCents).toBe(270_000_000);
+
+    const [dana] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.email, "dana.reese@waterforpeople.org")));
+    const rep = resolveGoalForScope(snapshot, {
+      rep: dana!.id,
+      initiative: "all",
+      period,
+    });
+    expect(rep.defined).toBe(true);
+    expect(rep.scope).toBe("rep");
+
+    // THE POINT OF D1 PART 3: a rep's goal is a SHARE of the org's, not the whole thing. Dana
+    // carried the org number while holding 59% of the portfolio, so the only scope the demo ever
+    // shows said "even flawless execution misses by a million".
+    expect(rep.amountCents).toBeLessThan(org.amountCents!);
+    expect(rep.amountCents).toBe(160_000_000);
+  });
+
+  maybe("the rep goals sum to the org goal, exactly", async () => {
+    // A rep goal is a share, not an independent target. Two halves that quietly stop adding up is
+    // the kind of arithmetic a stakeholder checks in the room.
+    const rows = await db
+      .select({ amountCents: goals.amountCents, scope: goals.scope })
+      .from(goals)
+      .where(eq(goals.tenantId, tenantId));
+    const repTotal = rows
+      .filter((r) => r.scope === "rep")
+      .reduce((sum, r) => sum + r.amountCents, 0);
+    const org = rows.find((r) => r.scope === "org")!.amountCents;
+    expect(repTotal).toBe(org);
+  });
+
+  maybe("the initiative deliberately without a goal still returns goalDefined: false", async () => {
+    // I19 forbids falling back to a parent goal, and one initiative is left goal-less so the
+    // "no goal defined for this view" path fires on a real tab rather than a hypothetical one.
+    const snapshot = await loadMetricsSnapshot(db, tenantId, { now: DEMO_TODAY });
+    const withoutGoal = snapshot.opportunities
+      .map((o) => o.initiativeId)
+      .filter((id) => !snapshot.goals.some((g) => g.scope === "initiative" && g.scopeRefId === id));
+    expect(withoutGoal.length).toBeGreaterThan(0);
+
+    const resolution = resolveGoalForScope(snapshot, {
+      rep: "all",
+      initiative: withoutGoal[0]!,
+      period: "FY26",
+    });
+    expect(resolution.defined).toBe(false);
+    expect(resolution.amountCents).toBeNull();
+  });
+
+  maybe("the band straddles the goal AT DANA'S SCOPE, not only at ALL", async () => {
+    // The demo runs as Dana. A straddle at `ALL` that becomes a miss at her scope is the bug D1
+    // Part 3 exists to fix: best reaches the goal, most likely falls short of it, worst well
+    // short. That ordering is the story the screen tells.
+    const snapshot = await loadMetricsSnapshot(db, tenantId, { now: DEMO_TODAY });
+    const resolved = await resolveTenantCatalogue(db, tenantId);
+    const settings = settingsFromCatalogue(resolved);
+    const clock = fixedClock(DEMO_TODAY);
+
+    const [dana] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.email, "dana.reese@waterforpeople.org")));
+    const scope = { rep: dana!.id, initiative: "all", period: "FY26" };
+
+    const goal = resolveGoalForScope(snapshot, scope).amountCents!;
+    const sim = simulate({ snapshot, scope, settings, clock });
+
+    expect(sim.yearEnd.worstCents, "worst should be well short of the goal").toBeLessThan(goal);
+    expect(sim.yearEnd.mostLikelyCents, "most likely should fall short of the goal").toBeLessThan(
+      goal,
+    );
+    expect(sim.yearEnd.bestCents, "best should reach or exceed the goal").toBeGreaterThanOrEqual(
+      goal,
+    );
+    // And "meaningfully short" rather than "a rounding error short".
+    expect(goal - sim.yearEnd.mostLikelyCents).toBeGreaterThan(5_000_00);
   });
 });

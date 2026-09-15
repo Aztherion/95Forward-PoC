@@ -13,7 +13,26 @@ import { seed } from "./seed";
 //   1. ALLOW_DESTRUCTIVE_RESET === "true"  — set only on the demo app + local dev, never on real data
 //   2. RESEARCH_MODE !== "live"            — live mode implies real OSINT on real people; refuse
 //   3. process.argv includes "--confirm"   — blocks a fat-finger from a script/cron/console
+//   4. DEMO_DATABASE_NAME, if set, matches the database this process is actually pointed at (D1)
+//
+// Layer 4 closes the one gap the other three leave open. They establish that SOME database may be
+// reset; they say nothing about WHICH. An operator with a Console shell open on the demo app and a
+// DATABASE_URL exported in their own shell from a different environment satisfies all three and
+// truncates the wrong cluster. Naming the expected database makes the operation refuse to run
+// anywhere else. It is opt-in so local development needs no configuration, and the deploy spec
+// sets it — which is where the risk actually lives.
 export class ResetNotAllowedError extends Error {}
+
+/** The database a connection URL points at, or null if it cannot be read. */
+export function databaseNameFrom(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const name = new URL(url).pathname.replace(/^\//, "");
+    return name.length > 0 ? name : null;
+  } catch {
+    return null;
+  }
+}
 
 export function assertResetAllowed(
   env: NodeJS.ProcessEnv = process.env,
@@ -33,6 +52,17 @@ export function assertResetAllowed(
     throw new ResetNotAllowedError(
       "Refusing to reset: pass --confirm to proceed with the destructive truncate-and-reseed.",
     );
+  }
+  const expected = env.DEMO_DATABASE_NAME;
+  if (expected) {
+    const actual = databaseNameFrom(env.DATABASE_URL);
+    if (actual !== expected) {
+      throw new ResetNotAllowedError(
+        `Refusing to reset: DEMO_DATABASE_NAME is "${expected}" but DATABASE_URL points at ` +
+          `"${actual ?? "an unreadable target"}". The other guards say a demo database may be ` +
+          "reset; this one says WHICH. Check the DATABASE_URL in this shell.",
+      );
+    }
   }
 }
 
