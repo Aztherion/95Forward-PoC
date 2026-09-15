@@ -151,24 +151,41 @@ healthy, which is exactly what it is not after the test it is cleaning up behind
 through the database where you can, make it idempotent, and never let one cleanup's failure skip the
 others — `prospect-overview.spec.ts` shows both.
 
-### E2E is disabled in CI — run it locally before you merge
+### E2E is OFF in CI on purpose — run it locally before you merge
 
 ```
 pnpm --filter @95forward/web test:e2e
 ```
 
-CI runs build, lint, typecheck and the unit suite. It does **not** run Playwright. The suite runs two
-workers against one shared database, and about twenty specs mutate through a server action and then
-assert on the result immediately, on Playwright's 5-second default; only `forward-settings.spec.ts`
-waits for the action to respond first. Those races were survivable while the seed was small — I18b
-took the portfolio from 13 opportunities to 34, and on a GitHub runner that is enough to lose them.
-Three consecutive runs produced three **disjoint** sets of hard failures, none reproducible locally.
+CI runs build, lint, typecheck and the unit suite. It does **not** run Playwright, and that is a
+**decision rather than an unfinished job**. A reader who finds a commented-out gate with no
+reasoning will either re-enable it or conclude the project is careless, so the reasoning lives both
+here and inline in `ci.yml`.
 
-Turning the step off does not make the races go away; it moved the gate to a machine that can still
-win them. **H3 fixed the class** by awaiting the server action at each of the 52 mutation sites —
-three clean full-suite runs at unchanged parallelism — so the step can go back in; restoring it is
-I30's job, not yours. Until then, a local full-suite run is the merge condition and belongs in the
-PR description.
+**Who it is off for.** One developer works on this repository. They run the full suite locally
+before every commit and state the result in the PR. A CI run would be a second execution of a suite
+that has already passed, on slower hardware, for an audience of one person who already has the
+answer.
+
+**What it costs.** ~290 specs against a live Postgres and a built Next app, plus a Chromium
+download per run — minutes of billed runner time on every push, with no budget line for it.
+
+**Why not "it is flaky".** It was, and that reason is spent. I18b's larger seed lost races that H3
+then fixed at all 52 mutation sites (see "Writing an e2e spec" above); the suite has run green at
+`workers: 2` with **retries off** ever since. The step is off for cost and audience, not because it
+cannot be trusted.
+
+**What would change the calculus.** Turn it back on when _either_:
+
+- a second developer joins, so "the author ran it" stops being a guarantee anyone else can rely
+  on; or
+- the project leaves PoC mode, where an unreviewed merge becomes a real risk rather than a
+  hypothetical one.
+
+Uncommenting the four steps in `ci.yml` is the whole change.
+
+**The merge gate meanwhile** is a local full-suite run at `workers: 2` with **retries off** —
+retries off because a flaky pass is not green (I26) — stated in the PR description.
 
 ### Verify the RELEVANT subset, not the whole suite
 

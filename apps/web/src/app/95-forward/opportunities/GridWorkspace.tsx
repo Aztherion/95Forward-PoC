@@ -264,6 +264,9 @@ export function GridWorkspace({
         changedCells={whatIf ? changedCells : undefined}
         baselineValues={whatIf ? pending.baseline : undefined}
         onToggleMilestone={whatIf ? onToggleMilestone : undefined}
+        // Only once something is actually pending: an empty sandbox shows the real numbers, and
+        // marking them baseline then would be noise that teaches people to ignore the marker.
+        baselineOnly={whatIf && changedCount > 0}
       />
     </div>
   );

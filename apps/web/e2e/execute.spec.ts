@@ -239,6 +239,21 @@ test.describe.serial("95 Forward — Execute & Green Sheet (Initiative 10)", () 
 
     await expect(page.locator('[data-testid="asks-by-outcome"]')).toBeVisible();
     await expect(page.locator('[data-testid="pipeline-by-horizon"]')).toBeVisible();
+
+    // The VALUES, not just the labels (I30).
+    //
+    // This test asserted four labels and no figure, so "Visits this week" read 0 for as long as
+    // the Green Sheet computed its week from WALL TIME while every seeded write is stamped with
+    // the injected clock — the seed's week began 7 Sep and the real one began 14 Sep, so the
+    // panel was counting a week the demo has no data in. A label-only assertion cannot see that,
+    // and the drift only grows. See AGENTS.md, "The clock is injected".
+    const text = await stats.innerText();
+    const weekly = Number(/VISITS THIS WEEK\s*\n?\s*(\d+)/i.exec(text)?.[1] ?? "-1");
+    expect(
+      weekly,
+      `"Visits this week" reads ${weekly} — the Green Sheet is looking at the wrong week`,
+    ).toBeGreaterThan(0);
+    expect(text).toMatch(/ASKS THIS MONTH\s*\n?\s*[1-9]/i);
   });
 
   test("the Green Sheet hides Team scope and the by-RM table for a major-gifts officer", async ({

@@ -2212,3 +2212,20 @@ a.f95-rulechip:focus-visible {
 .f95-fc__whatiflink--preset {
   color: var(--text-muted);
 }
+
+/* Baseline-only marker (I30 fold-in). With a hypothesis pending, the derived columns and the
+   group subtotals still show the RECORD's figures — recomputing them in the browser would mean a
+   second implementation of the ranking, the checks and the qualified predicate. The marker turns
+   an invisible inconsistency into a stated one. */
+.f95-grid__baseonly {
+  margin-left: 5px;
+  padding: 0 4px;
+  font: var(--fw-semibold) var(--fs-micro) / 1.5 var(--font-sans);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--unknown-ink);
+  background: var(--unknown-surface);
+  border: 1px solid var(--unknown-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}

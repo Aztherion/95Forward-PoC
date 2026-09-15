@@ -85,28 +85,33 @@ jobs:
         run: pnpm test
 
       # ----------------------------------------------------------------------------------------
-      # E2E IS DISABLED IN CI. RUN IT LOCALLY BEFORE YOU MERGE.
+      # E2E IS OFF IN CI ON PURPOSE. THIS IS A DECISION, NOT AN UNFINISHED JOB.
       #
       #     pnpm --filter @95forward/web test:e2e
       #
-      # Why: the suite runs two workers against ONE shared database, and about twenty specs mutate
-      # through a server action and then assert on the result immediately, on Playwright's 5-second
-      # default. Only `forward-settings.spec.ts` waits for the action to respond first — it calls
-      # `page.waitForResponse` and its own comment calls that "the deterministic signal the other
-      # specs use", which the other specs do not.
+      # WHO IT IS OFF FOR. One developer works on this repository. They run the full suite locally
+      # before every commit, and the PR description states the result. A CI run would therefore be
+      # a second execution of a suite that has already passed, on slower hardware, for an audience
+      # of one person who already has the answer.
       #
-      # Those races were survivable while the seed was small. I18b took the portfolio from 13
-      # opportunities to 34, which lifts every request a little and total suite work a lot, and on a
-      # GitHub runner that is enough to lose them. Three consecutive runs produced three DISJOINT
-      # sets of hard failures — candidates + copilot-lab, then strategize, then prospect-overview +
-      # strategize — with no overlap and no failure that reproduces locally. A gate that fails on a
-      # different test every time is not telling you about your change.
+      # WHAT IT COSTS. ~290 specs against a live Postgres and a built Next app, plus a Chromium
+      # download on every run. On a GitHub runner that is minutes of billed time per push, and the
+      # PoC has no budget line for it.
       #
-      # This is a deliberate, temporary trade, not a cleanup. Turning the step off does NOT make the
-      # races go away; it moves the gate to a machine that can still win them. H3 fixes the class by
-      # awaiting the server action at each mutation site, and this block goes straight back in.
+      # WHY NOT "IT IS FLAKY". It was, and that reason is now spent: I18b's larger seed lost races
+      # that H3 then fixed at all 52 mutation sites (see AGENTS.md, "Writing an e2e spec"), and the
+      # suite has run green at `workers: 2` with RETRIES OFF ever since. The step is off for cost
+      # and audience, not because it cannot be trusted.
       #
-      # Until then the merge condition is a LOCAL full-suite run, stated in the PR.
+      # WHAT WOULD CHANGE THE CALCULUS — turn it back on when EITHER happens:
+      #   * a second developer joins, so "the author ran it" stops being a guarantee anyone else
+      #     can rely on; or
+      #   * the project leaves PoC mode, where an unreviewed merge becomes a real risk rather than
+      #     a hypothetical one.
+      # Uncommenting the four steps below is the whole change; nothing else needs to move.
+      #
+      # THE MERGE GATE MEANWHILE is a local full-suite run at `workers: 2` with retries OFF —
+      # retries off because a flaky pass is not green — stated in the PR description.
       # ----------------------------------------------------------------------------------------
       #
       # - name: Install Playwright browser

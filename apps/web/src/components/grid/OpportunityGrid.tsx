@@ -73,6 +73,18 @@ export interface OpportunityGridProps {
   readonly baselineValues?: Readonly<Record<string, string>>;
   /** Milestone dots become togglable in what-if mode. Absent means display-only. */
   readonly onToggleMilestone?: (row: GridRow, milestoneKey: string) => void;
+  /**
+   * A hypothesis is pending, so the DERIVED columns and the group subtotals are showing baseline
+   * figures (I30 fold-in).
+   *
+   * I31 leaves them at baseline deliberately — recomputing rank, next action, impact, flags or
+   * scenario in the browser would mean a second implementation of I23's ranking and I20's checks,
+   * and recomputing a subtotal would be a second definition of "qualified". Both are the drift
+   * this codebase has spent its life avoiding. But the consequence was that the grid's footer and
+   * the what-if chart answered different questions with nothing saying so, which is an invisible
+   * inconsistency. Marking them turns it into a stated one.
+   */
+  readonly baselineOnly?: boolean;
 }
 
 type CellKey = `${string}:${string}`;
@@ -105,6 +117,7 @@ export function OpportunityGrid({
   changedCells,
   baselineValues,
   onToggleMilestone,
+  baselineOnly = false,
 }: OpportunityGridProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
@@ -348,6 +361,15 @@ export function OpportunityGrid({
                   col.label
                 )}
                 {col.field ? <span className="f95-grid__pencil" aria-hidden="true" /> : null}
+                {baselineOnly && !col.field && col.key !== "prospect" && col.key !== "rank" ? (
+                  <span
+                    className="f95-grid__baseonly"
+                    title="Baseline — this column does not move with a what-if"
+                    data-testid="baseline-only-marker"
+                  >
+                    baseline
+                  </span>
+                ) : null}
               </th>
             ))}
           </tr>
@@ -371,6 +393,11 @@ export function OpportunityGrid({
                   {/* Two totals, never one. See subtotalLine. */}
                   <span className="f95-grid__groupsub" data-testid="grid-subtotal">
                     {subtotalLine(group.subtotal)}
+                    {baselineOnly ? (
+                      <span className="f95-grid__baseonly" data-testid="subtotal-baseline-only">
+                        baseline
+                      </span>
+                    ) : null}
                   </span>
                 </th>
               </tr>

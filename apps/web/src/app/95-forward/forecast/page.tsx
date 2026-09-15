@@ -423,7 +423,17 @@ export default async function ForecastPage({
               </p>
               <ul className="f95-ledger">
                 {ledger.map((row) => (
-                  <li className="f95-ledger__row" key={row.opportunityId}>
+                  <li
+                    className="f95-ledger__row"
+                    key={row.opportunityId}
+                    // The badge and the amount, machine-readable. Invariant 3 decomposes BMW
+                    // against this ledger, and it cannot do that by parsing a badge's prose out
+                    // of a row that also contains a name and a currency.
+                    data-testid="ledger-row"
+                    data-badge={row.badge}
+                    data-qualified={row.qualified}
+                    data-amount-cents={row.amountCents}
+                  >
                     <Link
                       className="f95-ledger__name f95-table__cell-link"
                       href={`/95-forward/opportunities/${row.opportunityId}`}

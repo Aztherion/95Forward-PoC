@@ -1,6 +1,7 @@
 import { Badge, Card, HorizonTag, Tabs } from "@/components/ds";
 import { Topbar } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
+import { demoClock } from "@/server/data/forward-context";
 import {
   getGreenSheetMetrics,
   type GreenSheetMetrics,
@@ -126,9 +127,15 @@ export default async function GreenSheetPage({
 
   const { scope: scopeParam } = await searchParams;
   const requested = scopeParam === "team" ? "team" : "me";
+  // THE CLOCK IS INJECTED. The Green Sheet predates I18's clock seam and was still reading wall
+  // time, so "this week" was computed from the real week while the seed is anchored at
+  // 2026-09-12 — on the day I30 audited it those were DIFFERENT WEEKS (w/c 7 Sep against w/c 14
+  // Sep), and the weekly figures were counting a week the demo has no data in. The drift only
+  // grows. See AGENTS.md, "The clock is injected".
   const metrics = await getGreenSheetMetrics(
     { id: user.id, tenantId: user.tenantId, role: user.role },
     requested,
+    demoClock().now(),
   );
 
   return (
