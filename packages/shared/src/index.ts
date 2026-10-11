@@ -22,3 +22,4 @@ export * from "./rules-registrations";
 export * from "./rules-firing";
 export * from "./forward-ranking";
 export * from "./rules-registrations-ranking";
+export * from "./scorecards";

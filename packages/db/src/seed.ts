@@ -16,6 +16,7 @@ import { seedDiscovery } from "./seed-discovery";
 import { seedForward } from "./seed-forward";
 import { seedForwardPortfolio } from "./seed-forward-portfolio";
 import { seedRules } from "./seed-rules";
+import { seedScorecards } from "./seed-scorecards";
 
 const TENANT_SLUG = "water-for-people";
 const TENANT_NAME = "Water For People";
@@ -86,6 +87,10 @@ export async function seed(db: Database): Promise<{ tenantId: string }> {
   await seedForward(db, tenantId);
   await seedForwardPortfolio(db, tenantId);
   await seedRules(db, tenantId);
+  // I31 — Scorecards. Runs last and depends on users, prospects and forward opportunities. It
+  // adds rows to the new tables and sets `users.manager_id`; it creates no users and touches no
+  // opportunity, milestone, event or goal, so every war-room figure is unchanged by it.
+  await seedScorecards(db, tenantId);
 
   return { tenantId };
 }

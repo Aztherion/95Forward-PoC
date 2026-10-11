@@ -16,4 +16,5 @@ export * from "./jobs";
 export * from "./config";
 export * from "./lists";
 export * from "./ai";
+export * from "./scorecards";
 export * from "./relations";

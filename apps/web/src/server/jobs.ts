@@ -77,3 +77,19 @@ export async function enqueueDiscovery(
     { jobKey: `discovery-${discoveryTaskId}`, maxAttempts: 3 },
   );
 }
+
+// I31 — the Scorecard pipeline. `jobKey` keyed on the Scorecard makes a re-enqueue idempotent, so
+// a double-submitted form or a re-score pressed twice produces one job, not two. tenantId/userId
+// come from getCurrentUser() in the action, never from the request body.
+export async function enqueueScoreMeeting(
+  tenantId: string,
+  userId: string,
+  scorecardId: string,
+): Promise<void> {
+  const utils = await getWorkerUtils();
+  await utils.addJob(
+    JOB_NAMES.scoreMeeting,
+    { tenantId, userId, scorecardId },
+    { jobKey: `score-meeting-${scorecardId}`, maxAttempts: 3 },
+  );
+}

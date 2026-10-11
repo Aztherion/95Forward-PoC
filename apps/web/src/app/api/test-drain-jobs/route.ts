@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { runOnce } from "graphile-worker";
-import { buildTaskList, createProviders, type JobHandler } from "@95forward/ai";
+import {
+  buildTaskList,
+  createMeetingDecider,
+  createProviders,
+  type JobHandler,
+} from "@95forward/ai";
 import { tenants, prepareDatabaseUrl } from "@95forward/db";
 import { getEnv } from "@95forward/shared";
 import { getAppDb, getDb } from "@/server/db";
@@ -22,9 +27,13 @@ export async function POST(): Promise<NextResponse> {
   }
 
   const env = getEnv();
+  const providers = createProviders(env);
   const handlers = buildTaskList({
     db: getAppDb(),
-    providers: createProviders(env),
+    providers,
+    // I31: AI_MODE selects the decider here exactly as it does in the worker, so a drained
+    // Scorecard job in the e2e suite runs the same deterministic path the worker would.
+    decider: createMeetingDecider(env, providers),
     listTenantIds: async () => {
       const rows = await getDb().select({ id: tenants.id }).from(tenants);
       return rows.map((row) => row.id);

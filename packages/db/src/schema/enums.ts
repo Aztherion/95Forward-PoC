@@ -146,3 +146,37 @@ export const goalScopeEnum = pgEnum("goal_scope", ["org", "rep", "initiative"]);
 
 /** I23: a human either forces guidance to the top or waves it away. */
 export const queueDecisionKindEnum = pgEnum("queue_decision_kind", ["pin", "dismiss"]);
+
+// ---------------------------------------------------------------------------------------------
+// 95 Forward — Scorecards (Initiative 31). The user-facing vocabulary is fixed; these enums
+// follow it exactly. See packages/shared/src/scorecards.ts for the lifecycle and the aggregation
+// rule the statuses drive.
+// ---------------------------------------------------------------------------------------------
+
+/** What kind of judgement a Criterion asks for. */
+export const criterionTypeEnum = pgEnum("criterion_type", ["boolean", "score", "classification"]);
+
+/**
+ * How a Meeting was reported.
+ *
+ * `recording` is deliberately absent. The brief leaves room for it later; adding an unreachable
+ * value now would mean a `source_type` the UI must handle and nothing can ever produce.
+ */
+export const meetingSourceTypeEnum = pgEnum("meeting_source_type", ["notes", "transcript"]);
+
+/** queued -> classifying -> scoring -> ready, or failed. Transitions validated in the service. */
+export const scorecardStatusEnum = pgEnum("scorecard_status", [
+  "queued",
+  "classifying",
+  "scoring",
+  "ready",
+  "failed",
+]);
+
+/**
+ * Why a Scorecard stopped being the current one (I31b).
+ *
+ * `override` — a human named a different Meeting Type, so it was re-scored against that type's
+ * definition. `rescore` — the whole pipeline was re-run, usually because the definition changed.
+ */
+export const supersedeReasonEnum = pgEnum("supersede_reason", ["override", "rescore"]);
