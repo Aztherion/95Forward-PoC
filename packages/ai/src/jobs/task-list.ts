@@ -4,12 +4,15 @@ import { runResearchProspectJob, type ResearchJobPayload } from "./research-pros
 import { runEmbedContentJob, type EmbedJobPayload } from "./embed-content";
 import { runFollowUpDraftJob, type FollowUpDraftPayload } from "./draft-follow-up";
 import { runDiscoveryJob, type DiscoveryJobPayload } from "./discovery-prospects";
+import { runScoreMeetingJob, type ScoreMeetingJobPayload } from "./score-meeting";
+import { DeterministicMeetingDecider, type MeetingDecider } from "../scorecards";
 
 export const JOB_NAMES = {
   research: "research-prospect",
   embed: "embed-content",
   followUpDraft: "draft-follow-up",
   discovery: "discovery-prospects",
+  scoreMeeting: "score-meeting",
   embedSweep: "embed-sweep",
 } as const;
 
@@ -26,6 +29,14 @@ export interface JobRuntime {
   // the caller, since a cron job has no tenant context of its own).
   listTenantIds: () => Promise<string[]>;
   liveFollowUpProviders?: Providers;
+  /**
+   * The Scorecard decision seam (I31).
+   *
+   * Injected by whoever owns the env — the worker reads WorkerEnv, the e2e drain route reads the
+   * web Env, and neither schema is readable from in here. The DEFAULT IS THE DETERMINISTIC ONE:
+   * a caller that forgets gets the key-free path, never an attempted live call.
+   */
+  decider?: MeetingDecider;
 }
 
 export function buildTaskList(runtime: JobRuntime): Record<string, JobHandler> {
@@ -52,6 +63,12 @@ export function buildTaskList(runtime: JobRuntime): Record<string, JobHandler> {
       await runDiscoveryJob(payload as DiscoveryJobPayload, {
         db: runtime.db,
         providers: runtime.providers,
+      });
+    },
+    [JOB_NAMES.scoreMeeting]: async (payload) => {
+      await runScoreMeetingJob(payload as ScoreMeetingJobPayload, {
+        db: runtime.db,
+        decider: runtime.decider ?? new DeterministicMeetingDecider(),
       });
     },
     [JOB_NAMES.embedSweep]: async () => {

@@ -12,6 +12,8 @@ export * from "./jobs/research-prospect";
 export * from "./jobs/embed-content";
 export * from "./jobs/draft-follow-up";
 export * from "./jobs/discovery-prospects";
+export * from "./jobs/score-meeting";
 export * from "./jobs/task-list";
 export * from "./extraction";
 export * from "./drafting";
+export * from "./scorecards";

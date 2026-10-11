@@ -19,6 +19,7 @@
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "embed": "tsx src/scripts/backfill.ts",
+    "score-meeting": "tsx src/scripts/score-meeting.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo"

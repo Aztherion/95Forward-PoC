@@ -127,6 +127,13 @@
       "when": 1789379217765,
       "tag": "0017_parallel_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791726060340,
+      "tag": "0018_tidy_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

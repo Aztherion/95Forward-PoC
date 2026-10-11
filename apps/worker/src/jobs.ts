@@ -1,5 +1,10 @@
 import { run, makeWorkerUtils, parseCrontab, type Runner, type Task } from "graphile-worker";
-import { createProviders, buildTaskList, type JobHandler } from "@95forward/ai";
+import {
+  createProviders,
+  createMeetingDecider,
+  buildTaskList,
+  type JobHandler,
+} from "@95forward/ai";
 import { createDb, tenants, prepareDatabaseUrl, type DbHandle } from "@95forward/db";
 import { getWorkerEnv, type WorkerEnv } from "@95forward/shared";
 
@@ -39,9 +44,13 @@ export async function startWorker(env: WorkerEnv): Promise<StartedWorker> {
   await utils.migrate();
   await utils.release();
 
+  const providers = createProviders(env);
   const handlers = buildTaskList({
     db: appHandle.db,
-    providers: createProviders(env),
+    providers,
+    // I31: the Scorecard decision seam. The worker owns WorkerEnv, so it is the one that can
+    // decide mock vs live; the task list itself defaults to the key-free deterministic path.
+    decider: createMeetingDecider(env, providers),
     listTenantIds: async () => {
       const rows = await ownerHandle.db.select({ id: tenants.id }).from(tenants);
       return rows.map((row) => row.id);

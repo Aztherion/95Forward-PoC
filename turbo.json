@@ -6,6 +6,7 @@
     "NODE_ENV",
     "APP_ENV",
     "DATABASE_URL",
+    "APP_DATABASE_URL",
     "LOG_LEVEL",
     "PORT",
     "WORKER_PORT",

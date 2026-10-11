@@ -1,12 +1,37 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq, isNotNull } from "drizzle-orm";
 import {
+  computeMetrics,
   computeQpi,
+  fixedClock,
+  goalFor,
   QPI_DEFAULT_TOGGLES,
   QPI_DEFAULT_WEIGHTS,
+  registerBuiltInRules,
+  registerRankingRules,
+  settingsFromCatalogue,
+  simulate,
+  stageBoard,
+  verifyEvidenceQuote,
+  type ForwardSettings,
+  type MetricScope,
+  type MetricsSnapshot,
   type QpiDimension,
 } from "@95forward/shared";
 import { seed } from "./seed";
+import { seedScorecards, SCORECARD_SEED_FACTS } from "./seed-scorecards";
+import { DEMO_TODAY } from "./demo-clock";
+import { loadMetricsSnapshot } from "./forward-metrics-repo";
+import { resolveTenantCatalogue } from "./rules-repo";
+import {
+  criterionResults,
+  meetingTypes,
+  meetings,
+  scorecardCriteria,
+  scorecardCriterionOptions,
+  scorecardDefinitions,
+  scorecards,
+} from "./schema/scorecards";
 import { stableId } from "./seed-records-core";
 import type { Database } from "./client";
 import { connectTestDb, type TestDb } from "./test-support";
@@ -40,6 +65,12 @@ import {
 import { researchJobs } from "./schema/jobs";
 import { candidates, discoveryTasks } from "./schema/discovery";
 import { copilotProposals } from "./schema/ai";
+import {
+  forwardOpportunities,
+  goals,
+  opportunityEvents,
+  opportunityMilestones,
+} from "./schema/forward";
 
 let handle: TestDb | null = null;
 let db: Database;
@@ -901,4 +932,257 @@ describe("seed: discovery batches (I12)", () => {
     });
     expect(researching.some((t) => t.originKey === "seed:discovery:bradley-forever")).toBe(true);
   });
+});
+
+// =================================================================================================
+// I31 — Scorecards
+// =================================================================================================
+
+describe("seed: scorecards (I31)", () => {
+  it("makes the CDO the manager of both gift officers, and of nobody else", async () => {
+    if (!handle) return;
+    const rows = await db.query.users.findMany({ where: eq(users.tenantId, tenantId) });
+    const ruth = rows.find((u) => u.email === SCORECARD_SEED_FACTS.managerEmail);
+    expect(ruth).toBeDefined();
+    expect(ruth?.managerId).toBeNull();
+
+    const reports = rows.filter((u) => u.managerId === ruth?.id).map((u) => u.email);
+    expect(reports.sort()).toEqual(
+      [SCORECARD_SEED_FACTS.repEmails.dana, SCORECARD_SEED_FACTS.repEmails.priya].sort(),
+    );
+  });
+
+  it("seeds exactly one fallback meeting type", async () => {
+    if (!handle) return;
+    const rows = await db.query.meetingTypes.findMany({
+      where: eq(meetingTypes.tenantId, tenantId),
+    });
+    expect(rows).toHaveLength(SCORECARD_SEED_FACTS.meetingTypeKeys.length);
+    expect(rows.filter((t) => t.isFallback)).toHaveLength(1);
+    expect(rows.find((t) => t.isFallback)?.name).toBe("Discovery Visit");
+    // The descriptions are the classifier's whole input besides the content. A short one is a bug.
+    expect(rows.every((t) => t.description.length > 200)).toBe(true);
+  });
+
+  it("seeds one active definition per meeting type, each with sections and criteria", async () => {
+    if (!handle) return;
+    const definitions = await db.query.scorecardDefinitions.findMany({
+      where: eq(scorecardDefinitions.tenantId, tenantId),
+    });
+    expect(definitions).toHaveLength(SCORECARD_SEED_FACTS.definitionKeys.length);
+    expect(definitions.every((d) => d.isActive)).toBe(true);
+    expect(new Set(definitions.map((d) => d.meetingTypeId)).size).toBe(definitions.length);
+
+    const criteria = await db.query.scorecardCriteria.findMany({
+      where: eq(scorecardCriteria.tenantId, tenantId),
+    });
+    expect(criteria).toHaveLength(SCORECARD_SEED_FACTS.criterionCount);
+    expect(criteria.every((c) => c.prompt.trim().length > 0)).toBe(true);
+
+    // Every classification criterion has at least two options, each with a description.
+    const options = await db.query.scorecardCriterionOptions.findMany({
+      where: eq(scorecardCriterionOptions.tenantId, tenantId),
+    });
+    for (const criterion of criteria.filter((c) => c.type === "classification")) {
+      const own = options.filter((o) => o.criterionId === criterion.id);
+      expect(own.length).toBeGreaterThanOrEqual(2);
+      expect(own.every((o) => o.description.trim().length > 0)).toBe(true);
+    }
+  });
+
+  it("seeds 8-10 meetings across both reps, with at least one prospect-only link", async () => {
+    if (!handle) return;
+    const rows = await db.query.meetings.findMany({ where: eq(meetings.tenantId, tenantId) });
+    expect(rows.length).toBe(SCORECARD_SEED_FACTS.meetingKeys.length);
+    expect(rows.length).toBeGreaterThanOrEqual(8);
+    expect(rows.length).toBeLessThanOrEqual(10);
+
+    expect(new Set(rows.map((m) => m.reportedBy)).size).toBe(2);
+    expect(rows.filter((m) => m.prospectId !== null).length).toBeGreaterThanOrEqual(1);
+    expect(rows.filter((m) => m.sourceType === "notes").length).toBeGreaterThanOrEqual(2);
+    expect(rows.filter((m) => m.sourceType === "transcript").length).toBeGreaterThanOrEqual(1);
+    // Every meeting links exactly one thing — the CHECK says so, this says we meant it.
+    expect(rows.every((m) => (m.opportunityId === null) !== (m.prospectId === null))).toBe(true);
+  });
+
+  it("seeds a ready Scorecard for every meeting, one apiece", async () => {
+    if (!handle) return;
+    const cards = await db.query.scorecards.findMany({ where: eq(scorecards.tenantId, tenantId) });
+    expect(cards).toHaveLength(SCORECARD_SEED_FACTS.meetingKeys.length);
+    expect(cards.every((c) => c.status === "ready")).toBe(true);
+    expect(new Set(cards.map((c) => c.meetingId)).size).toBe(cards.length);
+    // Authored, and the audit row says so rather than inventing a model id.
+    expect(cards.every((c) => c.scoreModel === "seed:authored")).toBe(true);
+    // Exactly one fallback card, so the demo has the "no fit" story on screen.
+    expect(cards.filter((c) => c.usedFallback)).toHaveLength(1);
+  });
+
+  it("snapshots the definition onto every Scorecard", async () => {
+    if (!handle) return;
+    const cards = await db.query.scorecards.findMany({ where: eq(scorecards.tenantId, tenantId) });
+    for (const card of cards) {
+      const snapshot = card.definitionSnapshot as { sections?: unknown[] } | null;
+      expect(Array.isArray(snapshot?.sections)).toBe(true);
+      expect(snapshot?.sections?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it("EVERY authored evidence quote is verbatim in its own meeting content", async () => {
+    // The single most embarrassing failure this feature could put in front of a manager: a quote
+    // that is not in the transcript. Checked against the authored fixtures, not the database, so
+    // the error points at the line that needs fixing.
+    const failures = SCORECARD_SEED_FACTS.quotes.filter(
+      (entry) => !verifyEvidenceQuote(entry.content, entry.quote),
+    );
+    expect(failures.map((f) => `${f.meetingKey} ${f.criterion}`)).toEqual([]);
+    expect(SCORECARD_SEED_FACTS.quotes.length).toBeGreaterThan(40);
+  });
+
+  it("marks every stored quote verified, and gives every result a rationale", async () => {
+    if (!handle) return;
+    const rows = await db.query.criterionResults.findMany({
+      where: eq(criterionResults.tenantId, tenantId),
+    });
+    expect(rows.length).toBeGreaterThan(50);
+    expect(rows.every((r) => r.rationale.trim().length > 0)).toBe(true);
+    expect(rows.filter((r) => r.evidenceQuote !== null).every((r) => r.evidenceVerified)).toBe(
+      true,
+    );
+    // A not-determinable result carries a rationale saying WHY not, and no value.
+    const undetermined = rows.filter((r) => !r.determinable);
+    expect(undetermined.length).toBeGreaterThan(0);
+    expect(
+      undetermined.every(
+        (r) => r.booleanValue === null && r.scoreValue === null && r.optionId === null,
+      ),
+    ).toBe(true);
+  });
+
+  it("gives the strong and the weak discovery visit visibly different scores", async () => {
+    if (!handle) return;
+    const strong = await db.query.scorecards.findFirst({
+      where: eq(scorecards.id, stableId("scorecard:vega-discovery")),
+    });
+    const weak = await db.query.scorecards.findFirst({
+      where: eq(scorecards.id, stableId("scorecard:ridgeway-discovery")),
+    });
+    const score = (value: string | null | undefined) => (value === null ? null : Number(value));
+    expect(score(strong?.overallScore)).toBeGreaterThan(0.9);
+    expect(score(weak?.overallScore)).toBeLessThan(0.1);
+  });
+
+  it("leaves the all-not-determinable Scorecard with a NULL overall score, not a zero", async () => {
+    if (!handle) return;
+    const card = await db.query.scorecards.findFirst({
+      where: eq(scorecards.id, stableId("scorecard:bluemesa-catchup")),
+    });
+    expect(card?.usedFallback).toBe(true);
+    // Nothing countable could be determined from a five-line logistics note. A confident 0 there
+    // would be a lie about a fundraiser.
+    expect(card?.overallScore).toBeNull();
+  });
+
+  it("is idempotent — re-seeding leaves scorecard counts and scores stable", async () => {
+    if (!handle) return;
+    const counts = async () => ({
+      types: (await db.query.meetingTypes.findMany({ where: eq(meetingTypes.tenantId, tenantId) }))
+        .length,
+      definitions: (
+        await db.query.scorecardDefinitions.findMany({
+          where: eq(scorecardDefinitions.tenantId, tenantId),
+        })
+      ).length,
+      criteria: (
+        await db.query.scorecardCriteria.findMany({
+          where: eq(scorecardCriteria.tenantId, tenantId),
+        })
+      ).length,
+      meetings: (await db.query.meetings.findMany({ where: eq(meetings.tenantId, tenantId) }))
+        .length,
+      scorecards: (await db.query.scorecards.findMany({ where: eq(scorecards.tenantId, tenantId) }))
+        .length,
+      results: (
+        await db.query.criterionResults.findMany({ where: eq(criterionResults.tenantId, tenantId) })
+      ).length,
+      scores: (await db.query.scorecards.findMany({ where: eq(scorecards.tenantId, tenantId) }))
+        .map((c) => c.overallScore)
+        .sort()
+        .join("|"),
+    });
+
+    const before = await counts();
+    await seed(db);
+    expect(await counts()).toEqual(before);
+  }, 120_000);
+});
+
+describe("seed: war-room invariance (I31)", () => {
+  /** Every figure the Board, the Forecast Room and the queue put on screen, for one scope. */
+  const figuresFor = (snapshot: MetricsSnapshot, scope: MetricScope, settings: ForwardSettings) => {
+    const clock = fixedClock(DEMO_TODAY);
+    const metrics = computeMetrics({ snapshot, scope, settings, clock });
+    const simulation = simulate({ snapshot, scope, settings, clock });
+    const stage = stageBoard(snapshot, scope, clock);
+    const goal = goalFor(snapshot, scope);
+    return JSON.stringify({ metrics, simulation, stage, goal });
+  };
+
+  it("the I19 metrics, the I21 forecast and the stage board are IDENTICAL after seeding scorecards", async () => {
+    if (!handle) return;
+    registerBuiltInRules();
+    registerRankingRules();
+
+    const resolved = await resolveTenantCatalogue(db, tenantId);
+    const settings = settingsFromCatalogue(resolved);
+    const period = settings.fiscalPeriods[0]?.label ?? "FY26";
+    const dana = await db.query.users.findFirst({
+      where: and(eq(users.tenantId, tenantId), eq(users.email, "dana.reese@waterforpeople.org")),
+    });
+    const scopes: MetricScope[] = [
+      { rep: "all", initiative: "all", period },
+      { rep: dana?.id ?? "all", initiative: "all", period },
+    ];
+
+    const read = async () => {
+      const snapshot = await loadMetricsSnapshot(db, tenantId, { now: DEMO_TODAY });
+      return scopes.map((scope) => figuresFor(snapshot, scope, settings));
+    };
+
+    const before = await read();
+    // Run ONLY the scorecards seed — the question is whether this module is inert, not whether the
+    // whole seed is idempotent (which `seed.test.ts` asserts elsewhere).
+    await seedScorecards(db, tenantId);
+    const after = await read();
+
+    expect(after).toEqual(before);
+  }, 120_000);
+
+  it("adds no opportunity, milestone, goal or event row", async () => {
+    if (!handle) return;
+    const counts = async () => ({
+      opportunities: (
+        await db.query.forwardOpportunities.findMany({
+          where: eq(forwardOpportunities.tenantId, tenantId),
+        })
+      ).length,
+      events: (
+        await db.query.opportunityEvents.findMany({
+          where: eq(opportunityEvents.tenantId, tenantId),
+        })
+      ).length,
+      milestones: (
+        await db.query.opportunityMilestones.findMany({
+          where: eq(opportunityMilestones.tenantId, tenantId),
+        })
+      ).length,
+      goals: (await db.query.goals.findMany({ where: eq(goals.tenantId, tenantId) })).length,
+      users: (await db.query.users.findMany({ where: eq(users.tenantId, tenantId) })).length,
+    });
+
+    const before = await counts();
+    await seedScorecards(db, tenantId);
+    expect(await counts()).toEqual(before);
+    // And the user count is still the three the seed has always created.
+    expect(before.users).toBe(3);
+  }, 120_000);
 });
