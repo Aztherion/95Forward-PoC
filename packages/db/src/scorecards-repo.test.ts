@@ -23,6 +23,7 @@ import {
   deleteScorecardDefinition,
   getActiveDefinitionForType,
   getFallbackMeetingType,
+  getCurrentScorecardForMeeting,
   getScorecardForViewer,
   getScorecardStatus,
   hasDirectReports,
@@ -83,6 +84,9 @@ afterAll(async () => {
     .where(and(eq(meetingTypes.tenantId, tenantId), eq(meetingTypes.name, `Scratch ${suffix}`)));
   await handle.pool.end();
 });
+
+/** The demo anchor. Every write in this codebase stamps rows with the injected clock, not wall time. */
+const NOW = new Date("2026-09-12T12:00:00.000Z");
 
 const maybe = (name: string, fn: () => Promise<void>, timeout?: number) =>
   it(
@@ -226,16 +230,33 @@ describe("constraints", () => {
     ).rejects.toThrow(/criterion_results_value_matches_type/);
   });
 
-  maybe("allows one current scorecard per meeting and no more", async () => {
+  maybe("allows exactly ONE CURRENT scorecard per meeting, but many superseded ones", async () => {
     const created = await scratchMeeting(dana);
+
+    // A second CURRENT version is refused by the partial unique index.
     await expect(
       db.insert(scorecards).values({
         tenantId,
         meetingId: created.meetingId,
         definitionSnapshot: {},
         status: "queued",
+        isCurrent: true,
       }),
-    ).rejects.toThrow(/scorecards_meeting_unique|duplicate key/i);
+    ).rejects.toThrow(/scorecards_one_current_per_meeting|duplicate key/i);
+
+    // A superseded one is not — that is the whole point of versioning.
+    const extra = await db
+      .insert(scorecards)
+      .values({
+        tenantId,
+        meetingId: created.meetingId,
+        definitionSnapshot: {},
+        status: "ready",
+        isCurrent: false,
+        supersedeReason: "rescore",
+      })
+      .returning({ id: scorecards.id });
+    expect(extra).toHaveLength(1);
   });
 });
 
@@ -464,51 +485,165 @@ describe("report, override and re-score", () => {
     );
   });
 
-  maybe("replaces results in place on a re-score rather than appending", async () => {
-    const scorecardId = stableId("scorecard:vega-discovery");
-    const before = await getScorecardForViewer(db, dana, scorecardId);
-    expect(before).not.toBeNull();
-    if (!before?.snapshot) return;
-    const countBefore = before.results.length;
+  maybe(
+    "a re-score PRESERVES the previous scorecard and its results, unchanged",
+    async () => {
+      // The whole point of versioning. The old results must still be readable, still attached to
+      // the version that produced them, and still saying what they said.
+      const created = await scratchMeeting(dana);
+      const snapshot = await buildDefinitionSnapshot(
+        db,
+        tenantId,
+        stableId("scorecard-definition:discovery"),
+      );
+      if (!snapshot) return;
+      const section = snapshot.sections[0];
+      const criterion = section?.criteria[0];
+      if (!section || !criterion) return;
 
-    // Re-run the scoring write with a single determinable result for the same scorecard.
-    const firstCriterion = before.snapshot.sections[0]?.criteria[0];
-    expect(firstCriterion).toBeDefined();
-    if (!firstCriterion) return;
+      await recordScoring(db, tenantId, created.scorecardId, {
+        results: [
+          {
+            criterionId: criterion.id,
+            sectionId: section.id,
+            criterionType: criterion.type,
+            determinable: true,
+            booleanValue: true,
+            scoreValue: null,
+            optionId: null,
+            rationale: "the first version said yes",
+            evidenceQuote: null,
+          },
+        ],
+        content: "Scratch meeting content for a test. Asked why they are involved.",
+        snapshot,
+        model: "version-one",
+        latencyMs: 11,
+        inputTokens: 1,
+        outputTokens: 1,
+        scoredAt: NOW,
+      });
 
-    await recordScoring(db, tenantId, scorecardId, {
-      results: [
-        {
-          criterionId: firstCriterion.id,
-          sectionId: before.snapshot.sections[0]?.id ?? "",
-          criterionType: firstCriterion.type,
-          determinable: true,
-          booleanValue: true,
-          scoreValue: null,
-          optionId: null,
-          rationale: "replaced",
-          evidenceQuote: null,
-        },
-      ],
-      content: before.meeting.content,
-      snapshot: before.snapshot,
-      model: "test",
-      latencyMs: 1,
-      inputTokens: 1,
-      outputTokens: 1,
-      scoredAt: new Date(),
+      const first = await getScorecardForViewer(db, dana, created.scorecardId);
+      expect(first?.scorecard.status).toBe("ready");
+      expect(first?.results).toHaveLength(1);
+      expect(first?.scorecard.overallScoreValue).toBe(1);
+
+      const outcome = await requestRescore(db, dana, created.scorecardId, NOW);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+
+      // Score the NEW version differently, so "unchanged" means something.
+      await recordScoring(db, tenantId, outcome.scorecardId, {
+        results: [
+          {
+            criterionId: criterion.id,
+            sectionId: section.id,
+            criterionType: criterion.type,
+            determinable: true,
+            booleanValue: false,
+            scoreValue: null,
+            optionId: null,
+            rationale: "the second version said no",
+            evidenceQuote: null,
+          },
+        ],
+        content: "Scratch meeting content for a test. Asked why they are involved.",
+        snapshot,
+        model: "version-two",
+        latencyMs: 22,
+        inputTokens: 1,
+        outputTokens: 1,
+        scoredAt: NOW,
+      });
+
+      const oldVersion = await getScorecardForViewer(db, dana, created.scorecardId);
+      expect(oldVersion?.results).toHaveLength(1);
+      expect(oldVersion?.results[0]?.rationale).toBe("the first version said yes");
+      expect(oldVersion?.results[0]?.booleanValue).toBe(true);
+      expect(oldVersion?.scorecard.overallScoreValue).toBe(1);
+      // The audit row still names the model that produced THIS score — which is the comparison
+      // the decision-model wrapper swap will need.
+      expect(oldVersion?.scorecard.scoreModel).toBe("version-one");
+      expect(oldVersion?.scorecard.isCurrent).toBe(false);
+
+      const newVersion = await getScorecardForViewer(db, dana, outcome.scorecardId);
+      expect(newVersion?.results[0]?.booleanValue).toBe(false);
+      expect(newVersion?.scorecard.overallScoreValue).toBe(0);
+      expect(newVersion?.scorecard.scoreModel).toBe("version-two");
+      expect(newVersion?.scorecard.isCurrent).toBe(true);
+    },
+    120_000,
+  );
+
+  maybe("keeps exactly ONE current scorecard under a concurrent re-score", async () => {
+    const created = await scratchMeeting(dana);
+
+    // Two re-scores racing the same current version. One must win; the other must not create a
+    // second current row. The compare-and-swap decides it and the partial unique index backs it.
+    const outcomes = await Promise.allSettled([
+      requestRescore(db, dana, created.scorecardId, NOW),
+      requestRescore(db, dana, created.scorecardId, NOW),
+    ]);
+    const succeeded = outcomes.filter(
+      (result) => result.status === "fulfilled" && result.value.ok,
+    );
+    expect(succeeded.length).toBeGreaterThanOrEqual(1);
+
+    const all = await db
+      .select({ id: scorecards.id, isCurrent: scorecards.isCurrent })
+      .from(scorecards)
+      .where(and(eq(scorecards.tenantId, tenantId), eq(scorecards.meetingId, created.meetingId)));
+    expect(all.filter((row) => row.isCurrent)).toHaveLength(1);
+    // However the race resolved, no version was lost.
+    expect(all.length).toBeGreaterThanOrEqual(2);
+  }, 120_000);
+
+  maybe("refuses to override or re-score a superseded version", async () => {
+    const created = await scratchMeeting(dana);
+    const outcome = await requestRescore(db, dana, created.scorecardId, NOW);
+    expect(outcome.ok).toBe(true);
+
+    // History is immutable.
+    expect((await requestRescore(db, dana, created.scorecardId, NOW)).ok).toBe(false);
+    const override = await overrideMeetingType(
+      db,
+      dana,
+      created.scorecardId,
+      stableId("meeting-type:ask"),
+      NOW,
+    );
+    expect(override.ok).toBe(false);
+  });
+
+  maybe("lists only CURRENT versions, and returns prior ones only when asked", async () => {
+    const created = await scratchMeeting(dana);
+    const outcome = await requestRescore(db, dana, created.scorecardId, NOW);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+
+    // The meeting appears once in the list, as its current version.
+    const listed = await listScorecards(db, dana);
+    const forMeeting = listed.filter((row) => row.meetingId === created.meetingId);
+    expect(forMeeting).toHaveLength(1);
+    expect(forMeeting[0]?.scorecardId).toBe(outcome.scorecardId);
+
+    // By default a get carries no history.
+    const plain = await getScorecardForViewer(db, dana, outcome.scorecardId);
+    expect(plain?.versions).toEqual([]);
+
+    // Asked for, it carries the chain.
+    const withHistory = await getScorecardForViewer(db, dana, outcome.scorecardId, {
+      includeVersions: true,
     });
+    expect(withHistory?.versions).toHaveLength(1);
+    expect(withHistory?.versions[0]?.scorecard.id).toBe(created.scorecardId);
+    expect(withHistory?.versions[0]?.scorecard.supersedeReason).toBe("rescore");
 
-    const after = await getScorecardForViewer(db, dana, scorecardId);
-    expect(after?.results).toHaveLength(1);
-    expect(after?.results).not.toHaveLength(countBefore + 1);
-    expect(after?.scorecard.status).toBe("ready");
-
-    // Put the seeded Scorecard back, so the demo data and every later assertion stay intact.
-    await seed(db);
-    const restored = await getScorecardForViewer(db, dana, scorecardId);
-    expect(restored?.results.length).toBe(countBefore);
-  }, 180_000);
+    // And the meeting-keyed read lands on the current one.
+    const current = await getCurrentScorecardForMeeting(db, dana, created.meetingId);
+    expect(current?.scorecard.id).toBe(outcome.scorecardId);
+  }, 120_000);
 
   maybe("verifies a verbatim quote and flags an altered one, storing both", async () => {
     const created = await scratchMeeting(dana, {
@@ -576,15 +711,26 @@ describe("report, override and re-score", () => {
     expect(definition).toBeDefined();
     if (!definition) return;
 
-    const outcome = await overrideMeetingType(db, dana, created.scorecardId, askType);
+    const outcome = await overrideMeetingType(db, dana, created.scorecardId, askType, NOW);
     expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // A NEW Scorecard, not the one we submitted.
+    expect(outcome.scorecardId).not.toBe(created.scorecardId);
 
-    const after = await getScorecardForViewer(db, dana, created.scorecardId);
+    const after = await getScorecardForViewer(db, dana, outcome.scorecardId);
     expect(after?.scorecard.meetingTypeId).toBe(askType);
     expect(after?.scorecard.meetingTypeOverriddenBy).toBe(dana.userId);
     expect(after?.scorecard.status).toBe("scoring");
     expect(after?.scorecard.usedFallback).toBe(false);
+    expect(after?.scorecard.isCurrent).toBe(true);
     expect(after?.snapshot?.meetingTypeName).toBe("Ask Visit");
+
+    // The old version survives, marked and linked.
+    const old = await getScorecardForViewer(db, dana, created.scorecardId);
+    expect(old?.scorecard.isCurrent).toBe(false);
+    expect(old?.scorecard.supersedeReason).toBe("override");
+    expect(old?.scorecard.supersededBy).toBe(outcome.scorecardId);
+    expect(old?.scorecard.supersededAt).not.toBeNull();
 
     const logged = await logScorecardEvent(db, tenantId, {
       meetingId: created.meetingId,
@@ -633,12 +779,24 @@ describe("report, override and re-score", () => {
     expect(logged).toBe(false);
   });
 
-  maybe("puts a re-score back to queued", async () => {
+  maybe("a re-score creates a NEW queued scorecard and supersedes the old one", async () => {
     const created = await scratchMeeting(dana);
     await transitionScorecard(db, tenantId, created.scorecardId, "queued", "classifying");
-    expect(await requestRescore(db, dana, created.scorecardId)).toBe(true);
-    const after = await getScorecardForViewer(db, dana, created.scorecardId);
-    expect(after?.scorecard.status).toBe("queued");
+
+    const outcome = await requestRescore(db, dana, created.scorecardId, NOW);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.scorecardId).not.toBe(created.scorecardId);
+
+    const fresh = await getScorecardForViewer(db, dana, outcome.scorecardId);
+    expect(fresh?.scorecard.status).toBe("queued");
+    expect(fresh?.scorecard.isCurrent).toBe(true);
+    // Classification runs again, so the new version starts with no snapshot and no type.
+    expect(fresh?.scorecard.meetingTypeId).toBeNull();
+
+    const old = await getScorecardForViewer(db, dana, created.scorecardId);
+    expect(old?.scorecard.isCurrent).toBe(false);
+    expect(old?.scorecard.supersedeReason).toBe("rescore");
   });
 
   maybe("refuses an override or re-score on a scorecard the viewer cannot see", async () => {
@@ -649,9 +807,10 @@ describe("report, override and re-score", () => {
       dana,
       priyaCard.scorecardId,
       stableId("meeting-type:ask"),
+      NOW,
     );
     expect(outcome.ok).toBe(false);
-    expect(await requestRescore(db, dana, priyaCard.scorecardId)).toBe(false);
+    expect((await requestRescore(db, dana, priyaCard.scorecardId, NOW)).ok).toBe(false);
   });
 
   maybe("refuses an illegal status transition", async () => {

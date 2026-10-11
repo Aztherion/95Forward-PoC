@@ -172,3 +172,11 @@ export const scorecardStatusEnum = pgEnum("scorecard_status", [
   "ready",
   "failed",
 ]);
+
+/**
+ * Why a Scorecard stopped being the current one (I31b).
+ *
+ * `override` — a human named a different Meeting Type, so it was re-scored against that type's
+ * definition. `rescore` — the whole pipeline was re-run, usually because the definition changed.
+ */
+export const supersedeReasonEnum = pgEnum("supersede_reason", ["override", "rescore"]);

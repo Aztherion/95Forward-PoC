@@ -4,6 +4,7 @@ import {
   deleteScorecardDefinition as deleteDefinitionRow,
   buildDefinitionSnapshot,
   createMeetingType as createMeetingTypeRow,
+  getCurrentScorecardForMeeting as getCurrentScorecardForMeetingRow,
   getScorecardForViewer,
   getScorecardStatus,
   hasDirectReports,
@@ -20,6 +21,7 @@ import {
   visibleReporterIds,
   withTenant,
   type DefinitionInput,
+  type GetScorecardOptions,
   type ListScorecardsOptions,
   type MeetingTypeInput,
   type MeetingTypeRow,
@@ -74,9 +76,24 @@ export function listScorecards(
 }
 
 /** Null means "not yours to see" — the caller renders a 404, never a 403. */
-export function getScorecard(user: AuthedUser, scorecardId: string): Promise<ScorecardDetail | null> {
+export function getScorecard(
+  user: AuthedUser,
+  scorecardId: string,
+  options: GetScorecardOptions = {},
+): Promise<ScorecardDetail | null> {
   return withTenant(getAppDb(), user.tenantId, (tx) =>
-    getScorecardForViewer(tx, viewerOf(user), scorecardId),
+    getScorecardForViewer(tx, viewerOf(user), scorecardId, options),
+  );
+}
+
+/** The current Scorecard for a meeting — what a meeting-keyed screen wants. */
+export function getCurrentScorecardForMeeting(
+  user: AuthedUser,
+  meetingId: string,
+  options: GetScorecardOptions = {},
+): Promise<ScorecardDetail | null> {
+  return withTenant(getAppDb(), user.tenantId, (tx) =>
+    getCurrentScorecardForMeetingRow(tx, viewerOf(user), meetingId, options),
   );
 }
 
@@ -146,52 +163,59 @@ export async function overrideMeetingType(
   user: AuthedUser,
   scorecardId: string,
   meetingTypeId: string,
-): Promise<boolean> {
+): Promise<string | null> {
   const before = await getScorecard(user, scorecardId);
-  if (before === null) return false;
+  if (before === null) return null;
+  const now = demoClock().now();
 
   const outcome = await withTenant(getAppDb(), user.tenantId, (tx) =>
-    overrideMeetingTypeRow(tx, viewerOf(user), scorecardId, meetingTypeId),
+    overrideMeetingTypeRow(tx, viewerOf(user), scorecardId, meetingTypeId, now),
   );
-  if (!outcome.ok) return false;
+  if (!outcome.ok) return null;
 
   await withTenant(getAppDb(), user.tenantId, (tx) =>
     logScorecardEvent(tx, user.tenantId, {
       meetingId: before.meeting.id,
-      note: `Scorecard meeting type changed from ${outcome.previousTypeName ?? "unclassified"} to ${outcome.newTypeName} by ${user.name}; re-scored.`,
+      note: `Scorecard meeting type changed from ${outcome.previousTypeName ?? "unclassified"} to ${outcome.newTypeName} by ${user.name}; re-scored as a new version.`,
       oldValue: `${outcome.previousTypeName ?? "unclassified"} · ${formatScore(before.scorecard.overallScoreValue)}`,
       newValue: `${outcome.newTypeName} · pending`,
       actor: { userId: user.id, name: user.name },
-      occurredAt: demoClock().now(),
+      occurredAt: now,
     }),
   );
 
-  await enqueueScoreMeeting(user.tenantId, user.id, scorecardId);
-  return true;
+  // The NEW version is what the pipeline scores. Enqueuing the old id would hit the job's
+  // superseded guard and do nothing.
+  await enqueueScoreMeeting(user.tenantId, user.id, outcome.scorecardId);
+  return outcome.scorecardId;
 }
 
-export async function rescoreScorecard(user: AuthedUser, scorecardId: string): Promise<boolean> {
+export async function rescoreScorecard(
+  user: AuthedUser,
+  scorecardId: string,
+): Promise<string | null> {
   const before = await getScorecard(user, scorecardId);
-  if (before === null) return false;
+  if (before === null) return null;
+  const now = demoClock().now();
 
-  const ok = await withTenant(getAppDb(), user.tenantId, (tx) =>
-    requestRescoreRow(tx, viewerOf(user), scorecardId),
+  const outcome = await withTenant(getAppDb(), user.tenantId, (tx) =>
+    requestRescoreRow(tx, viewerOf(user), scorecardId, now),
   );
-  if (!ok) return false;
+  if (!outcome.ok) return null;
 
   await withTenant(getAppDb(), user.tenantId, (tx) =>
     logScorecardEvent(tx, user.tenantId, {
       meetingId: before.meeting.id,
-      note: `Scorecard re-scored by ${user.name}.`,
+      note: `Scorecard re-scored by ${user.name}; the previous version is kept.`,
       oldValue: formatScore(before.scorecard.overallScoreValue),
       newValue: "pending",
       actor: { userId: user.id, name: user.name },
-      occurredAt: demoClock().now(),
+      occurredAt: now,
     }),
   );
 
-  await enqueueScoreMeeting(user.tenantId, user.id, scorecardId);
-  return true;
+  await enqueueScoreMeeting(user.tenantId, user.id, outcome.scorecardId);
+  return outcome.scorecardId;
 }
 
 function formatScore(value: number | null): string {

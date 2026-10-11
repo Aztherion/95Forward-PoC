@@ -63,8 +63,13 @@ export async function runScoreMeetingJob(
   if (loaded === null) return;
 
   // A Scorecard that is already `ready` is the normal shape of a duplicate delivery. Re-scoring is
-  // an explicit action (requestRescore puts it back to `queued`), never something a retry does.
+  // an explicit action (it creates a NEW Scorecard), never something a retry does.
   if (!CLAIMABLE.includes(loaded.scorecard.status)) return;
+
+  // A SUPERSEDED Scorecard is history and history is immutable. A job enqueued for a version that
+  // has since been overridden or re-scored must do nothing — otherwise a slow worker could finish
+  // against the old version and write results into a record a human has already moved past.
+  if (!loaded.scorecard.isCurrent) return;
 
   const { meeting } = loaded;
   let snapshot = snapshotOf(loaded.scorecard.definitionSnapshot);

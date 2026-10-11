@@ -120,11 +120,12 @@ export async function overrideMeetingTypeAction(
   if (!scorecardId || !meetingTypeId) return { ok: false, error: "Nothing to change" };
 
   try {
-    const ok = await overrideMeetingType(user, scorecardId, meetingTypeId);
+    // The NEW version's id comes back — I32 polls that, not the one it submitted.
+    const created = await overrideMeetingType(user, scorecardId, meetingTypeId);
     // Same answer for "no such scorecard" and "not yours" — see getScorecardForViewer.
-    if (!ok) return { ok: false, error: "That scorecard could not be found." };
-    revalidateScorecards(scorecardId);
-    return { ok: true, scorecardId };
+    if (created === null) return { ok: false, error: "That scorecard could not be found." };
+    revalidateScorecards(created);
+    return { ok: true, scorecardId: created };
   } catch (error) {
     if (error instanceof InUseError) return { ok: false, error: error.message };
     return { ok: false, error: messageOf(error, "Could not change the meeting type") };
@@ -145,10 +146,10 @@ export async function rescoreScorecardAction(
   const scorecardId = text(formData, "scorecardId");
   if (!scorecardId) return { ok: false, error: "Nothing to re-score" };
 
-  const ok = await rescoreScorecard(user, scorecardId);
-  if (!ok) return { ok: false, error: "That scorecard could not be found." };
-  revalidateScorecards(scorecardId);
-  return { ok: true, scorecardId };
+  const created = await rescoreScorecard(user, scorecardId);
+  if (created === null) return { ok: false, error: "That scorecard could not be found." };
+  revalidateScorecards(created);
+  return { ok: true, scorecardId: created };
 }
 
 // ---- Meeting Type and Scorecard Definition CRUD -----------------------------------------------

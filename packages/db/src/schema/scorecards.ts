@@ -12,9 +12,15 @@ import {
   unique,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { primaryId, tenantScoped, timestamps } from "./columns";
-import { criterionTypeEnum, meetingSourceTypeEnum, scorecardStatusEnum } from "./enums";
+import {
+  criterionTypeEnum,
+  meetingSourceTypeEnum,
+  scorecardStatusEnum,
+  supersedeReasonEnum,
+} from "./enums";
 import { forwardOpportunities } from "./forward";
 import { prospects } from "./prospects";
 import { users } from "./users";
@@ -211,10 +217,25 @@ export const meetings = pgTable(
 /**
  * The result of scoring one Meeting against one Scorecard Definition.
  *
- * ONE CURRENT SCORECARD PER MEETING (unique on meeting_id). An override or a re-score replaces the
- * results in place rather than appending a second Scorecard — so "the Scorecard for this meeting"
- * is always one thing a manager and a rep can both point at. The cost of that choice is that no
- * history of previous scorings is kept; see the report.
+ * VERSIONED, WITH EXACTLY ONE CURRENT (partial unique index on meeting_id WHERE is_current).
+ *
+ * An override or a re-score INSERTS A NEW SCORECARD and supersedes the old one; it does not
+ * overwrite it. "The Scorecard for this meeting" is still one thing a manager and a rep can both
+ * point at — `is_current` — but the previous ones survive with their own Criterion Results
+ * attached, which is what makes three later questions answerable:
+ *
+ *   • did this rep improve, or did we change the rubric? (the old snapshot is still there)
+ *   • what did the classifier originally think, before a human overruled it?
+ *   • how did the new model score the same meetings as the old one?
+ *
+ * That last is the sharp one. The audit columns record which model produced a score; when the
+ * decision-model wrapper replaces the interim model and everything is re-scored, replacing in
+ * place would overwrite every prior result — destroying exactly the comparison you want when
+ * swapping the model behind a seam. Append-only costs little now and is expensive to retrofit,
+ * which is the same argument I18 made for the event log.
+ *
+ * The partial unique index — not application logic — is what guarantees a single current version
+ * under a concurrent re-score.
  */
 export const scorecards = pgTable(
   "scorecards",
@@ -263,11 +284,25 @@ export const scorecards = pgTable(
     scoreInputTokens: integer("score_input_tokens"),
     scoreOutputTokens: integer("score_output_tokens"),
     scoredAt: timestamp("scored_at", { withTimezone: true }),
+    // ---- Versioning (I31b) ----
+    /** Exactly one per meeting, enforced by the partial unique index below. */
+    isCurrent: boolean("is_current").notNull().default(true),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+    /** The Scorecard that replaced this one. Null while this one is current. */
+    supersededBy: uuid("superseded_by").references((): AnyPgColumn => scorecards.id, {
+      onDelete: "set null",
+    }),
+    supersedeReason: supersedeReasonEnum("supersede_reason"),
     ...timestamps,
   },
   (table) => [
     index("scorecards_tenant_id_idx").on(table.tenantId),
-    unique("scorecards_meeting_unique").on(table.meetingId),
+    index("scorecards_meeting_id_idx").on(table.meetingId),
+    // The whole versioning invariant, in one line the database enforces. A plain unique on
+    // meeting_id would forbid history; application logic would lose the race.
+    uniqueIndex("scorecards_one_current_per_meeting")
+      .on(table.meetingId)
+      .where(sql`${table.isCurrent}`),
     index("scorecards_definition_id_idx").on(table.definitionId),
     index("scorecards_meeting_type_id_idx").on(table.meetingTypeId),
     index("scorecards_status_idx").on(table.status),

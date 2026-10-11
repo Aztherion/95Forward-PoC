@@ -765,7 +765,13 @@ export async function listScorecards(
   options: ListScorecardsOptions = {},
 ): Promise<ScorecardListRow[]> {
   const reporterIds = await visibleReporterIds(db, viewer);
-  const filters: SQL[] = [eq(scorecards.tenantId, viewer.tenantId), visibleTo(reporterIds)];
+  const filters: SQL[] = [
+    eq(scorecards.tenantId, viewer.tenantId),
+    visibleTo(reporterIds),
+    // CURRENT ONLY. A list that showed superseded versions would show the same meeting several
+    // times with different scores, which is the opposite of what a list is for.
+    eq(scorecards.isCurrent, true),
+  ];
   if (options.reportedBy !== undefined) {
     // Narrowing within what they may already see — never widening it.
     filters.push(eq(meetings.reportedBy, options.reportedBy));
@@ -827,15 +833,36 @@ export async function listScorecards(
   }));
 }
 
+export type ScorecardResultView = Omit<CriterionResultRow, "scoreValue"> & {
+  readonly scoreValue: number | null;
+};
+
+/** One superseded version of a Scorecard, with the results it produced. */
+export interface ScorecardVersion {
+  readonly scorecard: ScorecardRow & { readonly overallScoreValue: number | null };
+  readonly snapshot: ScorecardDefinitionSnapshot | null;
+  readonly results: readonly ScorecardResultView[];
+}
+
 export interface ScorecardDetail {
   readonly scorecard: ScorecardRow & { readonly overallScoreValue: number | null };
   readonly meeting: MeetingRow;
   readonly snapshot: ScorecardDefinitionSnapshot | null;
-  readonly results: readonly (Omit<CriterionResultRow, "scoreValue"> & {
-    readonly scoreValue: number | null;
-  })[];
+  readonly results: readonly ScorecardResultView[];
   readonly reportedByName: string;
   readonly subjectName: string;
+  /**
+   * Prior versions of this meeting's Scorecard, newest first — EMPTY unless asked for.
+   *
+   * Off by default because the common read is "show me this Scorecard", and loading every
+   * superseded version's criterion results to render one card is work nobody asked for.
+   */
+  readonly versions: readonly ScorecardVersion[];
+}
+
+export interface GetScorecardOptions {
+  /** Load the superseded versions of this meeting's Scorecard into `versions`. */
+  readonly includeVersions?: boolean;
 }
 
 /**
@@ -849,6 +876,7 @@ export async function getScorecardForViewer(
   db: Database,
   viewer: ScorecardViewer,
   scorecardId: string,
+  options: GetScorecardOptions = {},
 ): Promise<ScorecardDetail | null> {
   const reporterIds = await visibleReporterIds(db, viewer);
   const [row] = await db
@@ -894,7 +922,80 @@ export async function getScorecardForViewer(
     results: results.map((result) => ({ ...result, scoreValue: toNumber(result.scoreValue) })),
     reportedByName: row.reportedByName,
     subjectName: row.subjectName ?? "Unknown",
+    versions: options.includeVersions === true
+      ? await loadPriorVersions(db, viewer.tenantId, row.meeting.id, scorecardId)
+      : [],
   };
+}
+
+/**
+ * Every OTHER Scorecard for this meeting, newest first, each with its own results.
+ *
+ * The results come from one query keyed on the version ids rather than one query per version —
+ * a meeting re-scored a dozen times would otherwise be a dozen round trips to render one history.
+ */
+async function loadPriorVersions(
+  db: Database,
+  tenantId: string,
+  meetingId: string,
+  exceptId: string,
+): Promise<ScorecardVersion[]> {
+  const rows = await db
+    .select()
+    .from(scorecards)
+    .where(
+      and(
+        eq(scorecards.tenantId, tenantId),
+        eq(scorecards.meetingId, meetingId),
+        sql`${scorecards.id} <> ${exceptId}`,
+      ),
+    )
+    .orderBy(desc(scorecards.createdAt));
+  if (rows.length === 0) return [];
+
+  const results = await db
+    .select()
+    .from(criterionResults)
+    .where(
+      and(
+        eq(criterionResults.tenantId, tenantId),
+        inArray(
+          criterionResults.scorecardId,
+          rows.map((row) => row.id),
+        ),
+      ),
+    );
+
+  return rows.map((row) => ({
+    scorecard: { ...row, overallScoreValue: toNumber(row.overallScore) },
+    snapshot: readSnapshot(row.definitionSnapshot),
+    results: results
+      .filter((result) => result.scorecardId === row.id)
+      .map((result) => ({ ...result, scoreValue: toNumber(result.scoreValue) })),
+  }));
+}
+
+/** The current Scorecard for a meeting, which is what every meeting-keyed read wants. */
+export async function getCurrentScorecardForMeeting(
+  db: Database,
+  viewer: ScorecardViewer,
+  meetingId: string,
+  options: GetScorecardOptions = {},
+): Promise<ScorecardDetail | null> {
+  const [row] = await db
+    .select({ id: scorecards.id })
+    .from(scorecards)
+    .where(
+      and(
+        eq(scorecards.tenantId, viewer.tenantId),
+        eq(scorecards.meetingId, meetingId),
+        eq(scorecards.isCurrent, true),
+      ),
+    )
+    .limit(1);
+  if (!row) return null;
+  // Through the same function, so the visibility rule is applied exactly once.
+  return getScorecardForViewer(db, viewer, row.id, options);
 }
 
 /** Status only — what I32 polls while the pipeline runs. Same visibility rule, same 404 shape. */
@@ -1125,14 +1226,80 @@ export async function recordScoring(
  *
  * Returns the ids the caller needs to enqueue the scoring leg.
  */
+/**
+ * Supersede the current Scorecard for a meeting and return the row that replaced it.
+ *
+ * ONE TRANSACTION, AND THE ORDER MATTERS. The old row is flipped to `is_current = false` FIRST and
+ * the new one inserted second, because Postgres checks the partial unique index per statement —
+ * inserting first would collide with the row still marked current.
+ *
+ * The flip is a COMPARE-AND-SWAP on `is_current`. Two concurrent re-scores both try it; the second
+ * blocks on the row lock, re-evaluates its predicate after the first commits, matches nothing, and
+ * aborts rather than creating a second current version. The partial unique index is the backstop
+ * if that reasoning is ever wrong.
+ */
+async function supersedeCurrent(
+  tx: Tx,
+  tenantId: string,
+  currentId: string,
+  reason: "override" | "rescore",
+  now: Date,
+  values: Omit<typeof scorecards.$inferInsert, "tenantId" | "meetingId">,
+  meetingId: string,
+): Promise<ScorecardRow | null> {
+  const flipped = await tx
+    .update(scorecards)
+    .set({ isCurrent: false, supersededAt: now, supersedeReason: reason })
+    .where(
+      and(
+        eq(scorecards.tenantId, tenantId),
+        eq(scorecards.id, currentId),
+        eq(scorecards.isCurrent, true),
+      ),
+    )
+    .returning({ id: scorecards.id });
+  // Somebody else superseded it between our read and this write. Theirs stands.
+  if (flipped.length === 0) return null;
+
+  const [inserted] = await tx
+    .insert(scorecards)
+    .values({ tenantId, meetingId, isCurrent: true, ...values })
+    .returning();
+  if (!inserted) throw new Error("supersedeCurrent: insert returned no row");
+
+  await tx
+    .update(scorecards)
+    .set({ supersededBy: inserted.id })
+    .where(and(eq(scorecards.tenantId, tenantId), eq(scorecards.id, currentId)));
+
+  return inserted;
+}
+
+/**
+ * A human picks a different Meeting Type.
+ *
+ * Classification is NOT re-run — a person has overruled it, and asking the model again would be
+ * asking it to disagree with the human who just corrected it. A NEW Scorecard is created against
+ * the new type's active definition and the old one is kept, superseded, with its own results
+ * intact: "the classifier said Discovery Visit and Ruth said Ask Visit" is a fact worth keeping.
+ *
+ * The classifier's original rationale and its audit row travel forward, because they are still
+ * true of this meeting — what changed is who decided, which `meeting_type_overridden_by` records.
+ */
 export async function overrideMeetingType(
   db: Database,
   viewer: ScorecardViewer,
   scorecardId: string,
   meetingTypeId: string,
-): Promise<{ ok: true; previousTypeName: string | null; newTypeName: string } | { ok: false }> {
+  now: Date,
+): Promise<
+  | { ok: true; scorecardId: string; previousTypeName: string | null; newTypeName: string }
+  | { ok: false }
+> {
   const detail = await getScorecardForViewer(db, viewer, scorecardId);
   if (detail === null) return { ok: false };
+  // Only the current version can be overridden. Re-scoring history would make it history no more.
+  if (!detail.scorecard.isCurrent) return { ok: false };
 
   const definition = await getActiveDefinitionForType(db, viewer.tenantId, meetingTypeId);
   if (definition === undefined) {
@@ -1154,44 +1321,76 @@ export async function overrideMeetingType(
         .limit(1)
     : [];
 
-  await db
-    .update(scorecards)
-    .set({
-      meetingTypeId,
-      definitionId: definition.id,
-      definitionSnapshot: snapshot,
-      meetingTypeOverriddenBy: viewer.userId,
-      // Fallback is a statement about what the CLASSIFIER did. Once a human has chosen, it is no
-      // longer true of the type on the card.
-      usedFallback: false,
-      status: "scoring",
-      failureReason: null,
-    })
-    .where(and(eq(scorecards.tenantId, viewer.tenantId), eq(scorecards.id, scorecardId)));
+  const created = await db.transaction((tx) =>
+    supersedeCurrent(
+      tx,
+      viewer.tenantId,
+      scorecardId,
+      "override",
+      now,
+      {
+        meetingTypeId,
+        definitionId: definition.id,
+        definitionSnapshot: snapshot,
+        meetingTypeOverriddenBy: viewer.userId,
+        // Fallback is a statement about what the CLASSIFIER did. Once a human has chosen, it is
+        // no longer true of the type on the card.
+        usedFallback: false,
+        status: "scoring",
+        failureReason: null,
+        // Classification was not re-run, so its record travels with the new version.
+        classificationRationale: detail.scorecard.classificationRationale,
+        classifyModel: detail.scorecard.classifyModel,
+        classifyLatencyMs: detail.scorecard.classifyLatencyMs,
+        classifyInputTokens: detail.scorecard.classifyInputTokens,
+        classifyOutputTokens: detail.scorecard.classifyOutputTokens,
+        promptVersion: detail.scorecard.promptVersion,
+      },
+      detail.meeting.id,
+    ),
+  );
+  if (created === null) return { ok: false };
 
   return {
     ok: true,
+    scorecardId: created.id,
     previousTypeName: previousType?.name ?? null,
     newTypeName: snapshot.meetingTypeName,
   };
 }
 
-/** Re-run the whole pipeline on the same meeting — useful when a definition has changed. */
+/**
+ * Re-run the whole pipeline on the same meeting — useful when a definition has changed.
+ *
+ * A NEW Scorecard, back at `queued` with an empty snapshot: classification runs again too, because
+ * a changed definition can also mean the type now resolves differently. The previous version and
+ * its results are untouched, which is what lets someone later ask whether the rep improved or the
+ * rubric moved.
+ */
 export async function requestRescore(
   db: Database,
   viewer: ScorecardViewer,
   scorecardId: string,
-): Promise<boolean> {
+  now: Date,
+): Promise<{ ok: true; scorecardId: string } | { ok: false }> {
   const detail = await getScorecardForViewer(db, viewer, scorecardId);
-  if (detail === null) return false;
-  // Back to the start of the pipeline, classification included: a re-score exists for the case
-  // where the DEFINITION changed, and the type may now resolve differently too.
+  if (detail === null) return { ok: false };
+  if (!detail.scorecard.isCurrent) return { ok: false };
   assertScorecardTransition(detail.scorecard.status, "queued");
-  await db
-    .update(scorecards)
-    .set({ status: "queued", failureReason: null })
-    .where(and(eq(scorecards.tenantId, viewer.tenantId), eq(scorecards.id, scorecardId)));
-  return true;
+
+  const created = await db.transaction((tx) =>
+    supersedeCurrent(
+      tx,
+      viewer.tenantId,
+      scorecardId,
+      "rescore",
+      now,
+      { definitionSnapshot: {}, status: "queued" },
+      detail.meeting.id,
+    ),
+  );
+  if (created === null) return { ok: false };
+  return { ok: true, scorecardId: created.id };
 }
 
 /**

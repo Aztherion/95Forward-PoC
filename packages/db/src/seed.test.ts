@@ -1058,17 +1058,40 @@ describe("seed: scorecards (I31)", () => {
     ).toBe(true);
   });
 
-  it("gives the strong and the weak discovery visit visibly different scores", async () => {
+  it("spreads the two discovery visits across the range a manager can act on", async () => {
     if (!handle) return;
     const strong = await db.query.scorecards.findFirst({
       where: eq(scorecards.id, stableId("scorecard:vega-discovery")),
     });
-    const weak = await db.query.scorecards.findFirst({
+    const middling = await db.query.scorecards.findFirst({
       where: eq(scorecards.id, stableId("scorecard:ridgeway-discovery")),
     });
     const score = (value: string | null | undefined) => (value === null ? null : Number(value));
     expect(score(strong?.overallScore)).toBeGreaterThan(0.9);
-    expect(score(weak?.overallScore)).toBeLessThan(0.1);
+    // Deliberately mid-range, NOT near zero. The coachable case is the competent rep with two
+    // fixable habits, not the catastrophe — a scorecard that only separates excellent from awful
+    // has nothing to say to anybody in between.
+    const weak = score(middling?.overallScore);
+    expect(weak).toBeGreaterThanOrEqual(0.35);
+    expect(weak).toBeLessThanOrEqual(0.5);
+  });
+
+  it("the middling visit gets the priority and money questions right and the close wrong", async () => {
+    if (!handle) return;
+    // The point of a mid-range score is that it is specific. These are the two habits to fix.
+    const rows = await db.query.criterionResults.findMany({
+      where: eq(criterionResults.scorecardId, stableId("scorecard:ridgeway-discovery")),
+    });
+    const byCriterion = (section: string, key: string) =>
+      rows.find(
+        (row) =>
+          row.criterionId === stableId(`scorecard-criterion:discovery:${section}:${key}`),
+      );
+    expect(byCriterion("discovery", "why-involved")?.booleanValue).toBe(false);
+    expect(byCriterion("discovery", "which-priority")?.booleanValue).toBe(true);
+    expect(byCriterion("discovery", "could-help-fund")?.booleanValue).toBe(true);
+    expect(byCriterion("next-step", "dated-next-step")?.booleanValue).toBe(false);
+    expect(Number(byCriterion("dialogue", "kept-dialogue")?.scoreValue ?? 1)).toBeLessThan(0.5);
   });
 
   it("leaves the all-not-determinable Scorecard with a NULL overall score, not a zero", async () => {

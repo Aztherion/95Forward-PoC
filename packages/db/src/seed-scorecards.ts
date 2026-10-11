@@ -515,7 +515,7 @@ const MEETINGS: MeetingSeed[] = [
     ],
   },
 
-  // -- The weak discovery visit -----------------------------------------------------------------
+  // -- The middling discovery visit ------------------------------------------------------------
   {
     key: "ridgeway-discovery",
     rep: "priya",
@@ -526,76 +526,76 @@ const MEETINGS: MeetingSeed[] = [
     definitionKey: "discovery",
     usedFallback: false,
     classificationRationale:
-      "An early-relationship meeting with no figure requested and no proposal on the table. It is a discovery visit by intent; what it contains is a briefing.",
-    role: "The manager comparison's lower half. Same type, same rep level, visibly different room.",
+      "Motivation, past board experience and which priority matters are all explored, and the fundraiser explicitly declines to name a figure. No proposal is on the table.",
+    role:
+      "The manager comparison's lower half — and deliberately NOT a disaster. A competent visit with two specific, fixable habits: she never asks why he is involved, and she talks for two minutes at a stretch. A scorecard that only separates excellent from catastrophic cannot coach anybody.",
     results: [
       {
         criterion: "discovery/why-involved",
         determinable: true,
         value: false,
         rationale:
-          "The stated purpose was to update him. No question about his connection to the cause was asked at any point in the recording.",
+          "Never asked. The one moment that invited it — his unprompted remark about reading the annual report — she answered by explaining her own organisation at length instead of asking what drew him to it.",
         quote:
-          "I thought it would be good to give you a proper update on where everything has got to since we last spoke.",
+          "Can I tell you where that changed? Because it is the thing I would most want you to understand about how we work now",
       },
       {
         criterion: "discovery/which-priority",
         determinable: true,
-        value: false,
+        value: true,
         rationale:
-          "Both programmes were presented at length and the follow-up material was chosen for him. He was never asked which of them he cared about.",
+          "Asked well: named four things, asked him to choose between them, and explicitly ruled out the dutiful answer — which is what produced an honest one.",
         quote:
-          "I will send over the Bolivia briefing as well, the one with the regional map in it",
+          "Of those, which one actually holds your attention? Not which one you think you ought to pick.",
       },
       {
         criterion: "discovery/could-help-fund",
         determinable: true,
-        value: false,
+        value: true,
         rationale:
-          "Unrestricted support was raised and then immediately apologised for. No question about whether he could help fund it was put to him.",
+          "The money question was put in principle, without a figure, and with a stated willingness to hear no.",
         quote:
-          "And obviously the unrestricted side is the part that makes all of that possible, which I always feel slightly awkward saying",
+          "is this the kind of work you could see yourself supporting at a level that would actually change what we are able to commit to?",
       },
       {
         criterion: "dialogue/kept-dialogue",
         determinable: true,
-        value: 0.15,
+        value: 0.35,
         rationale:
-          "Near-uninterrupted presenting for the first five minutes of the transcript. The prospect's longest contribution is four words, and the only question asked of him comes after the substance is over.",
-        quote: "Mm hm.",
+          "Two monologues of roughly two minutes each dominate the middle of the conversation, and the prospect's reply to the first is three words. The exchanges either side of them are genuinely two-way, which is why this is not lower.",
+        quote: "That is a lot.",
       },
       {
         criterion: "dialogue/avoided-objections",
         determinable: true,
-        value: 0.1,
+        value: 0.75,
         rationale:
-          "Two concerns were introduced unprompted — sector press about overheads, and rising costs — and the prospect said explicitly he had not been thinking about the first.",
-        quote:
-          "I know that there has been a lot in the press about the sector and about overheads, and I completely understand if that is something you have questions about.",
+          "Largely clean — she gave him permission to decline rather than arguing pre-emptively. One wobble: she volunteered that this is the hardest thing to fundraise for, a difficulty he had not raised.",
+        quote: "it is also, I should say, the single hardest thing to fundraise for",
       },
       {
         criterion: "next-step/dated-next-step",
         determinable: true,
         value: false,
         rationale:
-          "The meeting closed on an open invitation with no date, no slot and no commitment on either side.",
-        quote: "Let me know when you are next down this way.",
+          "The close was left entirely open. Material was promised, a further conversation was agreed in principle, and no date, slot or trigger was attached to either.",
+        quote: "Yes. Let us see where the house is by then.",
       },
       {
         criterion: "next-step/asked-referral",
         determinable: true,
         value: false,
         rationale:
-          "No one else was mentioned and no referral was sought; the closing exchange is about the next visit, not about other people.",
-        quote: "And then we will catch up again, I am sure.",
+          "Nobody outside the room was discussed. He mentioned sitting on two boards — an open door to the question — and it went unremarked.",
+        quote: "Good. Thank you, Priya. This was more interesting than I expected.",
       },
       {
         criterion: "next-step/outcome",
         determinable: true,
         value: "other",
         rationale:
-          "Nothing was booked, no name was given, and the prospect did not refuse anything — material was promised with no date attached.",
-        quote: "Yes. Let me know when you are next down this way.",
+          "Written material was promised and a further conversation agreed, but no date was fixed and no name was given.",
+        quote: "I will send it through and we will go from there.",
       },
     ],
   },

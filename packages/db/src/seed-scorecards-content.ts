@@ -76,45 +76,62 @@ Speakers: Dana Reese, Marisol Vega
 
 [Recording ended 00:41:18 — remaining audio is informal conversation after the meeting closed]`;
 
-/** The weak discovery visit. Priya Nair × Eli Ridgeway — same type, visibly different room. */
+/**
+ * The middling discovery visit. Priya Nair × Eli Ridgeway.
+ *
+ * NOT a disaster, which is the point. She opens well, builds real rapport, asks him to choose a
+ * priority and puts the money question in principle — and then never asks why he is involved at
+ * all, talks for minutes at a stretch, and leaves without a date. A scorecard that only separates
+ * excellent from catastrophic is not a coaching instrument; the useful case is the competent rep
+ * with two specific habits to fix, and this is it.
+ */
 export const RIDGEWAY_DISCOVERY_TRANSCRIPT = `Otter.ai — Recording
-Title: Eli Ridgeway catch up
+Title: Eli Ridgeway — Colorado Springs
 Date: 20 August 2026
-Duration: 28:04
+Duration: 34:51
 Speakers: Priya Nair, Eli Ridgeway
 
-[00:00:11] Priya Nair: Eli, thanks so much for the time. I thought it would be good to give you a proper update on where everything has got to since we last spoke.
-[00:00:21] Eli Ridgeway: Sure, happy to hear it.
-[00:00:25] Priya Nair: So, a lot has happened. The Kamuli programme is in its final year, which means we are in the part of the work that nobody funds and everybody benefits from, which is the handover. We have got the district government co-signing service agreements now, which was not the case two years ago. The monitoring framework has been rebuilt — we are on the fourth version of it and this one actually works, it is lighter, the district can run it themselves. We have also brought in a new regional director who came from the public sector side, which has changed how we are received in meetings with the ministry.
-[00:01:48] Eli Ridgeway: Mm hm.
-[00:01:51] Priya Nair: And then Bolivia is the bigger piece. That is a three-year scale-up and we are in year one of three. The theory there is the same but the scale is completely different, we are talking about a whole region rather than a district, so the institutional side matters even more. There is a lot of work going into the municipal relationships before we put anything in the ground.
-[00:02:34] Eli Ridgeway: Right.
-[00:02:37] Priya Nair: I brought the annual report, I will leave it with you. The photography is lovely this year.
-[00:02:46] Eli Ridgeway: Thank you.
-[00:02:49] Priya Nair: And obviously the unrestricted side is the part that makes all of that possible, which I always feel slightly awkward saying because it is the least exciting thing to talk about. Nobody gets a photograph of an unrestricted gift.
-[00:03:08] Eli Ridgeway: No, I suppose not.
-[00:03:12] Priya Nair: I should say as well, I know that there has been a lot in the press about the sector and about overheads, and I completely understand if that is something you have questions about. Some organisations have not covered themselves in glory.
-[00:03:31] Eli Ridgeway: I had not actually been thinking about that.
-[00:03:36] Priya Nair: No, no, I just wanted to put it on the table in case.
-[00:03:42] Eli Ridgeway: Right.
-[00:03:45] Priya Nair: And the other thing I should flag is that our costs have gone up quite a lot, which is partly currency and partly that we have been paying people properly, which we should have been doing before.
-[00:04:02] Eli Ridgeway: That seems sensible.
-[00:04:06] Priya Nair: It is, it is just a difficult thing to fundraise against.
-[00:04:12] Eli Ridgeway: I imagine so.
-[00:04:16] Priya Nair: So. That is the picture, really. I did not want to take up your whole morning.
-[00:04:24] Eli Ridgeway: It is no trouble.
-[00:04:27] Priya Nair: Is there anything that you wanted to ask me about any of that?
-[00:04:33] Eli Ridgeway: Not off the top of my head, no. It all sounds like it is going well.
-[00:04:40] Priya Nair: It is going well. There is a lot of it, but it is going well.
-[00:04:47] Eli Ridgeway: Good.
-[00:04:50] Priya Nair: Well, look, I will leave the report with you and I will send over the Bolivia briefing as well, the one with the regional map in it, because I think that is the clearest explanation of what we are actually trying to do.
-[00:05:06] Eli Ridgeway: That would be interesting.
-[00:05:09] Priya Nair: And then we will catch up again, I am sure.
-[00:05:14] Eli Ridgeway: Yes. Let me know when you are next down this way.
-[00:05:20] Priya Nair: I will do. Thank you, Eli. Genuinely appreciate it.
-[00:05:26] Eli Ridgeway: Not at all. Safe drive.
+[00:00:14] Priya Nair: Eli, thank you. I know you had to move two things to make this work.
+[00:00:21] Eli Ridgeway: Only one, and it was a dental appointment, so you have done me a favour.
+[00:00:29] Priya Nair: Then I will take the credit. How is the knee?
+[00:00:34] Eli Ridgeway: Mending. Slower than the surgeon promised, faster than my wife predicted.
+[00:00:42] Priya Nair: That sounds like the right side of both.
+[00:00:47] Eli Ridgeway: It does mean I have been at home a great deal, which is how I ended up reading your annual report cover to cover. I do not think I have ever done that with anybody's.
+[00:01:01] Priya Nair: Now I am genuinely flattered and slightly alarmed.
+[00:01:06] Eli Ridgeway: The monitoring section was the part that surprised me. I had assumed that sort of thing was an afterthought in this sector.
+[00:01:17] Priya Nair: It was, for us, for a long time. Can I tell you where that changed? Because it is the thing I would most want you to understand about how we work now, and it is not a short answer.
+[00:01:31] Eli Ridgeway: Go on.
+[00:01:34] Priya Nair: So, the short version of the long version is that in 2016 we went back to a district we had exited four years earlier, and the numbers were not what we had reported. Not catastrophically, but enough. About a third of the water points were either dry or producing something you would not want to drink, and the committees that were supposed to be maintaining them had quietly stopped meeting. And the uncomfortable part was that nobody had lied. Every report we had filed was accurate on the day it was filed. We just had no mechanism that told us anything about year four, so we had built an entire organisation that was structurally incapable of noticing its own failures. That took about eighteen months to fully absorb, and what came out of it was the monitoring framework, which is now on its fourth version and is the thing I would defend hardest if you pushed on it. It is lighter than the first three, it runs on the district's own staff rather than ours, and it produces numbers that can embarrass us, which is the only kind worth having. And it is also, I should say, the single hardest thing to fundraise for, because what you are buying is the ability to find out you were wrong.
+[00:03:21] Eli Ridgeway: That is a lot.
+[00:03:24] Priya Nair: It is. Sorry. I get going on it.
+[00:03:29] Eli Ridgeway: No, it is interesting. I would not have guessed any of that.
+[00:03:36] Priya Nair: Can I ask you something, then. We have three or four things we are asking people to think about at the moment — the Kamuli handover, the Bolivia scale-up, the long-term sustainability work, and then the unglamorous unrestricted side that pays for the monitoring we were just talking about. Of those, which one actually holds your attention? Not which one you think you ought to pick.
+[00:04:02] Eli Ridgeway: Honestly? The unglamorous one.
+[00:04:07] Priya Nair: Say more.
+[00:04:11] Eli Ridgeway: I have sat on two boards. Both times the thing that nearly sank us was that every donor wanted their name on something visible and nobody would pay the electricity bill. I recognised that immediately in what you just described.
+[00:04:30] Priya Nair: That is — yes. That is exactly it.
+[00:04:36] Eli Ridgeway: So that is where my attention goes.
+[00:04:41] Priya Nair: Good. Then let me tell you a bit more about what that actually funds, because I think it is more specific than people assume. It is three things really. It is the monitoring we talked about. It is the regional staff who stay on after a district is handed over, which is about eleven people at the moment across both countries, and those are the posts that get cut first everywhere else in the sector. And it is a reserve that lets us commit to a district before a grant has actually landed, which sounds like accounting but is the difference between starting in January and starting in September. The Kamuli handover is only happening on the timeline it is happening on because we were able to commit from the reserve in February and the money that backfilled it did not arrive until June. Without that we would have lost most of a construction season, and in that part of Uganda losing a season is not a delay, it is a year.
+[00:06:02] Eli Ridgeway: I had not thought about it as enabling the timing.
+[00:06:08] Priya Nair: Most people do not. It is hard to put in a photograph.
+[00:06:14] Eli Ridgeway: No.
+[00:06:18] Priya Nair: Can I ask the awkward question, Eli? I am not going to name a figure today, and I do not want you to feel I have come here to do that. But is this the kind of work you could see yourself supporting at a level that would actually change what we are able to commit to? Because if the answer is that you are comfortable where you are, that is a completely fine answer and it does not change anything between us.
+[00:06:47] Eli Ridgeway: I think it probably is, yes. I would want to understand what the level means.
+[00:06:56] Priya Nair: That is fair, and I would rather do that properly than guess at it in the next five minutes.
+[00:07:04] Eli Ridgeway: There is also the question of when. We are in the middle of something with the house.
+[00:07:12] Priya Nair: Then we do it when it suits you rather than when it suits our calendar.
+[00:07:19] Eli Ridgeway: I appreciate that.
+[00:07:23] Priya Nair: Let me put something in writing on what the unrestricted side actually covers — the eleven posts, the reserve, the monitoring — with real numbers rather than a brochure. I will get that to you.
+[00:07:38] Eli Ridgeway: I would read that.
+[00:07:42] Priya Nair: And then we should talk properly.
+[00:07:47] Eli Ridgeway: Yes. Let us see where the house is by then.
+[00:07:53] Priya Nair: Of course. I will send it through and we will go from there.
+[00:08:00] Eli Ridgeway: Good. Thank you, Priya. This was more interesting than I expected.
+[00:08:07] Priya Nair: That is the nicest thing anyone has said to me this week.
+[00:08:13] Eli Ridgeway: Low bar.
+[00:08:15] Priya Nair: Extremely.
 
-[Recording ended 00:28:04 — the remaining audio is a discussion of the parking arrangements and the weather]`;
+[Recording ended 00:34:51 — remaining audio is a conversation about the drive back]`;
 
 /** The ask visit that ended in a roadmap. Dana Reese × the Hallworth trustees, Denver, 12 June. */
 export const HALLWORTH_ASK_TRANSCRIPT = `Otter.ai — Recording

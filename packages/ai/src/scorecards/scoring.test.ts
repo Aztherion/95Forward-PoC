@@ -7,6 +7,7 @@ import {
   meetingTypes,
   meetings,
   reportMeeting,
+  requestRescore,
   stableId,
   seed,
   users,
@@ -262,6 +263,42 @@ describe("the scoring pipeline (mock mode)", () => {
     expect(final?.results).toHaveLength(criterionCount);
     expect(third.classifyCalls).toBe(0);
     expect(third.scoreCalls).toBe(0);
+  }, 60_000);
+
+  maybe("does nothing to a SUPERSEDED scorecard — history is immutable", async () => {
+    const created = await scratchMeeting(
+      "Dana: Why are you involved? Marisol: My grandmother ran a clinic outside Oaxaca.",
+    );
+    // Re-score it, which supersedes the version we hold and creates a new current one.
+    const outcome = await requestRescore(
+      db,
+      dana,
+      created.scorecardId,
+      new Date("2026-09-12T12:00:00.000Z"),
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+
+    // A job enqueued for the OLD version arrives late. It must not write anything: a slow worker
+    // finishing against a version a human has already moved past would resurrect dead results.
+    const decider = new StubDecider(
+      () => Promise.reject(new Error("must not classify a superseded scorecard")),
+      () => Promise.reject(new Error("must not score a superseded scorecard")),
+    );
+    await runScoreMeetingJob(
+      { tenantId, userId: dana.userId, scorecardId: created.scorecardId },
+      { db, decider },
+    );
+    expect(decider.classifyCalls).toBe(0);
+    expect(decider.scoreCalls).toBe(0);
+
+    const stale = await getScorecardForViewer(db, dana, created.scorecardId);
+    expect(stale?.scorecard.isCurrent).toBe(false);
+    expect(stale?.results).toHaveLength(0);
+
+    // The current version is untouched and still waiting for its own job.
+    const current = await getScorecardForViewer(db, dana, outcome.scorecardId);
+    expect(current?.scorecard.status).toBe("queued");
   }, 60_000);
 
   maybe("verifies evidence quotes against the stored content", async () => {
