@@ -31,6 +31,13 @@ import {
   type ScorecardListRow,
   type ScorecardViewer,
 } from "@95forward/db";
+import { and, eq } from "drizzle-orm";
+import {
+  constituents,
+  forwardOpportunities,
+  fundingInitiatives,
+  prospects,
+} from "@95forward/db";
 import type { ScorecardDefinitionSnapshot, ScorecardStatus } from "@95forward/shared";
 import { getAppDb } from "@/server/db";
 import { enqueueScoreMeeting } from "@/server/jobs";
@@ -273,4 +280,109 @@ export function setDefinitionActive(
 
 export function deleteScorecardDefinition(user: AuthedUser, id: string): Promise<void> {
   return withTenant(getAppDb(), user.tenantId, (tx) => deleteDefinitionRow(tx, user.tenantId, id));
+}
+
+
+// =================================================================================================
+// Reads the SCREEN needs that the services do not already expose (I32)
+//
+// Both are projections for display. Neither re-implements a rule: visibility still comes from
+// `visibleReporterIds`, and the link picker is narrowed to what this user OWNS, which is a
+// narrower set than `reportMeeting` would accept.
+// =================================================================================================
+
+export interface MeetingLinkTarget {
+  readonly kind: "opportunity" | "prospect";
+  readonly id: string;
+  readonly prospectName: string;
+  /** Opportunities only — what makes two asks against the same prospect tellable apart. */
+  readonly initiativeName: string | null;
+  readonly amountCents: number | null;
+}
+
+/**
+ * What this user can link a meeting to: their own opportunities, then their own prospects.
+ *
+ * NARROWER THAN THE SERVICE ACCEPTS, on purpose. `reportMeeting` takes any link target in the
+ * tenant — it is a tenancy check, not an ownership one — but offering a rep the whole org's
+ * pipeline in a picker would be a worse screen, and only the rep themselves can report a meeting
+ * anyway. A manager with no portfolio of their own therefore gets an empty picker, which is the
+ * honest answer: there is nothing of theirs to report a meeting against.
+ *
+ * Opportunities come first because an opportunity-linked meeting carries more context, and the
+ * prospect is derived through it.
+ */
+export async function listMeetingLinkTargets(user: AuthedUser): Promise<MeetingLinkTarget[]> {
+  return withTenant(getAppDb(), user.tenantId, async (tx) => {
+    const opportunityRows = await tx
+      .select({
+        id: forwardOpportunities.id,
+        prospectName: constituents.displayName,
+        initiativeName: fundingInitiatives.name,
+        amountCents: forwardOpportunities.amountCents,
+      })
+      .from(forwardOpportunities)
+      .innerJoin(prospects, eq(prospects.id, forwardOpportunities.prospectId))
+      .innerJoin(constituents, eq(constituents.id, prospects.constituentId))
+      .innerJoin(fundingInitiatives, eq(fundingInitiatives.id, forwardOpportunities.initiativeId))
+      .where(
+        and(
+          eq(forwardOpportunities.tenantId, user.tenantId),
+          eq(forwardOpportunities.ownerUserId, user.id),
+          eq(forwardOpportunities.status, "open"),
+        ),
+      );
+
+    const prospectRows = await tx
+      .select({ id: prospects.id, prospectName: constituents.displayName })
+      .from(prospects)
+      .innerJoin(constituents, eq(constituents.id, prospects.constituentId))
+      .where(and(eq(prospects.tenantId, user.tenantId), eq(prospects.rmUserId, user.id)));
+
+    const opportunities: MeetingLinkTarget[] = opportunityRows
+      .map((row) => ({ kind: "opportunity" as const, ...row }))
+      .sort((a, b) => a.prospectName.localeCompare(b.prospectName));
+    const prospectTargets: MeetingLinkTarget[] = prospectRows
+      .map((row) => ({
+        kind: "prospect" as const,
+        id: row.id,
+        prospectName: row.prospectName,
+        initiativeName: null,
+        amountCents: null,
+      }))
+      .sort((a, b) => a.prospectName.localeCompare(b.prospectName));
+
+    return [...opportunities, ...prospectTargets];
+  });
+}
+
+export interface LinkedOpportunityChip {
+  readonly id: string;
+  readonly initiativeName: string;
+  readonly amountCents: number;
+}
+
+/** The opportunity behind an opportunity-linked meeting, for the detail header's link. */
+export async function getLinkedOpportunity(
+  user: AuthedUser,
+  opportunityId: string,
+): Promise<LinkedOpportunityChip | null> {
+  return withTenant(getAppDb(), user.tenantId, async (tx) => {
+    const [row] = await tx
+      .select({
+        id: forwardOpportunities.id,
+        initiativeName: fundingInitiatives.name,
+        amountCents: forwardOpportunities.amountCents,
+      })
+      .from(forwardOpportunities)
+      .innerJoin(fundingInitiatives, eq(fundingInitiatives.id, forwardOpportunities.initiativeId))
+      .where(
+        and(
+          eq(forwardOpportunities.tenantId, user.tenantId),
+          eq(forwardOpportunities.id, opportunityId),
+        ),
+      )
+      .limit(1);
+    return row ?? null;
+  });
 }

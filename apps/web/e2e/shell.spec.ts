@@ -88,6 +88,7 @@ const FORWARD_ITEMS: [string, string][] = [
   ["Initiatives", "/95-forward/initiatives"],
   ["Forecast", "/95-forward/forecast"],
   ["Green Sheet", "/95-forward/green-sheet"],
+  ["Scorecards", "/95-forward/scorecards"],
   ["Rules", "/rules"],
 ];
 
@@ -103,7 +104,7 @@ const HOST_ITEMS: [string, string][] = [
 ];
 
 test.describe("95 Forward inside the Keystone shell", () => {
-  test("expands to the seven war-room items in order", async ({ page }) => {
+  test("expands to the eight war-room items in order", async ({ page }) => {
     await page.goto("/95-forward/board");
     const children = page.locator(".shell-group__children .shell-row__label");
     await expect(children).toHaveText(FORWARD_ITEMS.map(([label]) => label));

@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Users,
   type LucideIcon,
+  ClipboardList,
 } from "lucide-react";
 import type { CurrentUser, Register } from "@95forward/shared";
 import { HOST_BRAND, ROLE_LABELS } from "@95forward/shared";
@@ -59,6 +60,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   scale: Scale,
   "layout-dashboard": LayoutDashboard,
   flag: Flag,
+  "clipboard-list": ClipboardList,
 };
 
 function isActive(pathname: string, href: string): boolean {

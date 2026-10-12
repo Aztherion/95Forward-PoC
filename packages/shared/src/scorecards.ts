@@ -544,3 +544,45 @@ function mean(values: readonly number[]): number {
   const total = values.reduce((sum, value) => sum + value, 0);
   return total / values.length;
 }
+
+// =================================================================================================
+// Score bands (I32)
+// =================================================================================================
+
+/**
+ * The three bands a score reads as, and the ONE place their thresholds live.
+ *
+ * This is its own enum rather than the queue's `moving / slowing / stuck`, for the same reason
+ * `Heartbeat` keeps its own cadence enum: a Scorecard is not deal health. A meeting can score 20%
+ * on a deal that is closing next week, and a chip that said "Stuck" beside it would be asserting
+ * something about the deal that nobody measured. The SCREEN routes these onto the shared health
+ * colour aliases — one palette, three vocabularies — and never onto the deal-health labels.
+ */
+export const SCORE_BANDS = ["strong", "mixed", "weak"] as const;
+export type ScoreBand = (typeof SCORE_BANDS)[number];
+
+/** Inclusive lower bounds, as fractions of 1. Change them here and every surface follows. */
+export const SCORE_BAND_THRESHOLDS: { readonly strong: number; readonly mixed: number } = {
+  strong: 0.7,
+  mixed: 0.4,
+};
+
+/**
+ * The band for an overall or section score.
+ *
+ * `null` in, `null` out — and that is the whole reason this returns a nullable. A Scorecard with
+ * nothing determinable has no score, which is not the same as a score of zero, and colouring it
+ * red would say the rep failed when the record simply did not say.
+ */
+export function scoreBand(value: number | null | undefined): ScoreBand | null {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  if (value >= SCORE_BAND_THRESHOLDS.strong) return "strong";
+  if (value >= SCORE_BAND_THRESHOLDS.mixed) return "mixed";
+  return "weak";
+}
+
+/** `0.4429` → `44%`. Null renders as an em dash, matching the money formatters. */
+export function formatScorePercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `${String(Math.round(value * 100))}%`;
+}

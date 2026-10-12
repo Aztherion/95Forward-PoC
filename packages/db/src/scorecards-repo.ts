@@ -735,6 +735,8 @@ export interface ScorecardListRow {
   readonly reportedByName: string;
   readonly subjectName: string;
   readonly initiativeName: string | null;
+  /** The opportunity's ask, so two meetings with the same prospect are distinguishable (I32). */
+  readonly amountCents: number | null;
   readonly opportunityId: string | null;
   readonly prospectId: string | null;
   readonly meetingTypeId: string | null;
@@ -799,6 +801,7 @@ export async function listScorecards(
       reportedByName: users.name,
       subjectName: constituents.displayName,
       initiativeName: fundingInitiatives.name,
+      amountCents: forwardOpportunities.amountCents,
       opportunityId: meetings.opportunityId,
       prospectId: meetings.prospectId,
       meetingTypeId: scorecards.meetingTypeId,

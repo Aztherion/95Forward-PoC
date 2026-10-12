@@ -54,7 +54,7 @@ describe("nav configuration", () => {
     if (eyebrow?.kind === "eyebrow") expect(eyebrow.label).toBe("Add-ons");
   });
 
-  it("lists the seven war-room items in order", () => {
+  it("lists the eight war-room items in order", () => {
     const group = section("add-ons").items.find(
       (i): i is NavGroup => i.kind === "group" && i.id === "95-forward",
     );
@@ -68,6 +68,9 @@ describe("nav configuration", () => {
       ["Initiatives", "/95-forward/initiatives"],
       ["Forecast", "/95-forward/forecast"],
       ["Green Sheet", "/95-forward/green-sheet"],
+      // I32. After the Green Sheet: it is the only item that looks backwards at the room rather
+      // than forwards at the pipeline.
+      ["Scorecards", "/95-forward/scorecards"],
       ["Rules", "/rules"],
     ]);
   });

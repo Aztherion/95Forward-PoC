@@ -1,0 +1,374 @@
+/* -------------------------------------------------------------------------------------------
+   Scorecards (I32)
+
+   Composition over the existing system. The only genuinely new things here are:
+
+     1. The SCORE BAND, which borrows the health triad's colour and none of its vocabulary —
+        exactly what `.f95-heartbeat--*` does with the cadence enum (design-system.md §10.2).
+     2. The CRITERION BLOCK, a prompt / verdict / rationale / quote stack the system has no
+        precedent for, because nothing before this rendered an argument rather than a value.
+     3. The SOURCE PANEL, which preserves transcript whitespace so timestamps and speaker labels
+        stay legible — the one place the app shows a raw artefact rather than a rendering of it.
+
+   Everything else reaches for `.f95-itemrow`, `.f95-statgrid`, `.f95-progress`, `.f95-modal`
+   and `Card`.
+   ------------------------------------------------------------------------------------------- */
+
+/* ---- The band. Colour only; the number carries the meaning. ---- */
+.f95-sc-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+}
+.f95-sc-score--strong {
+  color: var(--health-moving-text);
+}
+.f95-sc-score--mixed {
+  color: var(--health-slowing-text);
+}
+.f95-sc-score--weak {
+  color: var(--health-stuck-text);
+}
+/* No band: an em dash in muted ink. Not red — "the source did not say" is not a failure. */
+.f95-sc-score--none {
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+
+.f95-sc-score--lead {
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+
+/* ---- List ---- */
+.f95-sc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.f95-sc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+}
+.f95-sc-row:hover {
+  border-color: var(--border-strong);
+}
+.f95-sc-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.f95-sc-row__name {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+}
+.f95-sc-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+}
+.f95-sc-row__right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: right;
+}
+.f95-sc-row__score {
+  font-size: var(--fs-xl);
+  min-width: 56px;
+}
+
+/* The meta divider. A middot, muted, so five facts stop reading as one sentence. */
+.f95-sc-row__sep {
+  margin-right: var(--space-2);
+  color: var(--text-muted);
+}
+
+/* Picker results: full-width rows, not floating centred labels. */
+.f95-sc-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.f95-sc-option {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font: inherit;
+  color: var(--text-body);
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.f95-sc-option:hover {
+  border-color: var(--brand-primary);
+  background: var(--surface-sunk);
+}
+
+.f95-sc-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.f95-sc-filters__spacer {
+  flex: 1 1 auto;
+}
+
+/* ---- Detail header ---- */
+.f95-sc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-6);
+  justify-content: space-between;
+}
+.f95-sc-head__scores {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+.f95-sc-head__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+}
+.f95-sc-head__section {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  min-width: 180px;
+}
+
+/* ---- Processing ---- */
+.f95-sc-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.f95-sc-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+}
+.f95-sc-step--active {
+  color: var(--text-strong);
+  font-weight: var(--fw-medium);
+}
+.f95-sc-step--done {
+  color: var(--health-moving-text);
+}
+.f95-sc-step__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: var(--radius-circle);
+  border: 1px solid var(--border-default);
+  background: var(--surface-sunk);
+}
+/* The active step beats, using the system's one existing animation — the same `f95-heartbeat`
+   the job tray pulses with. A static list for the 15–20 seconds this really takes reads as a
+   hang; the app has no spinner and no skeleton by design, and the pulse IS its idiom for
+   "something is happening elsewhere". Honours prefers-reduced-motion via motion.css. */
+.f95-sc-step--active .f95-sc-step__mark {
+  border-color: var(--brand-primary);
+  animation: f95-heartbeat var(--beat-period) var(--ease-in-out) infinite;
+}
+.f95-sc-step--done .f95-sc-step__mark {
+  border-color: var(--health-moving-border);
+  background: var(--health-moving-surface);
+  color: var(--health-moving-text);
+}
+
+/* ---- Criteria ---- */
+.f95-sc-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.f95-sc-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.f95-sc-criterion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-hairline);
+}
+.f95-sc-criterion:last-child {
+  border-bottom: 0;
+}
+.f95-sc-criterion__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.f95-sc-criterion__prompt {
+  flex: 1 1 auto;
+  font-size: var(--fs-base);
+  color: var(--text-strong);
+}
+.f95-sc-criterion__verdict {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  min-width: 96px;
+}
+.f95-sc-verdict {
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+}
+/* Not determinable is NEUTRAL, and that is the whole point: a sparse-notes Scorecard full of these
+   must read as "the notes didn't say", not as a wall of failure. No colour, no weight. */
+.f95-sc-verdict--none {
+  font-weight: var(--fw-regular);
+  color: var(--text-muted);
+  font-style: italic;
+}
+/* A classification is a fact, not a grade. Deliberately uncoloured. */
+.f95-sc-verdict--fact {
+  font-weight: var(--fw-medium);
+  color: var(--text-body);
+}
+.f95-sc-criterion__bar {
+  width: 96px;
+}
+.f95-sc-criterion__why {
+  color: var(--text-body);
+  max-width: 68ch;
+}
+
+.f95-sc-quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-left: 2px solid var(--border-default);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: var(--fs-small);
+  line-height: var(--lh-relaxed);
+  max-width: 68ch;
+}
+/* Flagged, never hidden. A dashed rail is the system's existing "honourable gap" treatment. */
+.f95-sc-quote--unverified {
+  border-left-style: dashed;
+  border-left-color: var(--unknown-border);
+}
+.f95-sc-quote__note {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--unknown-ink);
+}
+
+/* ---- Source panel ---- */
+.f95-sc-source {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--surface-sunk);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-relaxed);
+  color: var(--text-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Earlier versions ---- */
+.f95-sc-version {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-hairline);
+}
+.f95-sc-version:last-child {
+  border-bottom: 0;
+}
+.f95-sc-version__spacer {
+  flex: 1 1 auto;
+}
+
+/* ---- Definition editor ---- */
+.f95-sc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.f95-sc-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-sunk);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+}
+/* Three levels of nesting need three grounds, or a criterion and its options read as siblings. */
+.f95-sc-block--nested {
+  background: var(--surface-card);
+}
+.f95-sc-block--nested .f95-sc-block--nested {
+  background: var(--surface-sunk);
+}
+.f95-sc-block__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.f95-sc-block__title {
+  flex: 1 1 auto;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ---- The Add dialog needs room for a transcript. The one modal is 520px. ---- */
+.f95-modal--wide {
+  max-width: 720px;
+}
