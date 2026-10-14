@@ -4,7 +4,10 @@ import {
   assertScorecardTransition,
   buildScoringJsonSchema,
   canTransitionScorecard,
+  formatScorePercent,
   normaliseForEvidence,
+  SCORE_BANDS,
+  scoreBand,
   READY_IS_REACHABLE_ONLY_FROM,
   SCORECARD_STATUSES,
   parseScoringResponse,
@@ -669,5 +672,39 @@ describe("snapshotCriteria", () => {
       "c-framing",
       "c-silence",
     ]);
+  });
+});
+
+describe("score bands", () => {
+  it("puts 70% and above in strong, 40–69 in mixed, below 40 in weak", () => {
+    expect(scoreBand(1)).toBe("strong");
+    expect(scoreBand(0.7)).toBe("strong");
+    expect(scoreBand(0.6999)).toBe("mixed");
+    expect(scoreBand(0.4)).toBe("mixed");
+    expect(scoreBand(0.3999)).toBe("weak");
+    expect(scoreBand(0)).toBe("weak");
+  });
+
+  it("returns null for no score — which is not the same as zero", () => {
+    // A Scorecard with nothing determinable has no band. Colouring it red would say the rep
+    // failed when the record simply did not say.
+    expect(scoreBand(null)).toBeNull();
+    expect(scoreBand(undefined)).toBeNull();
+    expect(scoreBand(Number.NaN)).toBeNull();
+    expect(scoreBand(0)).not.toBeNull();
+  });
+
+  it("keeps its own vocabulary, separate from the deal-health labels", () => {
+    // A meeting can score 20% on a deal that is closing next week. If this enum were the queue's,
+    // the chip would be asserting something about the deal that nobody measured.
+    expect([...SCORE_BANDS]).toEqual(["strong", "mixed", "weak"]);
+  });
+
+  it("formats a score as a whole percentage, and a missing one as an em dash", () => {
+    expect(formatScorePercent(0.4429)).toBe("44%");
+    expect(formatScorePercent(0.9714)).toBe("97%");
+    expect(formatScorePercent(1)).toBe("100%");
+    expect(formatScorePercent(0)).toBe("0%");
+    expect(formatScorePercent(null)).toBe("—");
   });
 });

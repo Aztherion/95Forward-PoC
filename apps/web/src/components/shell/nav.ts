@@ -22,7 +22,8 @@ export type NavIcon =
   | "compass"
   | "scale"
   | "layout-dashboard"
-  | "flag";
+  | "flag"
+  | "clipboard-list";
 
 export interface NavLeaf {
   kind: "leaf";
@@ -177,6 +178,16 @@ export const NAV_SECTIONS: NavSection[] = [
             label: "Green Sheet",
             href: "/95-forward/green-sheet",
             icon: "trending-up",
+          },
+          // I32. After the Green Sheet because the order is what to do, what you do it to, the
+          // numbers, then how well you did it — the scorecard is the only one that looks backwards
+          // at the room rather than forwards at the pipeline.
+          {
+            kind: "leaf",
+            id: "scorecards",
+            label: "Scorecards",
+            href: "/95-forward/scorecards",
+            icon: "clipboard-list",
           },
           // The Rules of Robb (I22). Deliberately at `/rules`, not `/95-forward/rules`: the RULE
           // chips on every screen link here, and a short stable path is what makes the chip's
